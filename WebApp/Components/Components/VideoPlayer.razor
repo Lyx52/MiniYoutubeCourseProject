@@ -1,0 +1,47 @@
+﻿@rendermode InteractiveServer
+@inject IJSRuntime JSRuntime
+<div id="main-video-player-container">
+    <video id="main-video-player" @ref="_playerRef" class="video-js video-player-videojs" controls preload="auto" width="640" height="264" poster="http://vjs.zencdn.net/v/oceans.png" data-setup="{}">
+        <source src="http://vjs.zencdn.net/v/oceans.mp4" type="video/mp4">
+        <source src="http://vjs.zencdn.net/v/oceans.webm" type="video/webm">
+        <source src="http://vjs.zencdn.net/v/oceans.ogv" type="video/ogg">
+        <p class="vjs-no-js">
+            To view this video please enable JavaScript, and consider upgrading to a web browser that 
+            <a href="https://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a>
+        </p>
+    </video>
+    <button @onclick="PauseVideoPlayer">Pause</button>
+</div>
+<HeadContent>
+    <script src="lib/videojs/video.min.js"></script>
+    <script src="js/video-player.js"></script>
+    <link rel="stylesheet" href="lib/videojs/video-js.min.css" />
+</HeadContent>
+@code {
+    public event Action<string> VideoPlayerReady;
+    private ElementReference _playerRef;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            InitializeVideoPlayer();
+        }
+    }
+    
+    private async Task PauseVideoPlayer()
+    {
+        await JSRuntime.InvokeVoidAsync("pauseMainVideoPlayer");
+    }
+    
+    private async void InitializeVideoPlayer()
+    {
+        await JSRuntime.InvokeVoidAsync("initMainVideoPlayer", _playerRef, DotNetObjectReference.Create(this));
+    }
+    
+    [JSInvokable]
+    public void OnVideoPlayerReady(string message)
+    {
+        Console.WriteLine(message);
+    }
+}

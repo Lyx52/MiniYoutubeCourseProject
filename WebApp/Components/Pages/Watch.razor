@@ -1,0 +1,26 @@
+﻿@page "/watch/{VideoId}"
+@rendermode InteractiveServer
+<div class="p-3 container-fluid">
+    <div class="row row-cols-1 row-cols-md-2 g-3">
+        <div class="col container-fluid">
+            <div class="row">
+                <WatchView VideoId="@VideoId"/>
+            </div>    
+            <div class="row d-none d-md-block">
+                <CommentSection />
+            </div>
+        </div>
+        <div class="col container-fluid">
+            <div class="row row-cols-1">
+                <VideoPlaylist />    
+            </div>
+            <div class="row d-block d-md-none">
+                <CommentSection />                
+            </div>
+        </div>
+    </div>
+</div>
+@code {
+    [Parameter]
+    public string? VideoId { get; set; }
+}

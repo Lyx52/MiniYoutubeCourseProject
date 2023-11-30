@@ -1,0 +1,72 @@
+.search-bar {
+    position: absolute;
+    left: 50%;
+    width: 500px;
+    margin-left: -250px;
+}
+
+
+.content {
+    margin-top: 6%;    
+}
+
+.creator-icon img {
+    border-radius: 50%;
+    border: 1px solid black;
+}
+/**
+   Front page view
+ */
+.video-card {
+    height: 280px !important;
+    flex-direction: column !important;
+}
+.video-card .video-card-body {
+    max-width: fit-content;
+    flex-direction: column !important;
+}
+.video-card .video-player {
+    width: 100% !important;
+}
+/**
+    Playlist view
+ */
+.video-card-playlist {
+    height: 100px !important;
+}
+.video-card-playlist .video-card-body {
+    max-width: fit-content;
+    flex-direction: row !important;
+    margin-left: auto !important;
+}
+/**
+    Comment view
+ */
+.user-comment {
+    min-height: 60px;
+}
+@media only screen and (max-width: 992px) { 
+    .search-bar {
+        width: 400px;
+        margin-left: -250px; 
+    }
+    .content {
+        margin-top: 8%;
+    }
+    .video-card {
+        height: 240px !important;
+    }
+    .video-card-playlist .video-card-body {
+        margin-left: 0 !important;
+    }
+}
+
+@media only screen and (max-width: 768px) {
+    .search-bar {
+        width: 300px;
+        margin-left: -150px;
+    }
+    .video-card {
+        height: 220px !important;
+    }
+}

@@ -1,0 +1,26 @@
+﻿<div class="col">
+  <div class="card border-0 @(IsPlaylistView ? "video-card-playlist" : "video-card")">
+    <div class="gap-3 card-body d-flex justify-content-between video-card-body">
+      <div class="video-player">
+        <h4>Thumbnail</h4>
+      </div>
+      <div class="d-inline-flex">
+        <div class="creator-icon">
+          <img src="@CreatorIconLink" alt="CreatorIconLink">
+        </div>
+        <div class="ms-3 d-flex flex-column">
+          <p class="fs-5 mb-1">@Title</p>
+          <p class="small mb-0">@Creator</p>
+          <p class="small mb-0 text-body-secondary">20 hours ago</p>
+        </div>
+      </div>
+    </div>
+  </div>  
+</div>
+@code {
+  string Title = "This is a long title....";
+  string Creator = "Linus Tech Tips";
+  string CreatorIconLink = "/favicon.png";
+  [Parameter]
+  public bool IsPlaylistView { get; set; }
+}
