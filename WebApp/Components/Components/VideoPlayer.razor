@@ -11,6 +11,7 @@
         </p>
     </video>
     <button @onclick="PauseVideoPlayer">Pause</button>
+     <button @onclick="PlayVideoPlayer">Play</button>
 </div>
 <HeadContent>
     <script src="lib/videojs/video.min.js"></script>
@@ -32,6 +33,11 @@
     private async Task PauseVideoPlayer()
     {
         await JSRuntime.InvokeVoidAsync("pauseMainVideoPlayer");
+    }
+    
+    private async Task PlayVideoPlayer()
+    {
+        await JSRuntime.InvokeVoidAsync("playMainVideoPlayer");
     }
     
     private async void InitializeVideoPlayer()
