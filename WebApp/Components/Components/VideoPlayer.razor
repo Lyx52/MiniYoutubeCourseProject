@@ -1,4 +1,5 @@
-﻿@rendermode InteractiveServer
+﻿@using Domain.Model
+@rendermode InteractiveServer
 <div class="d-flex flex-column video-player-player">
 	<BlazoredVideo @ref="_videoPlayer"
 	               TimeUpdate="OnTimeUpdate"
@@ -6,22 +7,34 @@
 	               VolumeChange="OnVolumeChange"
 	               VideoEventOptions="_options"
 	               class="video-player" @onmouseover="OnMouseEnter" @onmouseleave="OnMouseLeave">
-		<source src="video/elephants2.mp4" type="video/mp4"/>
+		@* <source src="video/elephants2.mp4" type="video/mp4"/> *@
+		<source src="@DefaultSource.Src" type="@DefaultSource.Type"/>
 	</BlazoredVideo>
 	@if (HasControls)
     {
-	    <div class="d-flex-inline video-player-controls">
+	    <div class="d-flex flex-row video-player-controls">
 		    <button @onclick="OnPlayPauseClick" class="btn border-0 shadow-none">
 			    <i class="bi @(IsPaused ? "bi-pause-circle-fill" : "bi-play-circle-fill")"></i>
 		    </button>
 		    <button @onclick="OnClickMuteUnmute" @onmouseover="OnMouseOverMuteUnmute" class="btn border-0 shadow-none">
 			    <i class="bi @(Volume <= 0 ? "bi-volume-mute-fill" : "bi-volume-up-fill")"></i>
 		    </button>
+		    <div class="ms-auto dropstart">
+              <button type="button" class="btn border-0" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-gear-fill"></i>
+              </button>
+			    <ul class="dropdown-menu">
+				    @foreach (var source in Sources)
+				    {
+					    <li><a class="dropdown-item resolution-item @(source == DefaultSource ? "active" : string.Empty)" @onclick="(async () => await SetSource(source))">@source.Resolution</a></li>    
+				    }
+			    </ul>
+            </div>
 	    </div>
 	    <div class="progress video-player-progress" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
 		    <div class="progress-bar" style="width: @(VideoProgress / VideoDuration * 100.0f)%"></div>
 	    </div>
-	    <input @onmouseleave="OnMouseLeaveVolumeSlider" @onchange="OnVolumeSliderChanged" type="range" class="form-range video-player-volume-slider @(ShowVolumeSlider ? string.Empty : "d-none")" min="0" max="1" step="0.05">
+	    <input @onmouseleave="OnMouseLeaveVolumeSlider" @onchange="OnVolumeSliderChanged" value="@Volume" type="range" class="form-range video-player-volume-slider @(ShowVolumeSlider ? string.Empty : "d-none")" min="0" max="1" step="0.05">
     }
 </div>
 <HeadContent>
@@ -34,15 +47,29 @@
 	[Parameter]
 	public bool OnHoverPlayback { get; set; }
 
+	[Parameter]
+	public List<VideoSource> Sources { get; set; }
+	
+	[Parameter]
+	public VideoSource DefaultSource { get; set; }
+	
 	private Dictionary<VideoEvents, VideoStateOptions> _options = new Dictionary<VideoEvents, VideoStateOptions>();
 	private BlazoredVideo _videoPlayer { get; set; }
 	private bool IsLoaded { get; set; }
-	private bool IsPaused { get; set; } = true;
+	private bool IsPaused { get; set; } = false;
 	private double VideoProgress { get; set; }
 	private double VideoDuration { get; set; }
 	private double Volume { get; set; } = 1.0f;
 	private double PrevVolume { get; set; } = 0.75f;
 	private bool ShowVolumeSlider { get; set; } = false;
+
+	private async Task SetSource(VideoSource source)
+	{
+		DefaultSource = source;
+		IsPaused = false;
+		await _videoPlayer.SetSrcAsync(source.Src);
+	}
+	
 	protected override Task OnInitializedAsync()
 	{
 		var stateOptions = new VideoStateOptions

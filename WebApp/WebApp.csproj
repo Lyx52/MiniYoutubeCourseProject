@@ -386,5 +386,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Blazored.Video\Blazored.Video.csproj" />
+    <ProjectReference Include="..\Domain\Domain.csproj" />
   </ItemGroup>
 </Project>

@@ -21,8 +21,18 @@
 }
 .video-player-volume-slider {
     position: relative;
-    width: 15%;
+    width: 12%;
     bottom: 32px;
     left: 78px;
     z-index: 1 !important;
+}
+.video-player-volume-slider::-webkit-slider-thumb {
+    background: #000;
+    box-shadow: none !important;
+}
+.video-player-volume-slider::-webkit-slider-runnable-track {
+    background-color: #e9ecefaf;
+}
+.resolution-item {
+    cursor: pointer;
 }

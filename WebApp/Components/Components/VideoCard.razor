@@ -1,7 +1,8 @@
-﻿<div class="col">
+﻿@using Domain.Model
+<div class="col">
   <div class="card border-0 @(IsPlaylistView ? "video-card-playlist" : "video-card")">
     <div class="gap-3 card-body d-flex justify-content-between video-card-body">
-      <VideoPlayer HasControls="@false" OnHoverPlayback="@true" />
+      <VideoPlayer HasControls="@false" OnHoverPlayback="@true" Sources="@Sources" DefaultSource="@Sources[0]" />
       <div class="d-inline-flex">
         <div class="creator-icon">
           <img src="@CreatorIconLink" alt="CreatorIconLink">
@@ -16,9 +17,18 @@
   </div>  
 </div>
 @code {
-  string Title = "This is a long title....";
+  [Parameter]
+  public string Title { get; set; }
   string Creator = "Linus Tech Tips";
   string CreatorIconLink = "/favicon.png";
   [Parameter]
   public bool IsPlaylistView { get; set; }
+
+  private List<VideoSource> Sources = new List<VideoSource>()
+  {
+    new VideoSource() { Resolution = "1080p", Src = "video/elephants2.mp4", Type = "video/mp4" },
+    new VideoSource() { Resolution = "720p", Src = "video/elephants2.mp4", Type = "video/mp4" },
+    new VideoSource() { Resolution = "360p", Src = "video/elephants2.mp4", Type = "video/mp4" },
+  };
+
 }

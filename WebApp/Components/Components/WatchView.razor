@@ -1,7 +1,14 @@
-﻿<div class="mb-3">
-    <VideoPlayer HasControls="@true" OnHoverPlayback="@false" />
+﻿@using Domain.Model
+<div class="mb-3">
+    <VideoPlayer HasControls="@true" OnHoverPlayback="@false" Sources="@Sources" DefaultSource="@Sources[0]" />
 </div>
 @code {
     [Parameter]
     public string? VideoId { get; set; }
+    private List<VideoSource> Sources = new List<VideoSource>()
+    {
+        new VideoSource() { Resolution = "1080p", Src = "video/elephants2.mp4", Type = "video/mp4" },
+        new VideoSource() { Resolution = "720p", Src = "video/elephants2.mp4", Type = "video/mp4" },
+        new VideoSource() { Resolution = "360p", Src = "video/elephants2.mp4", Type = "video/mp4" },
+    };
 }
