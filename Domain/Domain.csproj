@@ -6,4 +6,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Blazored.Video" Version="1.0.1" />
+    <PackageReference Include="BlazorPolyfill.Server" Version="7.0.203.1" />
+  </ItemGroup>
+
 </Project>

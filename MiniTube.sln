@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Domain", "Domain\Domain.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebApi", "WebApi\WebApi.csproj", "{6785D8FE-EA80-4AC9-8D79-6A9AAF3F77FA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Blazored.Video", "Blazored.Video\Blazored.Video.csproj", "{2A8FCD16-D972-4E2C-88F0-1340CCEF036D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +32,9 @@ Global
 		{6785D8FE-EA80-4AC9-8D79-6A9AAF3F77FA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6785D8FE-EA80-4AC9-8D79-6A9AAF3F77FA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6785D8FE-EA80-4AC9-8D79-6A9AAF3F77FA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2A8FCD16-D972-4E2C-88F0-1340CCEF036D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2A8FCD16-D972-4E2C-88F0-1340CCEF036D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2A8FCD16-D972-4E2C-88F0-1340CCEF036D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2A8FCD16-D972-4E2C-88F0-1340CCEF036D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -1,4 +1,5 @@
-﻿using WebApp.Components;
+﻿using Blazor.Polyfill.Server;
+using WebApp.Components;
 
 namespace WebApp;
 
@@ -28,7 +29,6 @@ public class Startup
 
         app.UseRouting();
         app.UseHttpsRedirection();
-
         app.UseStaticFiles();
         app.UseAntiforgery();
 

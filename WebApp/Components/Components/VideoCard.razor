@@ -1,9 +1,7 @@
 ﻿<div class="col">
   <div class="card border-0 @(IsPlaylistView ? "video-card-playlist" : "video-card")">
     <div class="gap-3 card-body d-flex justify-content-between video-card-body">
-      <div class="video-player">
-        <h4>Thumbnail</h4>
-      </div>
+      <VideoPlayer HasControls="@false" OnHoverPlayback="@true" />
       <div class="d-inline-flex">
         <div class="creator-icon">
           <img src="@CreatorIconLink" alt="CreatorIconLink">

@@ -18,15 +18,12 @@
    Front page view
  */
 .video-card {
-    height: 280px !important;
+    /*height: 280px !important;*/
     flex-direction: column !important;
 }
 .video-card .video-card-body {
     max-width: fit-content;
     flex-direction: column !important;
-}
-.video-card .video-player {
-    width: 100% !important;
 }
 /**
     Playlist view
@@ -39,12 +36,17 @@
     flex-direction: row !important;
     margin-left: auto !important;
 }
+.video-card-playlist .video-player {
+    width: auto;
+    height: 64px !important;
+}
 /**
     Comment view
  */
 .user-comment {
     min-height: 60px;
 }
+
 @media only screen and (max-width: 992px) { 
     .search-bar {
         width: 400px;
@@ -53,9 +55,9 @@
     .content {
         margin-top: 8%;
     }
-    .video-card {
-        height: 240px !important;
-    }
+    /*.video-card {*/
+    /*    height: 240px !important;*/
+    /*}*/
     .video-card-playlist .video-card-body {
         margin-left: 0 !important;
     }
@@ -66,7 +68,7 @@
         width: 300px;
         margin-left: -150px;
     }
-    .video-card {
-        height: 220px !important;
-    }
+    /*.video-card {*/
+    /*    height: 220px !important;*/
+    /*}*/
 }

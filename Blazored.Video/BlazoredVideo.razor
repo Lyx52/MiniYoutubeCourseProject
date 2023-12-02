@@ -1,0 +1,22 @@
+﻿@*
+	Media Events don't work in Blazor - I believe because they don't bubble.
+	Blazor attaches it's event handlers to the document, and does not register
+	these events as they don't bubble up to the document.
+	So, this uses onchange and forces the video element to have a 'value' property,
+	which it doesn't normally have.
+	I then populate the 'value' with a JSON string containing the requested data
+	and the event name.
+
+	Sample JSON data for an event:
+	{
+		"name":"Suspend",
+		"data":
+		{
+			"Autoplay":false,
+			"Controls":true,
+			"CurrentSrc":"videos/elephants2.mp4",
+			"CurrentTime":2.758966
+		}
+	}
+*@
+<video id="@UniqueKey" @key="UniqueKey" @attributes=@Attributes @onchange=@OnChange @ref="videoRef">@ChildContent</video>
