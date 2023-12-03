@@ -16,6 +16,7 @@ public class Startup
     {
         services.AddRazorComponents()
             .AddInteractiveServerComponents();
+        services.AddBlazorBootstrap();
     }
 
     public void Configure(IApplicationBuilder app, IHostEnvironment env)
@@ -31,7 +32,6 @@ public class Startup
         app.UseHttpsRedirection();
         app.UseStaticFiles();
         app.UseAntiforgery();
-
         app.UseEndpoints((config) =>
         {
             config.MapRazorComponents<App>()
