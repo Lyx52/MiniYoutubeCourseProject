@@ -10,6 +10,6 @@ public interface IWorkFileService
     WorkSpace CreateWorkSpace(WorkSpaceDirectory directory);
     string GetWorkSpaceDirectory(WorkSpace workSpace);
     string CreateWorkFile(WorkSpace workSpace, WorkFileType type, string extension);
-    Task SaveWorkSpace(WorkSpace workSpace);
+    Task SaveWorkSpaceAsync(WorkSpace workSpace);
     Task<WorkSpace> LoadWorkSpace(WorkSpaceDirectory directory, Guid id);
 }

@@ -45,7 +45,7 @@ public class WorkFileService : IWorkFileService
         return Path.Join(directory, file.FileName);
     }
     
-    public async Task SaveWorkSpace(WorkSpace workSpace)
+    public async Task SaveWorkSpaceAsync(WorkSpace workSpace)
     {
         var directory = GetWorkSpaceDirectory(workSpace);
         var metadataFile = Path.Join(directory, "metadata.json");

@@ -2,6 +2,9 @@
 using Domain.Constants;
 using Domain.Model.Configuration;
 using FFMpegCore;
+using FFMpegCore.Enums;
+using FFMpegCore.Helpers;
+using FFMpegCore.Pipes;
 using Microsoft.AspNetCore.WebUtilities;
 using WebApi.Services.Interfaces;
 
@@ -32,9 +35,30 @@ public class ContentService : IContentService
                 readStream.Seek(0, SeekOrigin.Begin);
                 await readStream.CopyToAsync(fileStream, cancellationToken);
                 await fileStream.FlushAsync(cancellationToken);
+                
                 fileStream.Close();
-                await _processingService.GeneratePosterAsync(workSpace, new Size(1920, 1080), cancellationToken);
-                await _workFileService.SaveWorkSpace(workSpace);
+                await _processingService.GeneratePosterGifAsync(workSpace, new Size(1920, 1080), cancellationToken);
+                await using (var fs = File.OpenRead(file))
+                {
+                    byte[] data = new byte[fs.Length];
+                    var len = await fs.ReadAsync(data, cancellationToken);
+                    MemoryStream ms1 = new MemoryStream(data, false);
+                    ms1.Seek(0, SeekOrigin.Begin);
+                    MemoryStream ms2 = new MemoryStream(data, false);
+                    ms2.Seek(0, SeekOrigin.Begin);
+                    MemoryStream ms3 = new MemoryStream(data, false);
+                    ms3.Seek(0, SeekOrigin.Begin);
+                    await Task.WhenAll(
+                        _processingService.EncodeVideoAsync(workSpace, ms1, VideoSize.Original,
+                            cancellationToken),
+                        _processingService.GeneratePosterAsync(workSpace, ms2, new Size(1920, 1080), 
+                            cancellationToken),
+                        _processingService.GeneratePosterGifAsync(workSpace, ms3, new Size(480, -1), 
+                            cancellationToken)
+                    );
+                }
+                // 
+                await _workFileService.SaveWorkSpaceAsync(workSpace);
                 return workSpace.Id;
             }
             catch (IOException e)

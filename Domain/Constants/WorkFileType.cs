@@ -5,5 +5,5 @@ public enum WorkFileType
     Original,
     Poster,
     PosterGif,
-    Source
+    EncodedSource
 }

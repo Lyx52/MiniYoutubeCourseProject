@@ -2,8 +2,11 @@
 using Domain.Constants;
 using Domain.Model;
 using FFMpegCore;
+using FFMpegCore.Enums;
+using FFMpegCore.Pipes;
+using WebApi.Services.CustomFFMpeg;
 using WebApi.Services.Interfaces;
-using FFMpegImage = FFMpegCore.Extensions.System.Drawing.Common.FFMpegImage;
+
 namespace WebApi.Services;
 
 public class ContentProcessingService : IContentProcessingService
@@ -16,9 +19,9 @@ public class ContentProcessingService : IContentProcessingService
         _logger = logger;
         _workFileService = workFileService;
         // TODO: Move this to configuration
-        _ffOptions = new FFOptions()
+        _ffOptions = new FFOptions
         {
-            BinaryFolder = "D:\\ffmpeg\\bin",
+            BinaryFolder = "C:\\ProgramData\\chocolatey\\bin",
             UseCache = true,
         };
     }
@@ -46,15 +49,111 @@ public class ContentProcessingService : IContentProcessingService
         
         return true;
     }
-
-    public async Task<string> GeneratePosterAsync(WorkSpace workSpace, Size posterSize, CancellationToken cancellationToken = default(CancellationToken))
+    public async Task<string> GeneratePosterAsync(WorkSpace workSpace, Stream stream, Size posterSize, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var posterLocation = _workFileService.CreateWorkFile(workSpace, WorkFileType.Poster, ".jpg");
+        try
+        {
+            await FFMpegArguments
+                .FromPipeInput(new StreamPipeSource(stream))
+                .OutputToFile(posterLocation, false, options =>
+                {
+                    options
+                        .Seek(TimeSpan.FromSeconds(3))
+                        .WithCustomArgument("-qscale:v 2")
+                        .WithFrameOutputCount(1)
+                        .WithFastStart();
+                })
+                .CancellableThrough(cancellationToken)
+                .ProcessAsynchronously(true, _ffOptions);
+        }
+        catch (IOException _)
+        {
+            // TODO: For some reason when generating jpgs from pipes it processes the pipe but still fails afterwards
+        }
+        if (File.Exists(posterLocation)) return posterLocation;
+        throw new ApplicationException($"Failed to create poster image for WorkSpace {workSpace.Id}");
+    }
+    
+    private static Size? PrepareSnapshotSize(IMediaAnalysis source, Size? wantedSize)
+    {
+        if (!wantedSize.HasValue || wantedSize.Value.Height <= 0 && wantedSize.Value.Width <= 0 || source.PrimaryVideoStream == null)
+            return new Size?();
+        Size size = new Size(source.PrimaryVideoStream.Width, source.PrimaryVideoStream.Height);
+        if (source.PrimaryVideoStream.Rotation == 90 || source.PrimaryVideoStream.Rotation == 180)
+            size = new Size(source.PrimaryVideoStream.Height, source.PrimaryVideoStream.Width);
+        if (wantedSize.Value.Width == size.Width && wantedSize.Value.Height == size.Height)
+            return new Size?();
+        if (wantedSize.Value.Width <= 0 && wantedSize.Value.Height > 0)
+        {
+            double num = wantedSize.Value.Height / (double) size.Height;
+            return new Size((int) (size.Width * num), (int) (size.Height * num));
+        }
+        if (wantedSize.Value.Height > 0 || wantedSize.Value.Width <= 0)
+            return wantedSize;
+        double num1 = wantedSize.Value.Width / (double) size.Width;
+        return new Size((int) (size.Width * num1), (int) (size.Height * num1));
+    }
+    
+    public async Task<string> GeneratePosterGifAsync(WorkSpace workSpace, Stream stream, Size gifSize,
+        CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var gifLocation = _workFileService.CreateWorkFile(workSpace, WorkFileType.PosterGif, ".gif");
+        var source = await FFProbe.AnalyseAsync(stream, _ffOptions, cancellationToken);
+        stream.Seek(0, SeekOrigin.Begin);
+        
+        var success = await FFMpegArguments
+            .FromPipeInput(new StreamPipeSource(stream))
+            .OutputToFile(gifLocation, false, options =>
+            {
+                options
+                    .Seek(TimeSpan.FromSeconds(0))
+                    .WithDuration(TimeSpan.FromSeconds(10))
+                    .WithGifPaletteArgument(source.PrimaryVideoStream!.Index, gifSize)
+                    .UsingMultithreading(true);
+            })
+            .CancellableThrough(cancellationToken)
+            .ProcessAsynchronously(true, _ffOptions);
+        if (success) return gifLocation;
+        throw new ApplicationException($"Failed to create PosterGif for {workSpace.Id} workspace");
+    }
+    public async Task<string> GeneratePosterGifAsync(WorkSpace workSpace, Size gifSize,
+        CancellationToken cancellationToken = default(CancellationToken))
     {
         var originalLocation = _workFileService.GetWorkFileLocation(workSpace, WorkFileType.Original);
         if (originalLocation is null)
             throw new ApplicationException($"WorkSpace {workSpace.Id} does not contain 'Original' WorkFile");
-        var posterLocation = _workFileService.CreateWorkFile(workSpace, WorkFileType.Poster, ".png");
-        var success = await FFMpeg.SnapshotAsync(originalLocation, posterLocation, posterSize, TimeSpan.FromSeconds(1));
-        if (success) return posterLocation;
-        throw new ApplicationException($"Failed to create Poster for {workSpace.Id} workspace");
+        var gifLocation = _workFileService.CreateWorkFile(workSpace, WorkFileType.PosterGif, ".gif");
+        var success = await FFMpeg.GifSnapshotAsync(originalLocation, gifLocation, gifSize, TimeSpan.FromSeconds(10));
+        if (success) return gifLocation;
+        throw new ApplicationException($"Failed to create PosterGif for {workSpace.Id} workspace");
+    }
+
+    public async Task<string> EncodeVideoAsync(WorkSpace workSpace, Stream stream, VideoSize size, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var fileLocation = _workFileService.CreateWorkFile(workSpace, WorkFileType.EncodedSource, ".mp4");
+        
+        var success = await FFMpegArguments
+            .FromPipeInput(new StreamPipeSource(stream))
+            .OutputToFile(fileLocation, false, options =>
+            {
+                options
+                    .Seek(TimeSpan.Zero)
+                    .UsingMultithreading(true)
+                    .WithAudioCodec(AudioCodec.Aac)
+                    .WithVideoCodec(VideoCodec.LibX264)
+                    .WithConstantRateFactor(24)
+                    .ForceFormat("mp4")
+                    .WithVideoFilters(filters =>
+                    {
+                        filters.Scale(size);
+                        filters.Arguments.Add(new CustomFilterArgument("pad", "ceil(iw/2)*2:ceil(ih/2)*2"));
+                    })
+                    .WithFastStart();
+            })
+            .CancellableThrough(cancellationToken)
+            .ProcessAsynchronously(true, _ffOptions);
+        if (success) return fileLocation;
+        throw new ApplicationException($"Failed to create EncodeSource for {workSpace.Id} workspace");
     }
 }
