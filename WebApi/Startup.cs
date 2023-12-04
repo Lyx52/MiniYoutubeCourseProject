@@ -7,7 +7,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using WebApi.Data;
+using WebApi.Services;
+using WebApi.Services.Interfaces;
 using WebApi.Swagger;
+using Domain;
+using Domain.Model.Configuration;
 
 namespace WebApi;
 
@@ -22,6 +26,7 @@ public class Startup
 
     public void ConfigureServices(IServiceCollection services)
     {
+        var settings = services.AddApiConfiguration(Configuration);
         services.AddDbContext<ApplicationDbContext>((options) =>
         {
             // TODO: Use proper db.
@@ -54,9 +59,9 @@ public class Startup
                 {
                     ValidateIssuer = true,
                     ValidateAudience = true,
-                    ValidAudience = Configuration["JWT:ValidAudience"],
-                    ValidIssuer = Configuration["JWT:ValidIssuer"],
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["JWT:Secret"]!))
+                    ValidAudience = settings.JWT.ValidAudience,
+                    ValidIssuer = settings.JWT.ValidIssuer,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(settings.JWT.Secret))
                 };
             });
         services.AddControllers();
@@ -84,7 +89,13 @@ public class Startup
                 } 
             });
         });
-
+        
+        services.AddTransient<IWorkFileService, WorkFileService>();
+        services.AddTransient<IContentProcessingService, ContentProcessingService>();
+        services.AddTransient<IContentService, ContentService>();
+        services.AddSingleton<ApiConfiguration>(
+            _ => Configuration.GetSection(nameof(ApiConfiguration)).Get<ApiConfiguration>()!
+        );
     }
     
 

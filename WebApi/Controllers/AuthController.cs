@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Text;
 using Domain.Entity;
 using Domain.Model;
+using Domain.Model.Configuration;
 using Domain.Model.Response;
 using Domain.Model.View;
 using Microsoft.AspNetCore.Identity;
@@ -17,13 +18,13 @@ public class AuthController : ControllerBase
 {
     private readonly UserManager<User> _userManager;
     private readonly RoleManager<IdentityRole> _roleManager;
-    private readonly IConfiguration _configuration;
+    private readonly ApiConfiguration _configuration;
     private readonly ILogger<AuthController> _logger;
     public AuthController(
         ILogger<AuthController> logger,
         UserManager<User> userManager,
         RoleManager<IdentityRole> roleManager,
-        IConfiguration configuration)
+        ApiConfiguration configuration)
     {
         _userManager = userManager;
         _roleManager = roleManager;
@@ -53,7 +54,7 @@ public class AuthController : ControllerBase
 
         var token = GetToken(authClaims);
         var jwtToken = new JwtSecurityTokenHandler().WriteToken(token);
-        return Ok(new LoginResponse()
+        return Ok(new LoginResponseModel()
         {
             Token = jwtToken,
             BearerToken = $"Bearer {jwtToken}",
@@ -86,11 +87,11 @@ public class AuthController : ControllerBase
     
     private JwtSecurityToken GetToken(List<Claim> authClaims)
     {
-        var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]!));
+        var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration.JWT.Secret!));
 
         var token = new JwtSecurityToken(
-            issuer: _configuration["JWT:ValidIssuer"],
-            audience: _configuration["JWT:ValidAudience"],
+            issuer: _configuration.JWT.ValidIssuer,
+            audience: _configuration.JWT.ValidAudience,
             expires: DateTime.Now.AddHours(3),
             claims: authClaims,
             signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)

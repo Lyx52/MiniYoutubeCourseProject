@@ -2,7 +2,7 @@
 <div class="col">
   <div class="card border-0 @(IsPlaylistView ? "video-card-playlist" : "video-card")">
     <div class="gap-3 card-body d-flex justify-content-between video-card-body">
-      <VideoPlayer HasControls="@false" OnHoverPlayback="@true" Sources="@Sources" DefaultSource="@Sources[0]" />
+      <VideoPlayer HasControls="@false" OnHoverPlayback="@true" Sources="@Sources" DefaultSourceModel="@Sources[0]" />
       <div class="d-inline-flex">
         <div class="creator-icon">
           <img src="@CreatorIconLink" alt="CreatorIconLink">
@@ -24,11 +24,11 @@
   [Parameter]
   public bool IsPlaylistView { get; set; }
 
-  private List<VideoSource> Sources = new List<VideoSource>()
+  private List<VideoSourceModel> Sources = new List<VideoSourceModel>()
   {
-    new VideoSource() { Resolution = "1080p", Src = "video/elephants2.mp4", Type = "video/mp4" },
-    new VideoSource() { Resolution = "720p", Src = "video/elephants2.mp4", Type = "video/mp4" },
-    new VideoSource() { Resolution = "360p", Src = "video/elephants2.mp4", Type = "video/mp4" },
+    new VideoSourceModel() { Resolution = "1080p", Src = "video/elephants2.mp4", Type = "video/mp4" },
+    new VideoSourceModel() { Resolution = "720p", Src = "video/elephants2.mp4", Type = "video/mp4" },
+    new VideoSourceModel() { Resolution = "360p", Src = "video/elephants2.mp4", Type = "video/mp4" },
   };
 
 }

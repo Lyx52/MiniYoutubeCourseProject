@@ -6,6 +6,6 @@ namespace Domain.Interfaces;
 
 public interface IAuthHttpClient
 {
-    Task<LoginResponse> LoginAsync(LoginModel model);
+    Task<LoginResponseModel> LoginAsync(LoginModel model);
     Task<Response> RegisterAsync(RegisterModel model);
 }

@@ -6,11 +6,11 @@ using Microsoft.AspNetCore.Identity;
 namespace Domain.Attributes;
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter,
     AllowMultiple = false)]
-public class PasswordValidation : ValidationAttribute
+public class PasswordValidationAttribute : ValidationAttribute
 {
     public PasswordOptions Options { get; set; }
     private StringBuilder _errorBuilder;
-    public PasswordValidation(int requiredLength, bool requireDigit, bool requireNonAlphanumeric, bool requireLowercase, bool requireUppercase)
+    public PasswordValidationAttribute(int requiredLength, bool requireDigit, bool requireNonAlphanumeric, bool requireLowercase, bool requireUppercase)
     {
         Options = new PasswordOptions()
         {

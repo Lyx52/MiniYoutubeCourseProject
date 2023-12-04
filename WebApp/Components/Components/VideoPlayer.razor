@@ -8,7 +8,7 @@
 	               VideoEventOptions="_options"
 	               class="video-player" @onmouseover="OnMouseEnter" @onmouseleave="OnMouseLeave">
 		@* <source src="video/elephants2.mp4" type="video/mp4"/> *@
-		<source src="@DefaultSource.Src" type="@DefaultSource.Type"/>
+		<source src="@DefaultSourceModel.Src" type="@DefaultSourceModel.Type"/>
 	</BlazoredVideo>
 	@if (HasControls)
     {
@@ -26,7 +26,7 @@
 			    <ul class="dropdown-menu">
 				    @foreach (var source in Sources)
 				    {
-					    <li><a class="dropdown-item resolution-item @(source == DefaultSource ? "active" : string.Empty)" @onclick="(async () => await SetSource(source))">@source.Resolution</a></li>    
+					    <li><a class="dropdown-item resolution-item @(source == DefaultSourceModel ? "active" : string.Empty)" @onclick="(async () => await SetSource(source))">@source.Resolution</a></li>    
 				    }
 			    </ul>
             </div>
@@ -48,10 +48,10 @@
 	public bool OnHoverPlayback { get; set; }
 
 	[Parameter]
-	public List<VideoSource> Sources { get; set; }
+	public List<VideoSourceModel> Sources { get; set; }
 	
 	[Parameter]
-	public VideoSource DefaultSource { get; set; }
+	public VideoSourceModel DefaultSourceModel { get; set; }
 	
 	private Dictionary<VideoEvents, VideoStateOptions> _options = new Dictionary<VideoEvents, VideoStateOptions>();
 	private BlazoredVideo _videoPlayer { get; set; }
@@ -63,11 +63,11 @@
 	private double PrevVolume { get; set; } = 0.75f;
 	private bool ShowVolumeSlider { get; set; } = false;
 
-	private async Task SetSource(VideoSource source)
+	private async Task SetSource(VideoSourceModel sourceModel)
 	{
-		DefaultSource = source;
+		DefaultSourceModel = sourceModel;
 		IsPaused = false;
-		await _videoPlayer.SetSrcAsync(source.Src);
+		await _videoPlayer.SetSrcAsync(sourceModel.Src);
 	}
 	
 	protected override Task OnInitializedAsync()
