@@ -29,21 +29,28 @@ public class Startup
     public void ConfigureServices(IServiceCollection services)
     {
         var settings = services.AddApiConfiguration(Configuration);
-        services.AddDbContext<ApplicationDbContext>((options) =>
+        services.AddDbContext<UserDbContext>((options) =>
         {
             // TODO: Use proper db.
             options
-                .UseInMemoryDatabase("AppDb")
-                .EnableDetailedErrors(true)
-                .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+                .UseInMemoryDatabase("UserDb")
+                .EnableDetailedErrors(true);
             //options.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
         });
-        
+        services.AddDbContext<VideoDbContext>((options) =>
+        {
+            // TODO: Use proper db.
+            options
+                .UseInMemoryDatabase("VideoDb")
+                .EnableDetailedErrors(true);
+            //options.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+        });
+
         services.AddIdentity<User, IdentityRole>(options =>
             {
                 options.Password = PasswordOptionConfig.Default;
             })
-            .AddEntityFrameworkStores<ApplicationDbContext>()
+            .AddEntityFrameworkStores<UserDbContext>()
             .AddDefaultTokenProviders();
         // Adding Authentication
         services

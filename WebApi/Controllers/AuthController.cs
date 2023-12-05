@@ -48,6 +48,7 @@ public class AuthController : ControllerBase
         {
             new Claim(ClaimTypes.Name, user.UserName!),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim(JwtRegisteredClaimNames.Sub, user.Id)
         };
             
         authClaims

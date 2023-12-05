@@ -13,23 +13,24 @@ public class BackgroundProcessingService : BackgroundService
     private readonly ChannelReader<ProcessVideoTask> _channel;
     private readonly ConcurrentBag<Task> _processingList;
     private readonly ConcurrentQueue<Task> _processingQueue;
-    private readonly IContentProcessingService _processingService;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     public BackgroundProcessingService(
         ILogger<BackgroundProcessingService> logger,
         ChannelReader<ProcessVideoTask> channel,
-        IContentProcessingService processingService)
+        IServiceScopeFactory serviceScopeFactory)
     {
         _logger = logger;
         _channel = channel;
-        _processingService = processingService;
+        _serviceScopeFactory = serviceScopeFactory;
         _processingList = new ConcurrentBag<Task>();
         _processingQueue = new ConcurrentQueue<Task>();
     }
 
-    private async Task BuildTask(ProcessVideoTask payload)
+    private async Task BuildTask(ProcessVideoTask payload, CancellationToken cancellationToken)
     {
-        await Task.Delay(3000);
-        
+        await using var scope = _serviceScopeFactory.CreateAsyncScope();
+        var processingService = scope.ServiceProvider.GetRequiredService<IContentProcessingService>();
+        await processingService!.ProcessVideo(payload, cancellationToken);
     }
 
     private async Task ProcessTaskQueue(CancellationToken cancellationToken)
@@ -51,7 +52,7 @@ public class BackgroundProcessingService : BackgroundService
         {
             await foreach (var task in _channel.ReadAllAsync(cancellationToken))
             {
-                _processingQueue.Enqueue(BuildTask(task));
+                _processingQueue.Enqueue(BuildTask(task, cancellationToken));
             }
         }
     }

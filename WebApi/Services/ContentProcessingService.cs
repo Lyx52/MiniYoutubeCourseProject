@@ -15,21 +15,28 @@ public class ContentProcessingService : IContentProcessingService
     private readonly FFOptions _ffOptions;
     private readonly IWorkFileService _workFileService;
     private readonly IVideoRepository _videoRepository;
-    public ContentProcessingService(ILogger<ContentProcessingService> logger, IWorkFileService workFileService, IVideoRepository videoRepository)
+    public ContentProcessingService(
+        ILogger<ContentProcessingService> logger, 
+        IWorkFileService workFileService,
+        IVideoRepository videoRepository
+    )
     {
         _logger = logger;
         _workFileService = workFileService;
         _videoRepository = videoRepository;
+        //_videoRepository = videoRepository;
         // TODO: Move this to configuration
         _ffOptions = new FFOptions
         {
-            BinaryFolder = "C:\\ProgramData\\chocolatey\\bin",
+            BinaryFolder = "D:\\ffmpeg-6.1-full_build\\bin",
             UseCache = true,
+            WorkingDirectory = "D:\\ffmpeg-6.1-full_build\\bin"
         };
+        GlobalFFOptions.Configure(_ffOptions);
     }
-    public async Task<bool> IsValidVideoFileAsync(Stream stream, CancellationToken cancellationToken = default(CancellationToken))
+
+    private bool IsValidVideoFile(IMediaAnalysis analysis)
     {
-        var analysis = await FFProbe.AnalyseAsync(stream, _ffOptions, cancellationToken);
         if (analysis.ErrorData.Count > 0) return false;
         
         // Minimum video length
@@ -51,9 +58,19 @@ public class ContentProcessingService : IContentProcessingService
         
         return true;
     }
-    public async Task<string> GeneratePosterAsync(WorkSpace workSpace, Stream stream, Size posterSize, CancellationToken cancellationToken = default(CancellationToken))
+    public async Task<bool> IsValidVideoFileAsync(Stream stream, CancellationToken cancellationToken = default(CancellationToken))
     {
-        var posterLocation = _workFileService.CreateWorkFile(workSpace, WorkFileType.Poster, ".jpg");
+        var analysis = await FFProbe.AnalyseAsync(stream, _ffOptions, cancellationToken);
+        return IsValidVideoFile(analysis);
+    }
+    public async Task<WorkFile> GeneratePosterAsync(WorkSpace workSpace, Stream stream, Size posterSize, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var workFile = _workFileService.CreateWorkFile(workSpace, WorkFileType.Poster, ".jpg", new ()
+        {
+            $"Resolution={posterSize.Width}x{posterSize.Height}", 
+            "ContentType=image/jpg"
+        });
+        var posterLocation = _workFileService.GetWorkFileLocation(workSpace, workFile);
         try
         {
             await FFMpegArguments
@@ -73,14 +90,19 @@ public class ContentProcessingService : IContentProcessingService
         {
             // TODO: For some reason when generating jpgs from pipes it processes the pipe but still fails afterwards
         }
-        if (File.Exists(posterLocation)) return posterLocation;
+        if (File.Exists(posterLocation)) return workFile;
         throw new ApplicationException($"Failed to create poster image for WorkSpace {workSpace.Id}");
     }
 
-    public async Task<string> GeneratePosterGifAsync(WorkSpace workSpace, Stream stream, Size gifSize,
+    public async Task<WorkFile> GeneratePosterGifAsync(WorkSpace workSpace, Stream stream, Size gifSize,
         CancellationToken cancellationToken = default(CancellationToken))
     {
-        var gifLocation = _workFileService.CreateWorkFile(workSpace, WorkFileType.PosterGif, ".gif");
+        var workFile = _workFileService.CreateWorkFile(workSpace, WorkFileType.PosterGif, ".gif", new ()
+        {
+            $"Resolution={gifSize.Width}x{gifSize.Height}", 
+            "ContentType=image/gif"
+        });
+        var gifLocation = _workFileService.GetWorkFileLocation(workSpace, workFile);
         var success = await FFMpegArguments
             .FromPipeInput(new StreamPipeSource(stream))
             .OutputToFile(gifLocation, false, options =>
@@ -93,13 +115,17 @@ public class ContentProcessingService : IContentProcessingService
             })
             .CancellableThrough(cancellationToken)
             .ProcessAsynchronously(true, _ffOptions);
-        if (success) return gifLocation;
+        if (success) return workFile;
         throw new ApplicationException($"Failed to create PosterGif for {workSpace.Id} workspace");
     }
-    public async Task<string> EncodeVideoAsync(WorkSpace workSpace, Stream stream, VideoSize size, CancellationToken cancellationToken = default(CancellationToken))
+    public async Task<WorkFile> EncodeVideoAsync(WorkSpace workSpace, Stream stream, VideoSize size, CancellationToken cancellationToken = default(CancellationToken))
     {
-        var fileLocation = _workFileService.CreateWorkFile(workSpace, WorkFileType.EncodedSource, ".mp4");
-        
+        var workFile = _workFileService.CreateWorkFile(workSpace, WorkFileType.EncodedSource, ".mp4", new ()
+        {
+            $"Resolution={(int)size}",
+            "ContentType=video/mp4"
+        });
+        var fileLocation = _workFileService.GetWorkFileLocation(workSpace, workFile);
         var success = await FFMpegArguments
             .FromPipeInput(new StreamPipeSource(stream))
             .OutputToFile(fileLocation, false, options =>
@@ -120,7 +146,109 @@ public class ContentProcessingService : IContentProcessingService
             })
             .CancellableThrough(cancellationToken)
             .ProcessAsynchronously(true, _ffOptions);
-        if (success) return fileLocation;
+        if (success) return workFile;
         throw new ApplicationException($"Failed to create EncodeSource for {workSpace.Id} workspace");
+    }
+    private async Task<WorkFile> CreateVideoAttachment(byte[] data, WorkSpace workSpace, WorkFileType type, Size? size = null, VideoSize? videoSize = null, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        WorkFile? workFile = null;
+        await using (var stream = new MemoryStream(data, false))
+        {
+            stream.Seek(0, SeekOrigin.Begin);
+            switch (type)
+            {
+                case WorkFileType.Poster:
+                {
+                    workFile = await GeneratePosterAsync(workSpace, stream, size!.Value, cancellationToken);
+                } break;
+                case WorkFileType.PosterGif:
+                {
+                    workFile = await GeneratePosterGifAsync(workSpace, stream, size!.Value, cancellationToken);
+                } break;
+                case WorkFileType.EncodedSource:
+                {
+                    workFile = await EncodeVideoAsync(workSpace, stream, videoSize!.Value, cancellationToken);
+                } break;
+            }   
+        }
+
+        if (workFile is null) throw new ApplicationException($"Failed to create video attachment {type} for workspace {workSpace.Id}");
+        return workFile;
+    }
+
+    private List<Task<WorkFile>> GenerateProcessingTasks(byte[] data, WorkSpace workSpace, IMediaAnalysis originalAnalysis, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var tasks = new List<Task<WorkFile>>();
+        int originalWidth = originalAnalysis.PrimaryVideoStream!.Width;
+        foreach (var vs in Enum.GetValues<VideoSize>())
+        {
+            if ((int)vs <= originalWidth && (int)vs > 0)
+            {
+                tasks.Add(CreateVideoAttachment(data, workSpace, WorkFileType.EncodedSource, null, vs, cancellationToken));
+            }
+        }
+        tasks.Add(CreateVideoAttachment(data, workSpace, WorkFileType.Poster, new Size(480, -1), null, cancellationToken));
+        tasks.Add(CreateVideoAttachment(data, workSpace, WorkFileType.PosterGif, new Size(480, -1), null, cancellationToken));
+        return tasks;
+    }
+
+    public async Task PublishVideo(PublishVideoTask payload, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        try
+        {
+           
+            var workSpace = await _workFileService.LoadWorkSpace(WorkSpaceDirectory.WorkDir, payload.WorkSpaceId);
+            if (workSpace.Files.Count <= 0)
+                throw new ApplicationException($"Trying to publish an empty workspace {workSpace.Id}");
+            await _videoRepository.EnrichWithSources(payload.VideoId, workSpace.Files, cancellationToken);
+            
+            await _workFileService.MoveWorkSpace(WorkSpaceDirectory.WorkDir, WorkSpaceDirectory.RepoDir, payload.WorkSpaceId);
+            await _videoRepository.UpdateVideoStatus(payload.VideoId, VideoProcessingStatus.Published, cancellationToken);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError("Exception while processing task {Exception}, {StackTrace}", e.Message, e.StackTrace);
+            await _videoRepository.UpdateVideoStatus(payload.VideoId, VideoProcessingStatus.ProcessingFailed, cancellationToken);
+        }
+    }
+    
+    public async Task ProcessVideo(ProcessVideoTask payload, CancellationToken cancellationToken = default(CancellationToken))
+    {
+         try
+         {
+             await _videoRepository.UpdateVideoStatus(payload.VideoId, VideoProcessingStatus.Processing, cancellationToken);
+             await _workFileService.MoveWorkSpace(WorkSpaceDirectory.TempDir, WorkSpaceDirectory.WorkDir, payload.WorkSpaceId); 
+             var workSpace = await _workFileService.LoadWorkSpace(WorkSpaceDirectory.WorkDir, payload.WorkSpaceId);
+             var files = _workFileService.GetWorkFiles(workSpace, WorkFileType.Original);
+             if (files.Count <= 0) throw new IOException($"WorkSpace {payload.WorkSpaceId} does not contain any 'Original' files");
+             byte[] data;
+             await using (var fs = File.OpenRead(files[0]))
+             {
+                 data = new byte[fs.Length];
+                 var len = await fs.ReadAsync(data, cancellationToken);
+                 if (len != data.Length) throw new IOException("Unexpected amount of bytes while trying to read the Original video!");
+             }
+
+             IMediaAnalysis originalAnalysis;
+             await using (var ms = new MemoryStream(data, false))
+             {
+                 ms.Seek(0, SeekOrigin.Begin);
+                 originalAnalysis = await FFProbe.AnalyseAsync(ms, _ffOptions, cancellationToken);
+             }
+            
+             if (!IsValidVideoFile(originalAnalysis))
+                 throw new ApplicationException("Trying to process invalid Original video file!");
+            
+             var workFiles = await Task.WhenAll(GenerateProcessingTasks(data, workSpace, originalAnalysis));
+             workSpace.Files.AddRange(workFiles);
+             await _workFileService.SaveWorkSpaceAsync(workSpace);
+             await PublishVideo(new PublishVideoTask() { VideoId = payload.VideoId, WorkSpaceId = payload.WorkSpaceId },
+                 cancellationToken);
+         }
+         catch (Exception e)
+         {
+             _logger.LogError("Exception while processing task {Exception}, {StackTrace}", e.Message, e.StackTrace);
+             await _videoRepository.UpdateVideoStatus(payload.VideoId, VideoProcessingStatus.ProcessingFailed, cancellationToken);
+         }
     }
 }

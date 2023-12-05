@@ -31,18 +31,17 @@ public class WorkFileService : IWorkFileService
         }
     }
 
-    public string CreateWorkFile(WorkSpace workSpace, WorkFileType type, string extension)
+    public WorkFile CreateWorkFile(WorkSpace workSpace, WorkFileType type, string extension, List<string>? tags = null)
     {
         var id = Guid.NewGuid();
         var directory = GetWorkSpaceDirectory(workSpace);
-        var file = new WorkFile()
+        return new WorkFile()
         {
             Type = type,
             Id = id,
-            FileName = $"{id}{extension}"
+            FileName = $"{id}{extension}",
+            Tags = tags ?? new List<string>()
         };
-        workSpace.Files.Add(file);
-        return Path.Join(directory, file.FileName);
     }
     
     public async Task SaveWorkSpaceAsync(WorkSpace workSpace)
@@ -63,6 +62,22 @@ public class WorkFileService : IWorkFileService
         if (workSpace is not null) return workSpace;
         throw new ApplicationException($"Cannot find workspace at {directory} with id {id}");
     }
+
+    public async Task MoveWorkSpace(WorkSpaceDirectory from, WorkSpaceDirectory to, Guid id)
+    {
+        var fromDirectory = GetWorkDirectory(from);
+        var toDirectory = GetWorkDirectory(to);
+        var fromWorkspace = Path.Join(fromDirectory, id.ToString());
+        var toWorkspace = Path.Join(toDirectory, id.ToString());
+        if (!Directory.Exists(fromDirectory))
+            throw new ApplicationException($"Cannot find workspace at {from} with id {id}");
+        
+        Directory.Move(fromWorkspace, toWorkspace);
+        var workSpace = await LoadWorkSpace(to, id);
+        workSpace.Directory = to;
+        await SaveWorkSpaceAsync(workSpace);
+    }
+
     public WorkSpace CreateWorkSpace(WorkSpaceDirectory directory)
     {
         var id = Guid.NewGuid();
@@ -86,18 +101,18 @@ public class WorkFileService : IWorkFileService
         var workspaceDirectory = GetWorkDirectory(workSpace.Directory);
         return Path.Join(workspaceDirectory, workSpace.Id.ToString());
     }
-    public string? GetWorkFileLocation(WorkSpace workSpace, WorkFileType type)
+    public string GetWorkFileLocation(WorkSpace workSpace, WorkFile file)
     {
         var directory = GetWorkSpaceDirectory(workSpace);
-        var file = workSpace.Files.FirstOrDefault((f) => f.Type == type);
-        return file is null ? null : Path.Join(directory, file.FileName);
+        return Path.Join(directory, file.FileName);
     }
-
-    public Stream GetWorkFileReadStream(WorkSpace workSpace, WorkFileType type)
+    public List<string> GetWorkFiles(WorkSpace workSpace, WorkFileType type)
     {
-        var fileLocation = GetWorkFileLocation(workSpace, type);
-        if (fileLocation is null) throw new ArgumentException("WorkSpaceFile {0} does not exist!", nameof(type));
-        return File.OpenRead(fileLocation);
+        var directory = GetWorkSpaceDirectory(workSpace);
+        return workSpace.Files
+            .Where((f) => f.Type == type)
+            .Select((f) => Path.Join(directory, f.FileName))
+            .ToList();
     }
 
     private string GetWorkDirectory(WorkSpaceDirectory directory)
