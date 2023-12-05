@@ -1,4 +1,6 @@
-﻿namespace Domain.Entity;
+﻿using Domain.Constants;
+
+namespace Domain.Entity;
 
 public class Video : IdEntity<string>
 {
@@ -7,4 +9,5 @@ public class Video : IdEntity<string>
     public User Creator { get; set; }
     public string CreatorId { get; set; }
     public IEnumerable<ContentSource> Sources { get; set; }
+    public VideoProcessingStatus Status { get; set; }
 }

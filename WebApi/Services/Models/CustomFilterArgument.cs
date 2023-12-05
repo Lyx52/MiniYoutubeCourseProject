@@ -1,6 +1,6 @@
 ﻿using FFMpegCore.Arguments;
 
-namespace WebApi.Services.CustomFFMpeg;
+namespace WebApi.Services.Models;
 
 public class CustomFilterArgument : IVideoFilterArgument
 {

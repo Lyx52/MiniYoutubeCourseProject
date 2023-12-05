@@ -18,13 +18,13 @@ public class AuthHttpClient : IAuthHttpClient
         _logger = logger;
     }
     
-    public async Task<LoginResponseModel> LoginAsync(LoginModel model)
+    public async Task<LoginResponse> LoginAsync(LoginModel model)
     {
         using HttpClient client = _httpClientFactory.CreateClient();
         var postResponse = await client.PostAsJsonAsync<LoginModel>("api/Auth/Login", model);
         if (!postResponse.IsSuccessStatusCode)
         {
-            return new LoginResponseModel()
+            return new LoginResponse()
             {
                 Expiration = DateTime.MaxValue,
                 Message = $"Request failed with status: {postResponse.StatusCode}",
@@ -34,9 +34,9 @@ public class AuthHttpClient : IAuthHttpClient
             };
         }
 
-        var content = await postResponse.Content.ReadFromJsonAsync<LoginResponseModel>();
+        var content = await postResponse.Content.ReadFromJsonAsync<LoginResponse>();
         if (content is not null) return content;
-        return new LoginResponseModel()
+        return new LoginResponse()
         {
             Expiration = DateTime.MaxValue,
             Message = "Failed to parse response from server",

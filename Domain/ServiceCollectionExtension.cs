@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.Threading.Channels;
 using Domain.Interfaces;
 using Domain.Model.Configuration;
 using Domain.WebClient;
@@ -37,5 +38,13 @@ public static class ServiceCollectionExtension
         var settings = configuration.GetSection(nameof(ApiConfiguration)).Get<ApiConfiguration>();
         if (settings is null) throw new ApplicationException("Cannot get ApiConfiguration section!");
         return settings;
+    }
+
+    public static IServiceCollection AddChannel<TMessageType>(this IServiceCollection services)
+    {
+        services.AddSingleton<Channel<TMessageType>>(Channel.CreateUnbounded<TMessageType>());
+        services.AddSingleton<ChannelReader<TMessageType>>(s => s.GetRequiredService<Channel<TMessageType>>().Reader);
+        services.AddSingleton<ChannelWriter<TMessageType>>(s => s.GetRequiredService<Channel<TMessageType>>().Writer);
+        return services;
     }
 }

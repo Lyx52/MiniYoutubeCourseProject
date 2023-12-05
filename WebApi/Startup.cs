@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Threading.Channels;
 using Domain.Constants;
 using Domain.Entity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -12,6 +13,7 @@ using WebApi.Services.Interfaces;
 using WebApi.Swagger;
 using Domain;
 using Domain.Model.Configuration;
+using WebApi.Services.Models;
 
 namespace WebApi;
 
@@ -93,9 +95,15 @@ public class Startup
         services.AddTransient<IWorkFileService, WorkFileService>();
         services.AddTransient<IContentProcessingService, ContentProcessingService>();
         services.AddTransient<IContentService, ContentService>();
+        services.AddTransient<IVideoRepository, VideoRepository>();
+        
+        // Processing channel
+        services.AddChannel<ProcessVideoTask>();
+        
         services.AddSingleton<ApiConfiguration>(
             _ => Configuration.GetSection(nameof(ApiConfiguration)).Get<ApiConfiguration>()!
         );
+        services.AddHostedService<BackgroundProcessingService>();
     }
     
 

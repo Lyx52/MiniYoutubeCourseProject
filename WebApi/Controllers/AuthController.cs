@@ -4,6 +4,7 @@ using System.Text;
 using Domain.Entity;
 using Domain.Model;
 using Domain.Model.Configuration;
+using Domain.Model.Request;
 using Domain.Model.Response;
 using Domain.Model.View;
 using Microsoft.AspNetCore.Identity;
@@ -34,7 +35,7 @@ public class AuthController : ControllerBase
     
     [HttpPost]
     [Route("Login")]
-    public async Task<IActionResult> Login([FromBody] LoginModel payload)
+    public async Task<IActionResult> Login([FromBody] LoginRequest payload)
     {
         if (!ModelState.IsValid) return BadRequest();
         var user = await _userManager.FindByNameAsync(payload.Username);
@@ -54,7 +55,7 @@ public class AuthController : ControllerBase
 
         var token = GetToken(authClaims);
         var jwtToken = new JwtSecurityTokenHandler().WriteToken(token);
-        return Ok(new LoginResponseModel()
+        return Ok(new LoginResponse()
         {
             Token = jwtToken,
             BearerToken = $"Bearer {jwtToken}",
@@ -66,7 +67,7 @@ public class AuthController : ControllerBase
     
     [HttpPost]
     [Route("Register")]
-    public async Task<IActionResult> Register([FromBody] RegisterModel payload)
+    public async Task<IActionResult> Register([FromBody] RegisterRequest payload)
     {
         var userExists = await _userManager.FindByNameAsync(payload.Username);
         if (userExists is not null) return BadRequest("User already exists!");

@@ -37,7 +37,6 @@ public class ContentService : IContentService
                 await fileStream.FlushAsync(cancellationToken);
                 
                 fileStream.Close();
-                await _processingService.GeneratePosterGifAsync(workSpace, new Size(1920, 1080), cancellationToken);
                 await using (var fs = File.OpenRead(file))
                 {
                     byte[] data = new byte[fs.Length];
@@ -57,7 +56,6 @@ public class ContentService : IContentService
                             cancellationToken)
                     );
                 }
-                // 
                 await _workFileService.SaveWorkSpaceAsync(workSpace);
                 return workSpace.Id;
             }

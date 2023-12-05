@@ -1,6 +1,6 @@
-﻿namespace Domain.Model;
+﻿namespace Domain.Model.Request;
 
-public class CreateVideoModel
+public class CreateVideoRequest
 {
     public string Title { get; set; }
     public Guid WorkSpaceId { get; set; }
