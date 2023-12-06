@@ -2,6 +2,7 @@
 using System.Net.Http.Json;
 using Domain.Interfaces;
 using Domain.Model;
+using Domain.Model.Request;
 using Domain.Model.Response;
 using Domain.Model.View;
 using Microsoft.Extensions.Logging;
@@ -21,7 +22,11 @@ public class AuthHttpClient : IAuthHttpClient
     public async Task<LoginResponse> LoginAsync(LoginModel model)
     {
         using HttpClient client = _httpClientFactory.CreateClient();
-        var postResponse = await client.PostAsJsonAsync<LoginModel>("api/Auth/Login", model);
+        var postResponse = await client.PostAsJsonAsync<LoginRequest>("api/Auth/Login", new LoginRequest()
+        {
+            Password = model.Password,
+            Username = model.Username
+        });
         if (!postResponse.IsSuccessStatusCode)
         {
             return new LoginResponse()
@@ -50,7 +55,12 @@ public class AuthHttpClient : IAuthHttpClient
     public async Task<Response> RegisterAsync(RegisterModel model)
     {
         using HttpClient client = _httpClientFactory.CreateClient();
-        var postResponse = await client.PostAsJsonAsync<RegisterModel>("api/Auth/Register", model);
+        var postResponse = await client.PostAsJsonAsync<RegisterRequest>("api/Auth/Register", new RegisterRequest()
+        {
+            Password = model.Password,
+            Username = model.Username,
+            Email = model.Email
+        });
         if (!postResponse.IsSuccessStatusCode)
         {
             return new Response()

@@ -12,13 +12,12 @@ namespace Domain;
 
 public static class ServiceCollectionExtension
 {
-    public static void AddAuthServices(this IServiceCollection services, IConfiguration configuration)
+    public static void AddAuthHttpClient(this IServiceCollection services, AppConfiguration configuration)
     {
-        var settings = services.AddAppConfiguration(configuration);
         services.AddHttpClient<IAuthHttpClient, AuthHttpClient>(client =>
         {
             client.BaseAddress =
-                new Uri(settings.ApiEndpoint);
+                new Uri(configuration.ApiEndpoint);
         }).AddPolicyHandler(Policy<HttpResponseMessage>
             .Handle<HttpRequestException>()
             .WaitAndRetryAsync(Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromMilliseconds(500), 5)));

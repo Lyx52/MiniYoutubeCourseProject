@@ -1,15 +1,28 @@
 ﻿@page "/studio"
+@using Microsoft.AspNetCore.Components.Authorization
+@using WebApp.Services
+@using WebApp.Services.Interfaces
+@using Domain.Model.Response
+@inject AuthenticationStateProvider _authenticationStateProvider
+@inject ILoginManager _loginManager;
 @rendermode InteractiveServer
 
 <VideoUploadModal @ref="_videoUploadModal"/>
 @code {
     private VideoUploadModal _videoUploadModal;
+    [CascadingParameter] 
+    public Task<AuthenticationState> _authState { get; set; }
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await _authState).User;
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await base.OnAfterRenderAsync(firstRender);
         if (firstRender)
         {
+            await _loginManager.LoginAsync(new LoginResponse() { Success = true, Token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoibHl4NTIiLCJqdGkiOiJmMWFjMjcxNy00NzJiLTQ1ZDItODdjZi01ZDExN2M1YTg2Y2IiLCJzdWIiOiJlMGViODZiYy1mMTUwLTQzZTItYmMwNS01NmQ4ZTQxZGI1ZWIiLCJleHAiOjE3MDE5MTIwMjUsImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3Q6NDIwMCIsImF1ZCI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4MCJ9.zLRgxicdMp5SnPkuSU42k4SIOlxSFgW4Aqw62MJ-tys" });
             await _videoUploadModal.ShowModalAsync();
         }
     }
