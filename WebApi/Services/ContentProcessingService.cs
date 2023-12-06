@@ -1,6 +1,7 @@
 ﻿using System.Drawing;
 using Domain.Constants;
 using Domain.Model;
+using Domain.Model.Configuration;
 using FFMpegCore;
 using FFMpegCore.Enums;
 using FFMpegCore.Pipes;
@@ -15,22 +16,25 @@ public class ContentProcessingService : IContentProcessingService
     private readonly FFOptions _ffOptions;
     private readonly IWorkFileService _workFileService;
     private readonly IVideoRepository _videoRepository;
+    private readonly ApiConfiguration _configuration;
     public ContentProcessingService(
         ILogger<ContentProcessingService> logger, 
         IWorkFileService workFileService,
-        IVideoRepository videoRepository
+        IVideoRepository videoRepository,
+        ApiConfiguration configuration
     )
     {
         _logger = logger;
+        _configuration = configuration;
         _workFileService = workFileService;
         _videoRepository = videoRepository;
         //_videoRepository = videoRepository;
         // TODO: Move this to configuration
         _ffOptions = new FFOptions
         {
-            BinaryFolder = "D:\\ffmpeg-6.1-full_build\\bin",
+            BinaryFolder = _configuration.Processing.FFMpegLocation,
             UseCache = true,
-            WorkingDirectory = "D:\\ffmpeg-6.1-full_build\\bin"
+            WorkingDirectory = _configuration.Processing.FFMpegLocation
         };
         GlobalFFOptions.Configure(_ffOptions);
     }

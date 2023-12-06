@@ -68,6 +68,14 @@ public class VideoRepository : IVideoRepository
             : _dbContext.Videos
                 .FirstOrDefaultAsync(v => v.Id.ToLower() == id.ToString().ToLower(), cancellationToken);
     }
+
+    public Task<List<ContentSource>> GetVideoSourcesById(Guid videoId, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        return _dbContext.Sources
+            .Where((s) => s.VideoId.ToLower() == videoId.ToString().ToLower())
+            .ToListAsync(cancellationToken);
+    }
+
     private ContentSource ConvertToContentSource(WorkFile file, Video video)
     {
         return new ContentSource()

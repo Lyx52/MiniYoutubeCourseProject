@@ -1,14 +1,13 @@
 ﻿@using Domain.Model
 <div class="mb-3">
-    <VideoPlayer HasControls="@true" OnHoverPlayback="@false" Sources="@Sources" DefaultSourceModel="@Sources[0]" />
+    <VideoPlayer HasControls="@false" OnHoverPlayback="@false" Sources="@Sources" DefaultSourceModel="@Sources[0]" />
 </div>
 @code {
     [Parameter]
     public string? VideoId { get; set; }
     private List<VideoSourceModel> Sources = new List<VideoSourceModel>()
     {
-        new VideoSourceModel() { Resolution = "1080p", Src = "video/elephants2.mp4", Type = "video/mp4" },
-        new VideoSourceModel() { Resolution = "720p", Src = "video/elephants2.mp4", Type = "video/mp4" },
-        new VideoSourceModel() { Resolution = "360p", Src = "video/elephants2.mp4", Type = "video/mp4" },
+        new VideoSourceModel() { Resolution = "480p", Src = "http://localhost:4200/api/Content/GetVideoSource?videoId=d6a40dce-36ef-4cb5-9741-8819983c1dfb&sourceId=2ed39e60-16f2-4415-b009-3472407d453a", Type = "video/mp4" },
+        new VideoSourceModel() { Resolution = "360p", Src = "http://localhost:4200/api/Content/GetVideoSource?videoId=d6a40dce-36ef-4cb5-9741-8819983c1dfb&sourceId=9322ec2d-232c-4525-a786-b3a59bd7fd75", Type = "video/mp4" },
     };
 }

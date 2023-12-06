@@ -51,15 +51,29 @@ public class VideoController : ControllerBase
         });
     }
 
-    [HttpGet("Video")]
+    [HttpGet("Metadata")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetVideoMetadata([FromQuery] string id,
         CancellationToken cancellationToken = default(CancellationToken))
     {
         if (Guid.TryParse(id, out var videoId))
         {
-            var video = await _videoRepository.GetVideoById(videoId, true, cancellationToken);
+            var video = await _videoRepository.GetVideoById(videoId, false, cancellationToken);
             if (video is null) return NotFound();
             return Ok(video);
+        }
+
+        return BadRequest("Invalid video id");
+    }
+    [HttpGet("Sources")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetVideoSources([FromQuery] string id,
+        CancellationToken cancellationToken = default(CancellationToken))
+    {
+        if (Guid.TryParse(id, out var videoId))
+        {
+            var sources = await _videoRepository.GetVideoSourcesById(videoId, cancellationToken);
+            return Ok(sources);
         }
 
         return BadRequest("Invalid video id");

@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using Domain.Constants;
 using Domain.Entity;
@@ -13,6 +14,7 @@ using WebApi.Services.Interfaces;
 using WebApi.Swagger;
 using Domain;
 using Domain.Model.Configuration;
+using Microsoft.AspNetCore.Http.Json;
 using WebApi.Services.Models;
 
 namespace WebApi;
@@ -29,6 +31,10 @@ public class Startup
     public void ConfigureServices(IServiceCollection services)
     {
         var settings = services.AddApiConfiguration(Configuration);
+        services.Configure<JsonOptions>(options =>
+        {
+            options.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        });
         services.AddDbContext<UserDbContext>((options) =>
         {
             // TODO: Use proper db.
@@ -74,6 +80,7 @@ public class Startup
                 };
             });
         services.AddControllers();
+
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(options =>
         {
@@ -103,6 +110,8 @@ public class Startup
         services.AddTransient<IContentProcessingService, ContentProcessingService>();
         services.AddTransient<IContentService, ContentService>();
         services.AddTransient<IVideoRepository, VideoRepository>();
+        services.AddTransient<IContentRepository, ContentRepository>();
+        services.AddMemoryCache();
         
         // Processing channel
         services.AddChannel<ProcessVideoTask>();

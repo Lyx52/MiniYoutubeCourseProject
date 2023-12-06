@@ -14,7 +14,8 @@
     "Processing": {
       "WorkDirectory": "./Work",
       "TempDirectory": "./Temp",
-      "RepoDirectory": "./Repo"
+      "RepoDirectory": "./Repo",
+      "FFMpegLocation": "C:\\ProgramData\\chocolatey\\bin"
     }  
   }
 }

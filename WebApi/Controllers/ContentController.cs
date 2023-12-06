@@ -1,10 +1,12 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Domain.Entity;
 using Domain.Model.Response;
 using Domain.Model.View;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Caching.Memory;
 using WebApi.Attributes;
 using WebApi.Services.Interfaces;
 using static Domain.Constants.ValidFileExtensions;
@@ -19,10 +21,23 @@ public class ContentController : ControllerBase
 {
     private readonly ILogger<ContentController> _logger;
     private readonly IContentService _contentService;
-    public ContentController(ILogger<ContentController> logger, IContentService contentService)
+    private readonly IContentRepository _contentRepository;
+    private readonly IMemoryCache _cache;
+    private static readonly MemoryCacheEntryOptions CacheOptions = new()
+    {
+        SlidingExpiration = TimeSpan.FromSeconds(30),
+        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+    };
+    public ContentController(
+        ILogger<ContentController> logger, 
+        IContentService contentService, 
+        IContentRepository contentRepository,
+        IMemoryCache cache)
     {
         _logger = logger;
+        _cache = cache;
         _contentService = contentService;
+        _contentRepository = contentRepository;
     }
 
     [HttpPost("UploadVideoFile")]
@@ -48,5 +63,24 @@ public class ContentController : ControllerBase
             Message = "Failed to save video file as temporary file",
             Success = false
         });
+    }
+
+    [HttpGet("GetVideoSource")]
+    [AllowAnonymous]
+    [ResponseCache(Duration = 0)]
+    public async Task<IActionResult> GetVideoSource([FromQuery] string videoId, string sourceId, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        if (Guid.TryParse(videoId, out var vid) && Guid.TryParse(sourceId, out var sid))
+        {
+            if (!_cache.TryGetValue<CachedContentSource>($"{videoId}:{sourceId}", out var source))
+            {
+                source = await _contentRepository.GetContentSource(vid, sid, cancellationToken);
+                if (source is null) return NotFound();
+                _cache.Set<CachedContentSource>($"{videoId}:{sourceId}", source, CacheOptions);
+            }
+            return File(source!.Data, source.ContentType, enableRangeProcessing: true);
+        }
+
+        return BadRequest("Invalid video id or source id");
     }
 }
