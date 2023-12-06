@@ -10,13 +10,13 @@ namespace WebApi.Services;
 public class BackgroundProcessingService : BackgroundService
 {
     private readonly ILogger<BackgroundProcessingService> _logger;
-    private readonly ChannelReader<ProcessVideoTask> _channel;
+    private readonly ChannelReader<VideoTask> _channel;
     private readonly ConcurrentBag<Task> _processingList;
     private readonly ConcurrentQueue<Task> _processingQueue;
     private readonly IServiceScopeFactory _serviceScopeFactory;
     public BackgroundProcessingService(
         ILogger<BackgroundProcessingService> logger,
-        ChannelReader<ProcessVideoTask> channel,
+        ChannelReader<VideoTask> channel,
         IServiceScopeFactory serviceScopeFactory)
     {
         _logger = logger;
@@ -26,11 +26,22 @@ public class BackgroundProcessingService : BackgroundService
         _processingQueue = new ConcurrentQueue<Task>();
     }
 
-    private async Task BuildTask(ProcessVideoTask payload, CancellationToken cancellationToken)
+    private async Task BuildTask(VideoTask payload, CancellationToken cancellationToken)
     {
         await using var scope = _serviceScopeFactory.CreateAsyncScope();
         var processingService = scope.ServiceProvider.GetRequiredService<IContentProcessingService>();
-        await processingService!.ProcessVideo(payload, cancellationToken);
+        switch (payload.Type)
+        {
+            case VideoTaskType.ProcessVideo:
+            {
+                await processingService!.ProcessVideo(payload, cancellationToken);    
+            } break;
+            case VideoTaskType.PublishVideo:
+            {
+                await processingService!.PublishVideo(payload, cancellationToken); 
+            } break;
+        }
+        
     }
 
     private async Task ProcessTaskQueue(CancellationToken cancellationToken)

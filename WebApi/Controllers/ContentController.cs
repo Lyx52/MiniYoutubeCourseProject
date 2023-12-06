@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Domain.Constants;
 using Domain.Entity;
 using Domain.Model.Response;
 using Domain.Model.View;
@@ -23,10 +24,30 @@ public class ContentController : ControllerBase
     private readonly IContentService _contentService;
     private readonly IContentRepository _contentRepository;
     private readonly IMemoryCache _cache;
-    private static readonly MemoryCacheEntryOptions CacheOptions = new()
+
+    private static readonly Dictionary<ContentSourceType, MemoryCacheEntryOptions> CacheOptions = new ()
     {
-        SlidingExpiration = TimeSpan.FromSeconds(30),
-        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+        {
+            ContentSourceType.Thumbnail, 
+            new MemoryCacheEntryOptions()
+            {
+                SlidingExpiration = TimeSpan.FromSeconds(15)
+            }
+        },
+        {
+            ContentSourceType.Video, 
+            new MemoryCacheEntryOptions()
+            {
+                SlidingExpiration = TimeSpan.FromSeconds(60)
+            }
+        },
+        {
+            ContentSourceType.ThumbnailGif, 
+            new MemoryCacheEntryOptions()
+            {
+                SlidingExpiration = TimeSpan.FromSeconds(15)
+            }
+        }
     };
     public ContentController(
         ILogger<ContentController> logger, 
@@ -65,10 +86,9 @@ public class ContentController : ControllerBase
         });
     }
 
-    [HttpGet("GetVideoSource")]
+    [HttpGet("Source")]
     [AllowAnonymous]
-    [ResponseCache(Duration = 0)]
-    public async Task<IActionResult> GetVideoSource([FromQuery] string videoId, string sourceId, CancellationToken cancellationToken = default(CancellationToken))
+    public async Task<IActionResult> GetContentSource([FromQuery] string videoId, string sourceId, CancellationToken cancellationToken = default(CancellationToken))
     {
         if (Guid.TryParse(videoId, out var vid) && Guid.TryParse(sourceId, out var sid))
         {
@@ -76,7 +96,7 @@ public class ContentController : ControllerBase
             {
                 source = await _contentRepository.GetContentSource(vid, sid, cancellationToken);
                 if (source is null) return NotFound();
-                _cache.Set<CachedContentSource>($"{videoId}:{sourceId}", source, CacheOptions);
+                _cache.Set<CachedContentSource>($"{videoId}:{sourceId}", source, CacheOptions[source.Type]);
             }
             return File(source!.Data, source.ContentType, enableRangeProcessing: true);
         }

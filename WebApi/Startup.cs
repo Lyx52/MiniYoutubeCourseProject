@@ -114,7 +114,7 @@ public class Startup
         services.AddMemoryCache();
         
         // Processing channel
-        services.AddChannel<ProcessVideoTask>();
+        services.AddChannel<VideoTask>();
         
         services.AddSingleton<ApiConfiguration>(
             _ => Configuration.GetSection(nameof(ApiConfiguration)).Get<ApiConfiguration>()!

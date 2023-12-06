@@ -26,7 +26,9 @@ public class ContentRepository : IContentRepository
         if (source is null) return null;
         var workSpace = await _workFileService.LoadWorkSpace(WorkSpaceDirectory.RepoDir, Guid.Parse(video!.WorkSpaceId));
         var directory = _workFileService.GetWorkSpaceDirectory(workSpace);
-        var sourceLocation = Path.Join(directory, $"{source.Id}.mp4");
+        var workFile = workSpace.Files.FirstOrDefault((wf) => wf.Id == sourceId);
+        if (workFile is null) return null;
+        var sourceLocation = Path.Join(directory, workFile.FileName);
         if (!File.Exists(sourceLocation)) return null;
         byte[] data;
         await using (var fs = File.OpenRead(sourceLocation))
@@ -40,7 +42,8 @@ public class ContentRepository : IContentRepository
             FileLocation = sourceLocation,
             SourceId = source.Id,
             VideoId = video.Id,
-            Data = data
+            Data = data,
+            Type = source.Type
         };
     }
 }

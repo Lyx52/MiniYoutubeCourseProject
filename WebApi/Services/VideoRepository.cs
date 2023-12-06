@@ -69,6 +69,13 @@ public class VideoRepository : IVideoRepository
                 .FirstOrDefaultAsync(v => v.Id.ToLower() == id.ToString().ToLower(), cancellationToken);
     }
 
+    public Task<Video?> GetVideoById(Guid id, User user, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        return _dbContext.Videos.FirstOrDefaultAsync((v) =>
+            v.CreatorId.ToLower() == user.Id.ToLower() &&
+            v.Id.ToLower() == id.ToString().ToLower(), cancellationToken);
+    }
+
     public Task<List<ContentSource>> GetVideoSourcesById(Guid videoId, CancellationToken cancellationToken = default(CancellationToken))
     {
         return _dbContext.Sources
@@ -81,6 +88,13 @@ public class VideoRepository : IVideoRepository
         return new ContentSource()
         {
             Id = file.Id.ToString(),
+            Type = file.Type switch
+            {
+                WorkFileType.Poster => ContentSourceType.Thumbnail,
+                WorkFileType.EncodedSource => ContentSourceType.Video,
+                WorkFileType.PosterGif => ContentSourceType.ThumbnailGif,
+                _ => ContentSourceType.Video
+            },
             ContentType = file.Tags.FirstOrDefault((tag) => tag.StartsWith("ContentType"))?.Replace("ContentType=", string.Empty) ?? string.Empty,
             Video = video,
             Resolution = file.Tags.FirstOrDefault((tag) => tag.StartsWith("Resolution"))?.Replace("Resolution=", string.Empty) ?? string.Empty

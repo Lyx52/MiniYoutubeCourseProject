@@ -1,4 +1,6 @@
-﻿namespace Domain.Model.Response;
+﻿using Domain.Constants;
+
+namespace Domain.Model.Response;
 
 public class CachedContentSource
 {
@@ -7,4 +9,5 @@ public class CachedContentSource
     public string FileLocation { get; set; }
     public byte[] Data { get; set; }
     public string ContentType { get; set; }
+    public ContentSourceType Type { get; set; }
 }

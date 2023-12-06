@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
 using System.Threading.Channels;
+using Domain.Constants;
 using Domain.Entity;
 using Domain.Model;
 using Domain.Model.Request;
@@ -18,11 +19,11 @@ namespace WebApi.Controllers;
 public class VideoController : ControllerBase
 {
     private readonly ILogger<VideoController> _logger;
-    private readonly ChannelWriter<ProcessVideoTask> _channel;
+    private readonly ChannelWriter<VideoTask> _channel;
     private readonly UserManager<User> _userManager;
     private readonly IVideoRepository _videoRepository;
     public VideoController(ILogger<VideoController> logger, 
-        ChannelWriter<ProcessVideoTask> channel, 
+        ChannelWriter<VideoTask> channel, 
         UserManager<User> userManager,
         IVideoRepository videoRepository)
     {
@@ -40,10 +41,11 @@ public class VideoController : ControllerBase
         var user = await _userManager.FindByIdAsync(userIdClaim.Value);
         if (user is null) return Unauthorized();
         var videoId = await _videoRepository.CreateVideo(payload, user, cancellationToken);
-        await _channel.WriteAsync(new ProcessVideoTask()
+        await _channel.WriteAsync(new VideoTask()
         {
             VideoId = videoId,
-            WorkSpaceId = payload.WorkSpaceId
+            WorkSpaceId = payload.WorkSpaceId,
+            Type = VideoTaskType.ProcessVideo
         }, cancellationToken);
         return Ok(new CreateVideoResponse()
         {
@@ -51,6 +53,24 @@ public class VideoController : ControllerBase
         });
     }
 
+    [HttpPost("PublishVideo")]
+    public async Task<IActionResult> PublishVideo([FromBody] PublishVideoRequest payload, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim is null) return Unauthorized();
+        var user = await _userManager.FindByIdAsync(userIdClaim.Value);
+        if (user is null) return Unauthorized();
+        var video = await _videoRepository.GetVideoById(payload.VideoId, user, cancellationToken);
+        if (video is null) return NotFound();
+        await _channel.WriteAsync(new VideoTask()
+        {
+            VideoId = Guid.Parse(video.Id),
+            WorkSpaceId = Guid.Parse(video.WorkSpaceId),
+            Type = VideoTaskType.PublishVideo
+        }, cancellationToken);
+        return Ok();
+    }
+    
     [HttpGet("Metadata")]
     [AllowAnonymous]
     public async Task<IActionResult> GetVideoMetadata([FromQuery] string id,

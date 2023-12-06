@@ -196,11 +196,10 @@ public class ContentProcessingService : IContentProcessingService
         return tasks;
     }
 
-    public async Task PublishVideo(PublishVideoTask payload, CancellationToken cancellationToken = default(CancellationToken))
+    public async Task PublishVideo(VideoTask payload, CancellationToken cancellationToken = default(CancellationToken))
     {
         try
         {
-           
             var workSpace = await _workFileService.LoadWorkSpace(WorkSpaceDirectory.WorkDir, payload.WorkSpaceId);
             if (workSpace.Files.Count <= 0)
                 throw new ApplicationException($"Trying to publish an empty workspace {workSpace.Id}");
@@ -216,7 +215,7 @@ public class ContentProcessingService : IContentProcessingService
         }
     }
     
-    public async Task ProcessVideo(ProcessVideoTask payload, CancellationToken cancellationToken = default(CancellationToken))
+    public async Task ProcessVideo(VideoTask payload, CancellationToken cancellationToken = default(CancellationToken))
     {
          try
          {
@@ -246,8 +245,6 @@ public class ContentProcessingService : IContentProcessingService
              var workFiles = await Task.WhenAll(GenerateProcessingTasks(data, workSpace, originalAnalysis));
              workSpace.Files.AddRange(workFiles);
              await _workFileService.SaveWorkSpaceAsync(workSpace);
-             await PublishVideo(new PublishVideoTask() { VideoId = payload.VideoId, WorkSpaceId = payload.WorkSpaceId },
-                 cancellationToken);
          }
          catch (Exception e)
          {
