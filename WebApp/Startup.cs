@@ -2,6 +2,7 @@
 using Blazored.LocalStorage;
 using Domain;
 using Domain.Model.Configuration;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using WebApp.Components;
@@ -30,10 +31,11 @@ public class Startup
             .AddInteractiveServerComponents();
         services.AddBlazorBootstrap();
         services.AddBlazoredLocalStorage();
-        services.AddAuthorizationCore();
+        services.AddAuthorization();
         services.AddScoped<AuthenticationStateProvider, JwtAuthStateProvider>();
         services.AddScoped<ILoginManager, LoginManagerService>();
         services.AddCascadingAuthenticationState();
+        services.AddScoped<IAuthenticationService, JwtAuthenticationService>();
     }
 
     public void Configure(IApplicationBuilder app, IHostEnvironment env)
@@ -48,6 +50,7 @@ public class Startup
         app.UseRouting();
         app.UseHttpsRedirection();
         app.UseStaticFiles();
+        app.UseAuthorization();
         app.UseAntiforgery();
         app.UseEndpoints((config) =>
         {

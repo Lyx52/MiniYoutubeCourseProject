@@ -22,16 +22,18 @@ public class LoginManagerService : ILoginManager
     public LoginManagerService(
         ILogger<LoginManagerService> logger, 
         ProtectedLocalStorage localStorage,
-        AppConfiguration configuration)
+        AppConfiguration configuration,
+        NavigationManager navigation)
     {
         _localStorage = localStorage;
         _logger = logger;
+        _navigation = navigation;
         _configuration = configuration;
     }
     public async Task LogoutAsync(CancellationToken cancellationToken = default(CancellationToken))
     {
         await _localStorage.DeleteAsync(AccessToken);
-        //_navigation.NavigateTo("/", true);
+        _navigation.NavigateTo("/", true);
     }
 
     public async Task<bool> LoginAsync(LoginResponse payload, CancellationToken cancellationToken = default(CancellationToken))
