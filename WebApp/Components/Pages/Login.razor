@@ -1,0 +1,55 @@
+﻿@page "/login"
+@using Domain.Model.View
+@using Domain.Interfaces
+@using WebApp.Services.Interfaces
+@inject ILoginManager _loginManager
+@inject PreloadService _preloadService
+@inject NavigationManager _navigationManager
+<div class="row justify-content-center">
+    <EditForm EditContext="@_loginContext" class="card col-12 col-md-8 col-lg-4 px-4 py-4 mt-5 border-0" OnValidSubmit="OnLogin">
+        <Preload/>
+        <h1 class="fs-3 fw-bold text-center user-select-none">Sign in</h1>
+        <hr/>
+        <DataAnnotationsValidator/>
+        @if (!_responseModel.Success)
+        {
+            <p class="text-danger">@_responseModel.Message</p>
+        }
+        <div asp-validation-summary="ModelOnly" class="form-submit-error"></div>
+        <div class="form-floating mb-2">
+            <InputText @bind-Value="_model.Username" class="form-control" id="floatingUsername" placeholder="Username"/>
+            <label for="floatingUsername">Username</label>
+            <ValidationMessage For="() => _model.Username" class="text-danger"/>
+        </div>
+        <div class="form-floating mb-3">
+            <InputText type="password" @bind-Value="_model.Password" class="form-control" id="floatingPassword" placeholder="Password"/>
+            <label for="floatingPassword">Password</label>
+            <ValidationMessage For="() => _model.Password" class="text-danger"/>
+        </div>
+        <hr/>
+        <Button class="w-100 btn btn-lg btn-dark" Type="ButtonType.Submit">Sign in</Button>
+    </EditForm>
+</div>
+@code {
+    private EditContext _loginContext { get; set; }
+    private LoginModel _model { get; set; }
+    private LoginResponseModel _responseModel { get; set; } = new LoginResponseModel();
+    protected override async Task OnInitializedAsync()
+    {
+        _model = new LoginModel();
+        _loginContext = new EditContext(_model);
+    }
+
+    private async Task OnLogin()
+    {
+        _preloadService.Show(SpinnerColor.Dark);
+        StateHasChanged();
+        _responseModel = await _loginManager.LoginAsync(_model);
+        if (_responseModel.Success)
+        {
+            _navigationManager.NavigateTo("/", true, true);
+        }
+        _preloadService.Hide();
+        StateHasChanged();
+    }
+}

@@ -14,14 +14,16 @@ public static class ServiceCollectionExtension
 {
     public static void AddAuthHttpClient(this IServiceCollection services, AppConfiguration configuration)
     {
-        services.AddHttpClient<IAuthHttpClient, AuthHttpClient>(client =>
+        services.AddHttpClient<IAuthHttpClient, AuthHttpClient>(nameof(AuthHttpClient), client =>
         {
             client.BaseAddress =
                 new Uri(configuration.ApiEndpoint);
-        }).AddPolicyHandler(Policy<HttpResponseMessage>
-            .Handle<HttpRequestException>()
-            .WaitAndRetryAsync(Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromMilliseconds(500), 5)));
+        })
+        .AddPolicyHandler(Policy<HttpResponseMessage>
+        .Handle<HttpRequestException>()
+        .WaitAndRetryAsync(Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromMilliseconds(500), 2)));
         services.AddHttpClient();
+        services.AddScoped<IAuthHttpClient, AuthHttpClient>();
     }
 
     public static AppConfiguration AddAppConfiguration(this IServiceCollection services, IConfiguration configuration)

@@ -25,6 +25,7 @@ public class PasswordValidationAttribute : ValidationAttribute
 
     public override bool IsValid(object? value)
     {
+        _errorBuilder.Clear();
         string? password = Convert.ToString(value, CultureInfo.CurrentCulture);
         bool isValid = true;
         if (string.IsNullOrWhiteSpace(password) || password.Length < Options.RequiredLength)

@@ -1,8 +1,5 @@
 .search-bar {
-    position: absolute;
-    left: 50%;
     width: 500px;
-    margin-left: -250px;
 }
 
 
@@ -50,14 +47,10 @@
 @media only screen and (max-width: 992px) { 
     .search-bar {
         width: 400px;
-        margin-left: -250px; 
     }
     .content {
         margin-top: 8%;
     }
-    /*.video-card {*/
-    /*    height: 240px !important;*/
-    /*}*/
     .video-card-playlist .video-card-body {
         margin-left: 0 !important;
     }
@@ -65,10 +58,24 @@
 
 @media only screen and (max-width: 768px) {
     .search-bar {
-        width: 300px;
-        margin-left: -150px;
+        width: 80%;
+        height: 48px;
+        margin: auto;
     }
-    /*.video-card {*/
-    /*    height: 220px !important;*/
-    /*}*/
+}
+.nav-link-color {
+    color: var(--bs-nav-link-color) !important;
+}
+.main-navbar-dropdown {
+    position: absolute !important;
+    inset: 0px 0px auto auto;
+    margin: 0px;
+}
+.profile-dropdown {
+    transform: translate(-116px, 8px);
+}
+.notification-dropdown {
+    transform: translate(-132px, 8px);
+    height: 200px;
+    overflow-y: auto;
 }

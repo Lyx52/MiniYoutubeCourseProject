@@ -1,41 +1,7 @@
 ﻿@using Domain.Model
 @rendermode InteractiveServer
 <div class="d-flex flex-column video-player-player">
-	<BlazoredVideo @ref="_videoPlayer"
-	               TimeUpdate="OnTimeUpdate"
-	               DurationChange="OnDurationUpdate"
-	               VolumeChange="OnVolumeChange"
-	               VideoEventOptions="_options"
-	               class="video-player" @onmouseover="OnMouseEnter" @onmouseleave="OnMouseLeave">
-		@* <source src="video/elephants2.mp4" type="video/mp4"/> *@
-		<source src="@DefaultSourceModel.Src" type="@DefaultSourceModel.Type"/>
-	</BlazoredVideo>
-	@if (HasControls)
-    {
-	    <div class="d-flex flex-row video-player-controls">
-		    <button @onclick="OnPlayPauseClick" class="btn border-0 shadow-none">
-			    <i class="bi @(IsPaused ? "bi-pause-circle-fill" : "bi-play-circle-fill")"></i>
-		    </button>
-		    <button @onclick="OnClickMuteUnmute" @onmouseover="OnMouseOverMuteUnmute" class="btn border-0 shadow-none">
-			    <i class="bi @(Volume <= 0 ? "bi-volume-mute-fill" : "bi-volume-up-fill")"></i>
-		    </button>
-		    <div class="ms-auto dropstart">
-              <button type="button" class="btn border-0" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="bi bi-gear-fill"></i>
-              </button>
-			    <ul class="dropdown-menu">
-				    @foreach (var source in Sources)
-				    {
-					    <li><a class="dropdown-item resolution-item @(source == DefaultSourceModel ? "active" : string.Empty)" @onclick="(async () => await SetSource(source))">@source.Resolution</a></li>    
-				    }
-			    </ul>
-            </div>
-	    </div>
-	    <div class="progress video-player-progress" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
-		    <div class="progress-bar" style="width: @(VideoProgress / VideoDuration * 100.0f)%"></div>
-	    </div>
-	    <input @onmouseleave="OnMouseLeaveVolumeSlider" @onchange="OnVolumeSliderChanged" value="@Volume" type="range" class="form-range video-player-volume-slider @(ShowVolumeSlider ? string.Empty : "d-none")" min="0" max="1" step="0.05">
-    }
+
 </div>
 <HeadContent>
 	<link rel="stylesheet" href="css/components/VideoPlayer.css" />
@@ -44,6 +10,7 @@
 	
 	[Parameter]
 	public bool HasControls { get; set; }
+	
 	[Parameter]
 	public bool OnHoverPlayback { get; set; }
 
@@ -53,8 +20,6 @@
 	[Parameter]
 	public VideoSourceModel DefaultSourceModel { get; set; }
 	
-	private Dictionary<VideoEvents, VideoStateOptions> _options = new Dictionary<VideoEvents, VideoStateOptions>();
-	private BlazoredVideo _videoPlayer { get; set; }
 	private bool IsLoaded { get; set; }
 	private bool IsPaused { get; set; } = false;
 	private double VideoProgress { get; set; }
@@ -67,105 +32,7 @@
 	{
 		DefaultSourceModel = sourceModel;
 		IsPaused = false;
-		await _videoPlayer.SetSrcAsync(sourceModel.Src);
-	}
-	
-	protected override Task OnInitializedAsync()
-	{
-		var stateOptions = new VideoStateOptions
-		{
-			CurrentTime = true, 
-			Duration = true,
-			Volume = true
-		};
-		_options[VideoEvents.TimeUpdate] = stateOptions;
-		_options[VideoEvents.DurationChange] = stateOptions;
-		_options[VideoEvents.VolumeChange] = stateOptions;
-		return base.OnInitializedAsync();
 	}
 
-	private void OnTimeUpdate(VideoState state)
-	{
-		VideoProgress = state.CurrentTime;
-		if (VideoDuration == 0) VideoDuration = state.Duration;
-		StateHasChanged();	
-	}
-
-	private void OnDurationUpdate(VideoState state)
-	{
-		VideoDuration = state.Duration;
-		StateHasChanged();	
-	}
-	private void OnVolumeChange(VideoState state)
-	{
-		Volume = state.Volume;
-		StateHasChanged();	
-	}
-
-	private async Task OnClickMuteUnmute()
-	{
-		if (Volume <= 0)
-		{
-			await _videoPlayer.SetVolumeAsync(PrevVolume);
-		}
-		else
-		{
-			PrevVolume = Volume;
-			await _videoPlayer.SetVolumeAsync(0);
-		}
-	}
-
-	private void OnMouseOverMuteUnmute()
-	{
-		ShowVolumeSlider = true;
-		StateHasChanged();
-	}
-
-	private void OnMouseLeaveVolumeSlider()
-	{
-		ShowVolumeSlider = false;
-		StateHasChanged();
-	}
-
-	private async Task OnVolumeSliderChanged(ChangeEventArgs e)
-	{
-		if (e.Value is not null && double.TryParse(e.Value.ToString(), out double value))
-		{
-			await _videoPlayer.SetVolumeAsync(value);
-		}
-	}
-	protected override Task OnAfterRenderAsync(bool firstRender)
-	{
-		IsLoaded = !firstRender;
-		
-		return base.OnAfterRenderAsync(firstRender);
-	}
-
-	private async Task OnPlayPauseClick()
-	{
-		IsPaused = await _videoPlayer.GetPausedAsync();
-		if (IsPaused)
-		{
-			await _videoPlayer.StartPlayback();
-		}
-		else
-		{
-			await _videoPlayer.PausePlayback();
-		}
-	}
-	private async Task OnMouseEnter()
-	{
-		if (IsLoaded && OnHoverPlayback && await _videoPlayer.GetPausedAsync())
-		{
-			await _videoPlayer.StartPlayback();
-		}
-	}
-	private async Task OnMouseLeave()
-	{
-		if (IsLoaded && OnHoverPlayback && !await _videoPlayer.GetPausedAsync())
-		{
-			await _videoPlayer.SetCurrentTimeAsync(0);
-			await _videoPlayer.PausePlayback();
-		}
-	}
+	private Dictionary<string,string> source { get; set; }
 }

@@ -1,6 +1,4 @@
-﻿using Blazor.Polyfill.Server;
-using Blazored.LocalStorage;
-using Domain;
+﻿using Domain;
 using Domain.Model.Configuration;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -22,20 +20,19 @@ public class Startup
 
     public void ConfigureServices(IServiceCollection services)
     {
-       var settings = services.AddAppConfiguration(Configuration);
-       services.AddSingleton<AppConfiguration>(
+        var settings = services.AddAppConfiguration(Configuration);
+        services.AddSingleton<AppConfiguration>(
            _ => Configuration.GetSection(nameof(AppConfiguration)).Get<AppConfiguration>()!
-       );
+        );
         services.AddAuthHttpClient(settings);
         services.AddRazorComponents()
             .AddInteractiveServerComponents();
         services.AddBlazorBootstrap();
-        services.AddBlazoredLocalStorage();
-        services.AddAuthorization();
         services.AddScoped<AuthenticationStateProvider, JwtAuthStateProvider>();
         services.AddScoped<ILoginManager, LoginManagerService>();
         services.AddCascadingAuthenticationState();
-        services.AddScoped<IAuthenticationService, JwtAuthenticationService>();
+        services.AddAuthenticationCore();
+        services.AddAuthorizationCore();
     }
 
     public void Configure(IApplicationBuilder app, IHostEnvironment env)
@@ -50,7 +47,6 @@ public class Startup
         app.UseRouting();
         app.UseHttpsRedirection();
         app.UseStaticFiles();
-        app.UseAuthorization();
         app.UseAntiforgery();
         app.UseEndpoints((config) =>
         {

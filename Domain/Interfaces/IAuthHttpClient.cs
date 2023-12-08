@@ -6,6 +6,6 @@ namespace Domain.Interfaces;
 
 public interface IAuthHttpClient
 {
-    Task<LoginResponse> LoginAsync(LoginModel model);
+    Task<LoginResponse> LoginAsync(LoginModel model, CancellationToken cancellationToken = default(CancellationToken));
     Task<Response> RegisterAsync(RegisterModel model);
 }

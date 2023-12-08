@@ -1,6 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
-
-namespace Domain.Model.Response;
+﻿namespace Domain.Model.Response;
 
 public class Response
 {

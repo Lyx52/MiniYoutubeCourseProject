@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Domain.Attributes;
 
 namespace Domain.Model;
 
@@ -10,7 +11,7 @@ public class RegisterModel
     [EmailAddress]
     public string Email { get; set; }
     [Required]
-    [MinLength(6)]
+    [PasswordValidation(6, true, true, true, true)]
     public string Password { get; set; }
     [Required]
     [Compare(nameof(Password))]

@@ -2,8 +2,10 @@
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using Domain.Interfaces;
 using Domain.Model.Configuration;
 using Domain.Model.Response;
+using Domain.Model.View;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.IdentityModel.Tokens;
@@ -19,16 +21,19 @@ public class LoginManagerService : ILoginManager
     private readonly NavigationManager _navigation;
     private readonly ILogger<LoginManagerService> _logger;
     private readonly AppConfiguration _configuration;
+    private readonly IAuthHttpClient _authHttpClient;
     public LoginManagerService(
         ILogger<LoginManagerService> logger, 
         ProtectedLocalStorage localStorage,
         AppConfiguration configuration,
-        NavigationManager navigation)
+        NavigationManager navigation,
+        IAuthHttpClient authHttpClient)
     {
         _localStorage = localStorage;
         _logger = logger;
         _navigation = navigation;
         _configuration = configuration;
+        _authHttpClient = authHttpClient;
     }
     public async Task LogoutAsync(CancellationToken cancellationToken = default(CancellationToken))
     {
@@ -36,14 +41,16 @@ public class LoginManagerService : ILoginManager
         _navigation.NavigateTo("/", true);
     }
 
-    public async Task<bool> LoginAsync(LoginResponse payload, CancellationToken cancellationToken = default(CancellationToken))
+    public async Task<LoginResponseModel> LoginAsync(LoginModel model, CancellationToken cancellationToken = default(CancellationToken))
     {
-        
-        if (!payload.Success || string.IsNullOrEmpty(payload.Token)) 
-            return false;
-        
-        await _localStorage.SetAsync(AccessToken, payload.Token);
-        return true;
+        var response = await _authHttpClient.LoginAsync(model, cancellationToken);
+        if (response.Success && !string.IsNullOrEmpty(response.Token))
+            await _localStorage.SetAsync(AccessToken, response.Token);
+        return new LoginResponseModel()
+        {
+            Message = response.Message ?? string.Empty,
+            Success = response.Success
+        };
     }
 
     public async Task<List<Claim>> GetUserClaimsAsync(CancellationToken cancellationToken = default(CancellationToken))

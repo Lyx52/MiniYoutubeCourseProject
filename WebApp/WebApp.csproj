@@ -374,8 +374,6 @@
 
   <ItemGroup>
     <PackageReference Include="Blazor.Bootstrap" Version="1.10.4" />
-    <PackageReference Include="Blazored.LocalStorage" Version="4.4.0" />
-    <PackageReference Include="BlazorPolyfill.Server" Version="7.0.203.1" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="8.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="8.0.0" />
@@ -389,10 +387,10 @@
 
   <ItemGroup>
     <None Include="wwwroot\css\components\VideoPlayer.css" />
+    <None Include="wwwroot\elephants2.mp4" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Blazored.Video\Blazored.Video.csproj" />
     <ProjectReference Include="..\Domain\Domain.csproj" />
   </ItemGroup>
 </Project>

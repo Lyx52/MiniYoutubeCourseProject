@@ -1,32 +1,47 @@
 ﻿<nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
     <div class="container-fluid">
-        <NavLink class="navbar-brand" href="" Match="NavLinkMatch.All">
+        <NavLink class="navbar-brand d-block d-md-none" href="" Match="NavLinkMatch.All">
             <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> MiniTube
         </NavLink>
         <button class="navbar-toggler collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="navbar-collapse collapse" id="navbarCollapse">
-            <div class="d-inline-flex w-100">
-                <SearchBar />
+            <div class="d-inline-flex w-100 justify-content-between">
+                <NavLink class="navbar-brand d-none d-md-block" href="" Match="NavLinkMatch.All">
+                    <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> MiniTube
+                </NavLink>
                 
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item col-6 col-lg-auto">
-                        <NavLink class="nav-link" href="studio" Match="NavLinkMatch.All">
-                            <i class="bi bi-record-circle"></i>
-                        </NavLink>
-                    </li>
-                    <li class="nav-item col-6 col-lg-auto">
-                        <Notifications />
-                    </li>
-                    <li class="nav-item col-6 col-lg-auto">
-                        <NavLink class="nav-link" href="#" Match="NavLinkMatch.All">
-                            <i class="bi bi-person-circle"></i>
-                        </NavLink>
-                    </li>
+                <SearchBar/>
+
+                <ul class="navbar-nav">
+                    <AuthorizeView>
+                        <Authorized>
+                            <li class="nav-item col-6 col-lg-auto">
+                                <NavLink class="nav-link link-body-emphasis text-decoration-none nav-link-color" href="studio" Match="NavLinkMatch.All">
+                                    <i class="bi bi-record-circle"></i>
+                                </NavLink>
+                            </li>
+                            <li class="nav-item col-6 col-lg-auto">
+                                <NotificationDropdown/>
+                            </li>
+                            <li class="nav-item col-6 col-lg-auto">
+                                <ProfileDropdown/>
+                            </li>
+                        </Authorized>
+                        <NotAuthorized>
+                            <li class="nav-item col-6 col-lg-auto">
+                                <NavLink class="nav-link link-body-emphasis text-decoration-none nav-link-color" href="login" Match="NavLinkMatch.All">
+                                    <i class="bi bi-box-arrow-in-right"></i> Login
+                                </NavLink>
+                            </li>
+                        </NotAuthorized>
+                    </AuthorizeView>
                 </ul>
             </div>
         </div>
     </div>
 </nav>
+@code {
 
+}

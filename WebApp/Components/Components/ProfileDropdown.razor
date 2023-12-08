@@ -1,0 +1,24 @@
+﻿@using WebApp.Services.Interfaces
+@rendermode InteractiveServer
+@inject ILoginManager _loginManager
+@inject NavigationManager _navigationManager
+<div class="flex-shrink-0 dropdown">
+    <button type="button" class="nav-link d-block link-body-emphasis text-decoration-none nav-link-color" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="bi bi-person-circle"></i>
+    </button>
+    <ul class="dropdown-menu text-small shadow main-navbar-dropdown profile-dropdown" data-popper-placement="bottom-end">
+        <li><a class="dropdown-item" href="#">Profile</a></li>
+        <li><a class="dropdown-item" @onclick="OnLogOut">Log out</a></li>
+    </ul>
+</div>
+<HeadContent>
+	<link rel="stylesheet" href="css/components/ProfileDropdown.css" />
+</HeadContent>
+@code {
+
+    public async Task OnLogOut()
+    {
+        await _loginManager.LogoutAsync();
+        StateHasChanged();
+    }
+}
