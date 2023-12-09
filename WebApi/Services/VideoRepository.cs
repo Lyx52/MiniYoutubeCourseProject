@@ -28,7 +28,9 @@ public class VideoRepository : IVideoRepository
             WorkSpaceId = payload.WorkSpaceId.ToString(),
             Title = payload.Title,
             Status = VideoProcessingStatus.CreatedMetadata,
-            Description = payload.Description
+            Description = payload.Description,
+            IsUnlisted = payload.IsUnlisted,
+            Created = DateTime.Now
         }, cancellationToken);
             
         await _dbContext.SaveChangesAsync(cancellationToken);    
@@ -80,6 +82,21 @@ public class VideoRepository : IVideoRepository
     {
         return _dbContext.Sources
             .Where((s) => s.VideoId.ToLower() == videoId.ToString().ToLower())
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<VideoProcessingStatus?> GetVideoStatus(Guid videoId, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var video = await GetVideoById(videoId, false, cancellationToken);
+        return video?.Status;
+    }
+
+    public Task<List<Video>> QueryVideosByTitle(string searchText, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        return _dbContext.Videos
+            .Where((v) => v.Title.ToLower().Contains(searchText.ToLower()))
+            .OrderBy((v) => v.Created)
+            .Take(10)
             .ToListAsync(cancellationToken);
     }
 

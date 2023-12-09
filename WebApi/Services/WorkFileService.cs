@@ -1,7 +1,6 @@
 ﻿using Domain.Constants;
 using Domain.Model;
 using Domain.Model.Configuration;
-using Newtonsoft.Json;
 using WebApi.Services.Interfaces;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 

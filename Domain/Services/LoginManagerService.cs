@@ -4,14 +4,13 @@ using System.Security.Cryptography;
 using System.Text;
 using Domain.Interfaces;
 using Domain.Model.Configuration;
-using Domain.Model.Response;
 using Domain.Model.View;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
-using WebApp.Services.Interfaces;
 
-namespace WebApp.Services;
+namespace Domain.Services;
 
 public class LoginManagerService : ILoginManager
 {
@@ -52,8 +51,19 @@ public class LoginManagerService : ILoginManager
             Success = response.Success
         };
     }
-
     public async Task<List<Claim>> GetUserClaimsAsync(CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var accessToken = await GetJwtToken(cancellationToken);
+        
+        if (accessToken is null) return new List<Claim>();
+        var claims = ValidateDecodeToken(accessToken);
+        if (claims.Count > 0) return claims;
+        
+        // TODO: Refresh token
+        return new List<Claim>();
+    }
+
+    public async Task<string?> GetJwtToken(CancellationToken cancellationToken)
     {
         ProtectedBrowserStorageResult<string> accessToken;
         try
@@ -63,22 +73,16 @@ public class LoginManagerService : ILoginManager
         catch (InvalidOperationException _)
         {
             // Blazor first render cant access LocalStorage
-            return new List<Claim>();
+            return null;
         }
         catch (CryptographicException)
         {
-            await LogoutAsync(cancellationToken);
-            return new List<Claim>();
+            return null;
         }
 
-        if (!accessToken.Success) return new List<Claim>();
-        var claims = ValidateDecodeToken(accessToken.Value ?? string.Empty);
-        if (claims.Count > 0) return claims;
-        
-        // TODO: Refresh token
-        return new List<Claim>();
+        return accessToken.Success ? accessToken.Value : null;
     }
-    
+
     private List<Claim> ValidateDecodeToken(string token)
     {
         var tokenHandler = new JwtSecurityTokenHandler();

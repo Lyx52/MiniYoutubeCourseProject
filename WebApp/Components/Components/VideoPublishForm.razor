@@ -1,0 +1,108 @@
+﻿@using Domain.Model
+@using Domain.Interfaces
+@inject IVideoHttpClient _videoHttpClient
+@implements IAsyncDisposable
+@using Timer = System.Threading.Timer
+@using Domain.Constants
+<Modal @ref="_modal">
+    <BodyTemplate>
+        <div>
+            <div class="d-flex flex-column text-center align-items-center">
+                @switch (CurrentStatus)
+                {
+                    case VideoProcessingStatus.ProcessingFinished:
+                    {
+                        <i class="bi bi-check-circle-fill"></i>
+                        <p>Your video finished processing, you can publish it</p>
+                    } break;
+                    case VideoProcessingStatus.ProcessingFailed:
+                    {
+                        <i class="bi bi-x-circle-fill"></i>
+                        <p>Video processing failed, try again later</p>
+                    } break;
+                    default:
+                    {
+                        <span class="spinner-grow spinner-grow-sm" aria-hidden="true"></span>
+                        <p class="my-2">Your video is being processed...</p>
+                        <i class="m-0">Tip: You can also close this window while its processing</i>    
+                    } break;
+                }
+            </div>
+        </div>
+    </BodyTemplate>
+    <FooterTemplate>
+        <Button Color="ButtonColor.Primary" Disabled="@IsLoading" @onclick="PublishVideoAsync">
+            @if (IsLoading)
+            {
+                <span class="spinner-grow spinner-grow-sm" aria-hidden="true"></span>
+            }
+            else
+            {
+                <span>Publish</span>
+            }
+        </Button>
+    </FooterTemplate>
+</Modal>
+
+@code {
+    private Modal _modal;
+    private bool _isPublishing { get; set; }
+    private Timer? _publishTimer { get; set; }
+    private AutoResetEvent _timerResetEvent { get; set; }
+    public bool IsLoading => _isPublishing || CurrentStatus == VideoProcessingStatus.Processing;
+    
+    public Guid VideoId { get; set; }
+    public VideoProcessingStatus CurrentStatus { get; set; }
+    
+    [Parameter]
+    public EventCallback OnFormSubmit { get; set; }
+    
+    public async Task OpenModalAsync(Guid videoId)
+    {
+        VideoId = videoId;
+        await _modal.ShowAsync();
+        await InitVideoStateTimer();
+    }
+
+    private async Task InitVideoStateTimer()
+    {
+        var response = await _videoHttpClient.GetProcessingStatus(VideoId);
+        if (response.Success) CurrentStatus = response.Status;
+        _timerResetEvent = new AutoResetEvent(false);
+        _publishTimer = new Timer( async (_) =>
+        {
+            var res = await _videoHttpClient.GetProcessingStatus(VideoId);
+            if (res.Success) CurrentStatus = res.Status;
+            Console.WriteLine($"Debug: {CurrentStatus}");
+            if (CurrentStatus is VideoProcessingStatus.ProcessingFinished or VideoProcessingStatus.ProcessingFailed)
+            {
+                _publishTimer.Change(Timeout.Infinite, Timeout.Infinite);
+            }
+            await InvokeAsync(StateHasChanged);
+        }, _timerResetEvent, 2000L, 2000L);
+    }
+    
+    public async Task CloseModalAsync()
+    {
+        await _modal.HideAsync();
+    }
+
+    public async Task PublishVideoAsync()
+    {
+        _isPublishing = true;
+        StateHasChanged();
+        await _videoHttpClient.PublishVideo(VideoId);
+        _isPublishing = false;
+        StateHasChanged();
+        await OnFormSubmit.InvokeAsync();
+    }
+    
+
+    public async ValueTask DisposeAsync()
+    {
+        await _modal.DisposeAsync();
+        if (_publishTimer is not null) 
+            await _publishTimer.DisposeAsync();
+    }
+
+}

@@ -1,0 +1,132 @@
+﻿@using Domain.Model.View
+@using Microsoft.AspNetCore.Components
+@using Domain.Constants
+@using Domain.Model
+@using System.ComponentModel.DataAnnotations
+@using Domain.Interfaces
+@inject IContentHttpClient _contentHttpClient
+<Modal @ref="_modal">
+    <BodyTemplate>
+        <div class="w-100 h-100 file-input-wrapper">
+            <div class="d-flex file-input-icon align-items-center w-100 text-center">
+                <div class="w-100">
+                    <i class="bi bi-cloud-upload-fill"></i>
+                    @if (!string.IsNullOrEmpty(InputMessage))
+                    {
+                        <p>@InputMessage</p>
+                    }
+                    else
+                    {
+                        <p>Select file...</p>
+                    }
+                </div>
+            </div>
+            <InputFile class="col-12 col-lg-8 form-control mb-2 mb-lg-0 form-control-sm me-0 me-lg-2 rounded" OnChange="OnFileChanged"/>
+        </div>
+    </BodyTemplate>
+    <FooterTemplate>
+        <Button Color="ButtonColor.Primary" Disabled="@_isLoading" @onclick="OnFileSubmit">
+            @if (_isLoading)
+            {
+                <span class="spinner-grow spinner-grow-sm" aria-hidden="true"></span>
+            }
+            else
+            {
+                <span>Upload</span>
+            }
+        </Button>
+    </FooterTemplate>
+</Modal>
+@code {
+    private Modal _modal;
+    private bool _isLoading { get; set; }
+    private string InputMessage { get; set; }
+    private ValidationContext _validationContext;
+    private Guid? WorkSpaceId { get; set; }
+    private const long MaxFileSize = 1024 * 1024 * 1024;
+    
+    public VideoFileSelectModel Model { get; set; }
+    
+    [Parameter]
+    public EventCallback<Guid> OnFormSubmit { get; set; }
+
+    protected override Task OnInitializedAsync()
+    {
+        
+        Model = new VideoFileSelectModel();
+        _validationContext = new ValidationContext(Model);
+        return base.OnInitializedAsync();
+    }
+    
+    public async Task OpenModalAsync()
+    {
+        await _modal.ShowAsync();
+    }
+
+    private void OnFileChanged(InputFileChangeEventArgs e)
+    {
+        Model.File = e.File;
+        InputMessage = e.File.Name;
+        StateHasChanged();
+    }
+    
+    public async Task CloseModalAsync()
+    {
+        await _modal.HideAsync();
+    }
+    
+    private async Task UploadFile()
+    {
+        _isLoading = true;
+        StateHasChanged();
+        var validationResults = new List<ValidationResult>();
+        bool isValid = Validator.TryValidateObject(Model, _validationContext, validationResults, true);
+        if (isValid)
+        {
+            await using MemoryStream inMemory = new MemoryStream();
+            await using var readStream = Model.File!.OpenReadStream(MaxFileSize);
+            int bytesRead = 0;
+            int totalRead = 0;
+            var buffer = new byte[Model.File.Size];
+            
+            while ((bytesRead = await readStream.ReadAsync(buffer)) != 0)
+            {
+                totalRead += bytesRead;
+    
+                await inMemory.WriteAsync(buffer, 0, bytesRead);
+                InputMessage = $"Uploaded: {Decimal.Divide(totalRead, Model.File.Size):P2}";
+    
+                StateHasChanged();
+            }
+            inMemory.Seek(0, SeekOrigin.Begin);
+            var response = await _contentHttpClient.UploadVideoFile(new UploadVideoModel()
+            {
+                FileName = Model.File.Name,
+                FileSize = Model.File.Size,
+                FileStream = inMemory
+            });
+            
+            if (!response.Success)
+            {
+                InputMessage = response.Message ?? string.Empty;
+            }
+            else
+            {
+                InputMessage = string.Empty;
+                WorkSpaceId = response.FileId;
+            }
+        }
+        _isLoading = false;
+        StateHasChanged();
+    }
+    
+    private async Task OnFileSubmit()
+    {
+        await UploadFile();
+        
+        if (WorkSpaceId.HasValue)
+        {
+            await OnFormSubmit.InvokeAsync(WorkSpaceId.Value);
+        }
+    }
+}

@@ -5,7 +5,9 @@ using Domain.Entity;
 using Domain.Model;
 using Domain.Model.Request;
 using Domain.Model.Response;
+using Domain.Model.View;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using WebApi.Services.Interfaces;
@@ -22,6 +24,7 @@ public class VideoController : ControllerBase
     private readonly ChannelWriter<VideoTask> _channel;
     private readonly UserManager<User> _userManager;
     private readonly IVideoRepository _videoRepository;
+    private static readonly IEnumerable<Video> EmptyVideos = new List<Video>();
     public VideoController(ILogger<VideoController> logger, 
         ChannelWriter<VideoTask> channel, 
         UserManager<User> userManager,
@@ -49,7 +52,9 @@ public class VideoController : ControllerBase
         }, cancellationToken);
         return Ok(new CreateVideoResponse()
         {
-            VideoId = videoId.ToString()
+            VideoId = videoId.ToString(),
+            Message = string.Empty,
+            Success = true
         });
     }
 
@@ -71,20 +76,65 @@ public class VideoController : ControllerBase
         return Ok();
     }
     
+    [HttpPost("Status")]
+    public async Task<IActionResult> GetVideoStatus([FromBody] VideoStatusRequest payload,
+        CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var status = await _videoRepository.GetVideoStatus(payload.VideoId, cancellationToken);
+        if (!status.HasValue) return BadRequest();
+        return Ok(new VideoStatusResponse()
+        {
+            VideoId = payload.VideoId,
+            Status = status.Value ,
+            Success = true,
+            Message = string.Empty
+        });
+    }
+    
     [HttpGet("Metadata")]
     [AllowAnonymous]
     public async Task<IActionResult> GetVideoMetadata([FromQuery] string id,
         CancellationToken cancellationToken = default(CancellationToken))
     {
-        if (Guid.TryParse(id, out var videoId))
+        try
         {
-            var video = await _videoRepository.GetVideoById(videoId, false, cancellationToken);
-            if (video is null) return NotFound();
-            return Ok(video);
+            if (Guid.TryParse(id, out var videoId))
+            {
+                var video = await _videoRepository.GetVideoById(videoId, true, cancellationToken);
+                if (video is null) return NotFound();
+                return Ok(new VideoMetadataResponse()
+                {
+                    VideoId = video.Id,
+                    Description = video.Description,
+                    Title = video.Title,
+                    ContentSources = video.Sources?.Select((s) => new ContentSourceModel()
+                    {
+                        Id = s.Id,
+                        Resolution = s.Resolution,
+                        Type = s.Type,
+                        ContentType = s.ContentType
+                    }) ?? new List<ContentSourceModel>(),
+                    Success = true
+                });
+            }
+            
+            return BadRequest(new VideoMetadataResponse()
+            {
+                Success = false,
+                Message = "Invalid videoId"
+            });
         }
-
-        return BadRequest("Invalid video id");
+        catch (Exception e)
+        {
+            _logger.LogError("Caught exception while querying videos {ExceptionMessage}", e.Message);
+            return StatusCode(500, new VideoMetadataResponse()
+            {
+                Success = false,
+                Message = "Failed to query videos, please try again later",
+            });
+        }
     }
+
     [HttpGet("Sources")]
     [AllowAnonymous]
     public async Task<IActionResult> GetVideoSources([FromQuery] string id,
@@ -97,5 +147,31 @@ public class VideoController : ControllerBase
         }
 
         return BadRequest("Invalid video id");
+    }
+    
+    [HttpGet("Query")]
+    [AllowAnonymous]
+    public async Task<IActionResult> QueryVideos([FromQuery] string searchText,
+        CancellationToken cancellationToken = default(CancellationToken))
+    {
+        try
+        {
+            var videos = await _videoRepository.QueryVideosByTitle(searchText, cancellationToken);
+            return Ok(new SearchVideosResponse()
+            {
+                Videos = videos,
+                Success = true,
+            });
+        }
+        catch (Exception e)
+        {
+            _logger.LogError("Caught exception while querying videos {ExceptionMessage}", e.Message);
+            return StatusCode(500, new SearchVideosResponse()
+            {
+                Success = false,
+                Message = "Failed to query videos, please try again later",
+                Videos = EmptyVideos
+            });
+        }
     }
 }

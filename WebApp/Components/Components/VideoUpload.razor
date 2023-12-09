@@ -1,0 +1,90 @@
+﻿@using Domain.Constants
+@using Domain.Interfaces
+@using Domain.Model
+
+<div>
+    <VideoUploadForm @ref="_videoUploadForm" OnFormSubmit="OnVideoUploaded" />
+    <VideoMetadataForm @ref="_videoMetadataForm" OnFormSubmit="OnVideoCreated" />
+    <VideoPublishForm @ref="_videoPublishForm" OnFormSubmit="OnVideoPublished" />
+</div>
+@code {
+    [Parameter]
+    public EventCallback<Guid> OnWorkflowComplete { get; set; }
+
+    public VideoUploadStage CurrentStage { get; set; }
+    private VideoUploadForm _videoUploadForm;
+    private VideoMetadataForm _videoMetadataForm;
+    private VideoPublishForm _videoPublishForm;
+
+    public Guid? WorkSpaceId { get; set; }
+    public Guid? VideoId { get; set; }
+    
+    protected override async Task OnInitializedAsync()
+    {
+        CurrentStage = VideoUploadStage.FileUploadStage;
+        await base.OnInitializedAsync();
+    }
+
+    public async Task ChangeStage(VideoUploadStage stage)
+    {
+        switch (stage)
+        {
+            case VideoUploadStage.FileUploadStage:
+            {
+                CurrentStage = stage;
+                await _videoPublishForm.CloseModalAsync();
+                await _videoMetadataForm.CloseModalAsync();
+                await _videoUploadForm.OpenModalAsync();
+            } break;
+            case VideoUploadStage.MetadataFormStage:
+            {
+                if (WorkSpaceId.HasValue)
+                {
+                    CurrentStage = VideoUploadStage.MetadataFormStage;
+                    await _videoPublishForm.CloseModalAsync();
+                    await _videoUploadForm.CloseModalAsync();
+                    await _videoMetadataForm.OpenModalAsync(WorkSpaceId.Value);
+                }
+            } break;
+            default:
+            {
+                if (VideoId.HasValue)
+                {
+                    CurrentStage = VideoUploadStage.SubmitStage;
+                    await _videoMetadataForm.CloseModalAsync();
+                    await _videoUploadForm.CloseModalAsync();
+                    await _videoPublishForm.OpenModalAsync(VideoId.Value);
+                }
+            } break;
+        }
+    }
+    
+    public async Task OpenModalAsync()
+    {
+        await ChangeStage(CurrentStage);
+    }
+
+    private async Task OnVideoUploaded(Guid workSpaceId)
+    {
+        WorkSpaceId = workSpaceId;
+        await ChangeStage(VideoUploadStage.MetadataFormStage);
+    }
+
+    private async Task OnVideoCreated(Guid videoId)
+    {
+        VideoId = videoId;
+        await ChangeStage(VideoUploadStage.SubmitStage);
+    }
+
+    private async Task OnVideoPublished()
+    {
+        await _videoMetadataForm.CloseModalAsync();
+        await _videoUploadForm.CloseModalAsync();
+        await _videoPublishForm.CloseModalAsync();
+        if (OnWorkflowComplete.HasDelegate && VideoId.HasValue)
+        {
+            await OnWorkflowComplete.InvokeAsync(VideoId.Value);
+        }
+        
+    }
+}

@@ -245,6 +245,7 @@ public class ContentProcessingService : IContentProcessingService
              var workFiles = await Task.WhenAll(GenerateProcessingTasks(data, workSpace, originalAnalysis));
              workSpace.Files.AddRange(workFiles);
              await _workFileService.SaveWorkSpaceAsync(workSpace);
+             await _videoRepository.UpdateVideoStatus(payload.VideoId, VideoProcessingStatus.ProcessingFinished, cancellationToken);
          }
          catch (Exception e)
          {

@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using WebApp.Components;
 using WebApp.Services;
-using WebApp.Services.Interfaces;
 
 namespace WebApp;
 
@@ -24,12 +23,14 @@ public class Startup
         services.AddSingleton<AppConfiguration>(
            _ => Configuration.GetSection(nameof(AppConfiguration)).Get<AppConfiguration>()!
         );
-        services.AddAuthHttpClient(settings);
+        services.AddJwtAuthentication(settings);
+        services.AddContentClient(settings);
+        services.AddVideoClient(settings);
         services.AddRazorComponents()
             .AddInteractiveServerComponents();
         services.AddBlazorBootstrap();
         services.AddScoped<AuthenticationStateProvider, JwtAuthStateProvider>();
-        services.AddScoped<ILoginManager, LoginManagerService>();
+        
         services.AddCascadingAuthenticationState();
         services.AddAuthenticationCore();
         services.AddAuthorizationCore();

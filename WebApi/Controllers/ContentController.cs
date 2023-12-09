@@ -62,7 +62,8 @@ public class ContentController : ControllerBase
     }
 
     [HttpPost("UploadVideoFile")]
-    [FileExtensionValidation(MP4, MP4, WEBM)]
+    //
+    // [FileExtensionValidation(MP4, MP4, WEBM)]
     public async Task<IActionResult> UploadVideoFile([FromForm] IFormFile videoFile, CancellationToken cancellationToken = default(CancellationToken))
     {
         MemoryStream memoryStream = new MemoryStream();
@@ -70,7 +71,7 @@ public class ContentController : ControllerBase
         var id = await _contentService.SaveTemporaryFile(memoryStream, videoFile.FileName, cancellationToken);
         if (id.HasValue)
         {
-            
+                
             return Ok(new UploadVideoFileResponse()
             {
                 FileId = id.Value,

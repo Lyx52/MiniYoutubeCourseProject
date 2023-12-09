@@ -1,0 +1,88 @@
+﻿@using Domain.Model
+@using Domain.Interfaces
+@inject IVideoHttpClient _videoHttpClient
+
+<EditForm EditContext="_context" OnValidSubmit="OnValidSubmit">
+    <Modal @ref="_modal">
+        <BodyTemplate>
+            <div class="w-100 h-100">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-danger" Model="Model"/>
+                <div class="mb-3">
+                    <label for="titleInput" class="form-label">Video title</label>
+                    <InputText id="titleInput" class="form-control" @bind-Value="Model.Title"/>
+                    <ValidationMessage class="text-danger" For="@(() => Model.Title)"/>
+                </div>
+                <div class="mb-3">
+                    <label for="descriptionInput" class="form-label">Video title</label>
+                    <InputTextArea id="descriptionInput" class="form-control" rows="3" @bind-Value="Model.Description"/>
+                    <ValidationMessage class="text-danger" For="@(() => Model.Description)"/>
+                </div>
+                <div class="form-check">
+                    <InputCheckbox id="unlistedInput" @bind-Value="Model.IsUnlisted"/>
+                    <label class="form-check-label" for="unlistedInput">
+                        Video unlisted
+                    </label>
+                </div>
+            </div>
+        </BodyTemplate>
+        <FooterTemplate>
+            <Button Color="ButtonColor.Primary" Type="@ButtonType.Submit" Disabled="@_isLoading">
+                @if (_isLoading)
+                {
+                    <span class="spinner-grow spinner-grow-sm" aria-hidden="true"></span>
+                }
+                else
+                {
+                    <span>Create</span>
+                }
+            </Button>
+        </FooterTemplate>
+    </Modal>
+</EditForm>
+
+@code {
+    private Modal _modal;
+    private EditContext _context;
+    private bool _isLoading { get; set; }
+    private ValidationMessageStore _messageStore;
+    
+    public CreateVideoModel Model { get; set; }
+    
+    [Parameter]
+    public EventCallback<Guid> OnFormSubmit { get; set; }
+    
+    protected override Task OnInitializedAsync()
+    {
+        Model = new CreateVideoModel();
+        _context = new EditContext(Model);
+        _messageStore = new ValidationMessageStore(_context);
+        _context.OnValidationRequested += (s, e) => _messageStore.Clear();
+        return base.OnInitializedAsync();
+    }
+
+    public async Task OpenModalAsync(Guid workSpaceId)
+    {
+        Model.WorkSpaceId = workSpaceId;
+        await _modal.ShowAsync();
+    }
+    
+    public async Task CloseModalAsync()
+    {
+        await _modal.HideAsync();
+    }
+    
+    private async Task OnValidSubmit()
+    {
+        var response = await _videoHttpClient.CreateVideo(Model);
+        if (response.Success)
+        {
+            await OnFormSubmit.InvokeAsync(Guid.Parse(response.VideoId));    
+        }
+        else
+        {
+            _messageStore.Add(_context.Field(string.Empty), response.Message ?? "Server error, try again later!");
+        }
+        
+    }
+}

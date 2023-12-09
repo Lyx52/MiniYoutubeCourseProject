@@ -14,4 +14,6 @@ public interface IVideoRepository
     Task<Video?> GetVideoById(Guid id, bool includeSources = false, CancellationToken cancellationToken = default(CancellationToken));
     Task<Video?> GetVideoById(Guid id, User user, CancellationToken cancellationToken = default(CancellationToken));
     Task<List<ContentSource>> GetVideoSourcesById(Guid videoId, CancellationToken cancellationToken = default(CancellationToken));
+    Task<VideoProcessingStatus?> GetVideoStatus(Guid videoId, CancellationToken cancellationToken = default(CancellationToken));
+    Task<List<Video>> QueryVideosByTitle(string searchText, CancellationToken cancellationToken = default(CancellationToken));
 }

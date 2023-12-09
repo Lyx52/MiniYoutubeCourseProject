@@ -1,38 +1,56 @@
 ﻿@using Domain.Model
 @rendermode InteractiveServer
-<div class="d-flex flex-column video-player-player">
-
+@inject IJSRuntime JSRuntime
+@implements IAsyncDisposable
+<div class="video-player">
+	<video id="main-video-player" @ref="_player" 
+	       class="video-js" 
+	       controls 
+	       preload="auto">
+	</video>
 </div>
 <HeadContent>
 	<link rel="stylesheet" href="css/components/VideoPlayer.css" />
 </HeadContent>
 @code {
-	
-	[Parameter]
-	public bool HasControls { get; set; }
-	
-	[Parameter]
-	public bool OnHoverPlayback { get; set; }
-
-	[Parameter]
-	public List<VideoSourceModel> Sources { get; set; }
-	
-	[Parameter]
-	public VideoSourceModel DefaultSourceModel { get; set; }
-	
-	private bool IsLoaded { get; set; }
-	private bool IsPaused { get; set; } = false;
-	private double VideoProgress { get; set; }
-	private double VideoDuration { get; set; }
-	private double Volume { get; set; } = 1.0f;
-	private double PrevVolume { get; set; } = 0.75f;
-	private bool ShowVolumeSlider { get; set; } = false;
-
-	private async Task SetSource(VideoSourceModel sourceModel)
+	public event Action<string> VideoPlayerReady;
+	private ElementReference _player;
+	private bool IsInitialized { get; set; }
+	public async Task InitializeVideoPlayer(List<VideoSourceModel> sources)
 	{
-		DefaultSourceModel = sourceModel;
-		IsPaused = false;
+		if (IsInitialized) return;
+		await JSRuntime.InvokeVoidAsync("loadPlayer", _player, new
+		{
+			autoplay = false,
+			fluid = true,
+			aspectRatio = "16:9"
+		}, sources, DotNetObjectReference.Create(this));
+		IsInitialized = true;
 	}
 
-	private Dictionary<string,string> source { get; set; }
+	private async Task DestroyVideoPlayer()
+	{
+		IsInitialized = false;
+		await JSRuntime.InvokeVoidAsync("destroyPlayer", _player, DotNetObjectReference.Create(this));
+	}
+	[JSInvokable]
+	public void OnVideoPlayerReady(string message)
+	{
+		IsInitialized = true;
+		Console.WriteLine(message);
+	}
+
+	public async ValueTask DisposeAsync()
+	{
+		try
+		{
+			await DestroyVideoPlayer();
+		}
+		catch (InvalidOperationException _)
+		{
+			// When reloading page ignore generated error, player will be reloaded anyway
+		}
+		GC.SuppressFinalize(this);
+	}
+
 }

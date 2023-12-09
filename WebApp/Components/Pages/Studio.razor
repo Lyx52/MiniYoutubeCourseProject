@@ -1,14 +1,14 @@
 ﻿@page "/studio"
 @using Microsoft.AspNetCore.Components.Authorization
 @using WebApp.Services
-@using WebApp.Services.Interfaces
 @using Domain.Model.Response
+@using Domain.Interfaces
 @inject AuthenticationStateProvider _authenticationStateProvider
 @inject ILoginManager _loginManager;
 @rendermode InteractiveServer
-<VideoUploadModal @ref="_videoUploadModal"/>
+<VideoUpload @ref="_videoUploadModal" />
 @code {
-    private VideoUploadModal _videoUploadModal;
+    private VideoUpload _videoUploadModal;
     [CascadingParameter] 
     public Task<AuthenticationState> _authState { get; set; }
     protected override async Task OnInitializedAsync()
@@ -20,7 +20,7 @@
         await base.OnAfterRenderAsync(firstRender);
         if (firstRender)
         {
-            await _videoUploadModal.ShowModalAsync();
+            await _videoUploadModal.OpenModalAsync();
         }
     }
 

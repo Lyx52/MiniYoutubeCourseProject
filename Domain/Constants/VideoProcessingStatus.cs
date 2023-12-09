@@ -2,9 +2,9 @@
 
 public enum VideoProcessingStatus
 {
-    Uploaded,
     CreatedMetadata,
     Processing,
+    ProcessingFinished,
     ProcessingFailed,
     Published
 }

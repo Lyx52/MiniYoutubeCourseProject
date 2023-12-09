@@ -2,13 +2,12 @@
 using System.Net.Http.Json;
 using Domain.Interfaces;
 using Domain.Model;
-using Domain.Model.Configuration;
 using Domain.Model.Request;
 using Domain.Model.Response;
 using Domain.Model.View;
 using Microsoft.Extensions.Logging;
 
-namespace Domain.WebClient;
+namespace Domain.Services;
 
 public class AuthHttpClient : IAuthHttpClient
 {
@@ -48,7 +47,11 @@ public class AuthHttpClient : IAuthHttpClient
             _ => "Request failed, please try again later"
         };
         var content = await postResponse.Content.ReadFromJsonAsync<LoginResponse>(cancellationToken);
-        if (content is not null) return content;
+        if (content is not null)
+        {
+            content.Message = message;
+            return content;
+        }
         return new LoginResponse()
         {
             Expiration = DateTime.MaxValue,

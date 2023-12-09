@@ -2,7 +2,7 @@
 using System.Threading.Channels;
 using Domain.Interfaces;
 using Domain.Model.Configuration;
-using Domain.WebClient;
+using Domain.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Polly;
@@ -12,7 +12,7 @@ namespace Domain;
 
 public static class ServiceCollectionExtension
 {
-    public static void AddAuthHttpClient(this IServiceCollection services, AppConfiguration configuration)
+    public static void AddJwtAuthentication(this IServiceCollection services, AppConfiguration configuration)
     {
         services.AddHttpClient<IAuthHttpClient, AuthHttpClient>(nameof(AuthHttpClient), client =>
         {
@@ -24,6 +24,32 @@ public static class ServiceCollectionExtension
         .WaitAndRetryAsync(Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromMilliseconds(500), 2)));
         services.AddHttpClient();
         services.AddScoped<IAuthHttpClient, AuthHttpClient>();
+        services.AddScoped<ILoginManager, LoginManagerService>();
+    }
+
+    public static void AddContentClient(this IServiceCollection services, AppConfiguration configuration)
+    {
+        services.AddHttpClient<IContentHttpClient, ContentHttpClient>(nameof(ContentHttpClient), client =>
+            {
+                client.BaseAddress = new Uri(configuration.ApiEndpoint);
+            })
+            .AddPolicyHandler(Policy<HttpResponseMessage>
+                .Handle<HttpRequestException>()
+                .WaitAndRetryAsync(Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromMilliseconds(500), 2)));
+        services.AddHttpClient();
+        services.AddScoped<IContentHttpClient, ContentHttpClient>();
+    }
+    public static void AddVideoClient(this IServiceCollection services, AppConfiguration configuration)
+    {
+        services.AddHttpClient<IVideoHttpClient, VideoHttpClient>(nameof(VideoHttpClient), client =>
+            {
+                client.BaseAddress = new Uri(configuration.ApiEndpoint);
+            })
+            .AddPolicyHandler(Policy<HttpResponseMessage>
+                .Handle<HttpRequestException>()
+                .WaitAndRetryAsync(Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromMilliseconds(500), 2)));
+        services.AddHttpClient();
+        services.AddScoped<IVideoHttpClient, VideoHttpClient>();
     }
 
     public static AppConfiguration AddAppConfiguration(this IServiceCollection services, IConfiguration configuration)

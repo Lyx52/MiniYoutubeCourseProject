@@ -1,13 +1,27 @@
 ﻿@using Domain.Model
-<div class="mb-3">
-    <VideoPlayer HasControls="@false" OnHoverPlayback="@false" Sources="@Sources" DefaultSourceModel="@Sources[0]" />
+@using Domain.Model.View
+<div class="mb-3 d-flex flex-column">
+    <VideoPlayer @ref="_videoPlayer" />
+    @if (Metadata is not null)
+    {
+        <div class="text-start">
+            <p class="fs-4 fw-bold mb-1">@Metadata.Title</p>
+        </div>
+        <div class="d-flex flex-row">
+            @* User icon, Username, Subscribe, Likes  *@
+        </div>
+        <div class="d-inline-block overflow-hidden text-truncate text-nowrap w-100">
+            @* TODO: Prettify descriptions *@
+            @Metadata.Description
+        </div>
+    }
 </div>
 @code {
-    [Parameter]
-    public string? VideoId { get; set; }
-    private List<VideoSourceModel> Sources = new List<VideoSourceModel>()
-    {
-        new VideoSourceModel() { Resolution = "480p", Src = "http://localhost:4200/api/Content/GetVideoSource?videoId=d6a40dce-36ef-4cb5-9741-8819983c1dfb&sourceId=2ed39e60-16f2-4415-b009-3472407d453a", Type = "video/mp4" },
-        new VideoSourceModel() { Resolution = "360p", Src = "http://localhost:4200/api/Content/GetVideoSource?videoId=d6a40dce-36ef-4cb5-9741-8819983c1dfb&sourceId=9322ec2d-232c-4525-a786-b3a59bd7fd75", Type = "video/mp4" },
-    };
+    [CascadingParameter(Name = "Metadata")]
+    public VideoMetadataModel? Metadata { get; set; }
+    
+    private VideoPlayer _videoPlayer { get; set; }
+
+    public Task InitVideoPlayer(List<VideoSourceModel> sources) => _videoPlayer.InitializeVideoPlayer(sources);
+    
 }
