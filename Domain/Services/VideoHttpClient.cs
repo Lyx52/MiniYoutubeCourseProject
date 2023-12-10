@@ -198,6 +198,42 @@ public class VideoHttpClient : IVideoHttpClient
         }
     }
     
+    public async Task<VideoPlaylistResponse> GetVideoPlaylist(int from, int count, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        using var client = _httpClientFactory.CreateClient(nameof(VideoHttpClient));
+        try
+        {
+            var response = await client.PostAsJsonAsync<VideoPlaylistRequest>($"api/Video/Playlist", new VideoPlaylistRequest()
+            {
+                Count = count,
+                From = from
+            }, cancellationToken);
+
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<VideoPlaylistResponse>(cancellationToken) ?? new VideoPlaylistResponse()
+                {
+                    Success = false,
+                    Message = "Request failed, please try again later"
+                };
+            }
+        }
+        catch (Exception e)
+        {
+            _logger.LogError("VideoApi request failed {ExceptionMessage}!", e.Message);
+            return new VideoPlaylistResponse()
+            {
+                Success = false,
+                Message = "Request failed, please try again later"
+            };
+        }
+        return new VideoPlaylistResponse()
+        {
+            Success = false,
+            Message = "Request failed, please try again later"
+        };
+    }
+    
     public async Task<VideoMetadataResponse> GetVideoMetadata(Guid videoId, CancellationToken cancellationToken = default(CancellationToken))
     {
         using var client = _httpClientFactory.CreateClient(nameof(VideoHttpClient));

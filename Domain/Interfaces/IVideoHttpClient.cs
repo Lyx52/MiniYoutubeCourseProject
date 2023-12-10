@@ -15,4 +15,6 @@ public interface IVideoHttpClient
     Task<SearchVideosResponse> GetVideosByTitle(string searchText, CancellationToken requestCancellationToken = default(CancellationToken));
     Task<VideoMetadataResponse> GetVideoMetadata(Guid videoId,
         CancellationToken cancellationToken = default(CancellationToken));
+    Task<VideoPlaylistResponse> GetVideoPlaylist(int from, int count,
+        CancellationToken cancellationToken = default(CancellationToken));
 }

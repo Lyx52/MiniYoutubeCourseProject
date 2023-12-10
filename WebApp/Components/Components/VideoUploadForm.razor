@@ -117,7 +117,7 @@
             }
         }
         _isLoading = false;
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
     
     private async Task OnFileSubmit()

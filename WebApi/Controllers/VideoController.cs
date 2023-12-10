@@ -91,6 +91,20 @@ public class VideoController : ControllerBase
         });
     }
     
+    [HttpPost("Playlist")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetVideoPlaylist([FromBody] VideoPlaylistRequest payload,
+        CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var videos = await _videoRepository.GetVideoPlaylist(payload.From, payload.Count, cancellationToken);
+        return Ok(new VideoPlaylistResponse()
+        {
+            Videos = videos,
+            Success = true,
+            Message = string.Empty
+        });
+    }
+    
     [HttpGet("Metadata")]
     [AllowAnonymous]
     public async Task<IActionResult> GetVideoMetadata([FromQuery] string id,

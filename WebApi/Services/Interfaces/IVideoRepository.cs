@@ -2,6 +2,7 @@
 using Domain.Entity;
 using Domain.Model;
 using Domain.Model.Request;
+using Domain.Model.View;
 
 namespace WebApi.Services.Interfaces;
 
@@ -16,4 +17,5 @@ public interface IVideoRepository
     Task<List<ContentSource>> GetVideoSourcesById(Guid videoId, CancellationToken cancellationToken = default(CancellationToken));
     Task<VideoProcessingStatus?> GetVideoStatus(Guid videoId, CancellationToken cancellationToken = default(CancellationToken));
     Task<List<Video>> QueryVideosByTitle(string searchText, CancellationToken cancellationToken = default(CancellationToken));
+    Task<IEnumerable<VideoPlaylistModel>> GetVideoPlaylist(int from, int count, CancellationToken cancellationToken = default(CancellationToken));
 }

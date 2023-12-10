@@ -1,17 +1,43 @@
 ﻿@using System.Globalization
+@using Domain.Constants
+@using Domain.Interfaces
+@using Domain.Model.View
+@using System.Collections
+@inject PreloadService _preloadService
+@inject IVideoHttpClient _videoHttpClient
 
-<div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
-    @for(int i = 0; i < 24; i++)
-    {
-        <a href="/watch/@(i)" class="text-decoration-none">
-            <VideoCard Title="@($"Title_{i}")"/>   
-        </a>              
-    }
+<div class="container-fluid">
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
+        @foreach (var video in _videos)
+        {
+            <VideoCard Video="@video"/>    
+        }
+    </div>
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="d-flex justify-content-center">
+                <button class="btn btn-outline-dark w-50" @onclick="LoadMoreVideos">Load more</button>
+            </div>
+        </div>
+    </div>
 </div>
+<Preload Class="preload-block" />
 @code {
-    protected override Task OnInitializedAsync()
+    private List<VideoPlaylistModel> _videos = new List<VideoPlaylistModel>();
+    public int CurrentOffset { get; set; } = 0;
+    protected override async Task OnInitializedAsync()
     {
-        return base.OnInitializedAsync();
+        _videos = new List<VideoPlaylistModel>();
+        await LoadMoreVideos();
     }
 
+    private async Task LoadMoreVideos()
+    {
+        _preloadService.Show();
+        var response = await _videoHttpClient.GetVideoPlaylist(CurrentOffset, 12);
+        _videos.AddRange(response.Videos);
+        await InvokeAsync(StateHasChanged);
+        _preloadService.Hide();
+        //CurrentOffset += response.Videos.Count();
+    }
 }

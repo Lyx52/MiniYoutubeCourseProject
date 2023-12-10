@@ -1,27 +1,76 @@
 ﻿@using Domain.Model
-<div class="col">
-  <div class="card border-0 @(IsPlaylistView ? "video-card-playlist" : "video-card")">
-    <div class="gap-3 card-body d-flex justify-content-between video-card-body">
-      <div class="d-inline-flex">
-        <div class="creator-icon">
-          <img src="@CreatorIconLink" alt="CreatorIconLink">
-        </div>
-        <div class="ms-3 d-flex flex-column">
-          <p class="fs-5 mb-1">@Title</p>
-          <p class="small mb-0">@Creator</p>
-          <p class="small mb-0 text-body-secondary">20 hours ago</p>
+@using Domain.Model.Configuration
+@using Domain.Model.View
+@using Domain.Constants
+@using System.Text.Json
+@inject AppConfiguration _configuration
+@inject NavigationManager _navigationManager
+
+<a @onclick="OnVideoClicked" @onmouseover="OnMouseOver" @onmouseleave="OnMouseLeave" class="text-decoration-none cursor-pointer">
+  @if (IsPlaylistView)
+  {
+    
+  }
+  else
+  {
+    <div class="col video-card-container">
+      <div class="card border-0 video-card">
+        <div class="gap-3 card-body d-flex justify-content-between video-card-body">
+          <figure class="figure">
+            @if (IsMouseOver)
+            {
+              <img src="@GetSourceLink(Video.PosterGif!.Id)" class="figure-img img-fluid rounded mb-1 w-100" alt="poster gif">
+            }
+            else
+            {
+              <img src="@GetSourceLink(Video.Poster!.Id)" class="figure-img img-fluid rounded mb-1" alt="poster image">
+            }
+            <figcaption class="figure-caption">
+              <div class="d-inline-flex w-100">
+                <div class="creator-icon">
+                  <img src="@CreatorIconLink" alt="CreatorIconLink">
+                </div>
+                <div class="ms-3 d-flex flex-column">
+                  <p class="fs-5 mb-1 text-break">@Video.Title</p>
+                  <p class="small mb-0">@Creator</p>
+                  <p class="small mb-0 text-body-secondary">20 hours ago</p>
+                </div>
+              </div>
+            </figcaption>
+          </figure>
         </div>
       </div>
     </div>
-  </div>  
-</div>
+  }
+</a>
+
 @code {
   [Parameter]
-  public string Title { get; set; }
+  public VideoPlaylistModel Video { get; set; }
   string Creator = "Linus Tech Tips";
   string CreatorIconLink = "/favicon.png";
+  
   [Parameter]
   public bool IsPlaylistView { get; set; }
   
+  private bool IsMouseOver { get; set; }
+  private string GetSourceLink(string sourceId)
+  {
+    return $"{_configuration.ApiEndpoint}/api/Content/Source?videoId={Video.VideoId}&sourceId={sourceId}";
+  }
+  private void OnVideoClicked()
+  {
+    _navigationManager.NavigateTo($"/watch/{Guid.Parse(Video.VideoId).ToVideoUrlId()}", true, true);    
+  }
 
+  public async Task OnMouseOver()
+  {
+    IsMouseOver = true;
+    await InvokeAsync(StateHasChanged);
+  }
+  public async Task OnMouseLeave()
+  {
+    IsMouseOver = false;
+    await InvokeAsync(StateHasChanged);
+  }
 }

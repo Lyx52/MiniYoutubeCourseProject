@@ -2,6 +2,7 @@
 using Domain.Entity;
 using Domain.Model;
 using Domain.Model.Request;
+using Domain.Model.View;
 using Microsoft.EntityFrameworkCore;
 using WebApi.Data;
 using WebApi.Services.Interfaces;
@@ -98,6 +99,43 @@ public class VideoRepository : IVideoRepository
             .OrderBy((v) => v.Created)
             .Take(10)
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IEnumerable<VideoPlaylistModel>> GetVideoPlaylist(int from, int count, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var videos = await _dbContext.Videos
+            .Include((v) => v.Sources)
+            .OrderBy((v) => v.Created)
+            .Skip(from)
+            .Take(count)
+            .ToListAsync(cancellationToken);
+        
+        return videos.Select((v) =>
+        {
+            var poster = v.Sources!.First((s) => s.Type == ContentSourceType.Thumbnail);
+            var posterGif = v.Sources!.First((s) => s.Type == ContentSourceType.ThumbnailGif);
+
+            return new VideoPlaylistModel()
+            {
+                Created = v.Created,
+                Title = v.Title,
+                VideoId = v.Id,
+                Poster = new ContentSourceModel()
+                {
+                    ContentType = poster.ContentType,
+                    Id = poster.Id,
+                    Resolution = poster.Resolution,
+                    Type = poster.Type
+                },
+                PosterGif = new ContentSourceModel()
+                {
+                    ContentType = posterGif.ContentType,
+                    Id = posterGif.Id,
+                    Resolution = posterGif.Resolution,
+                    Type = posterGif.Type
+                },
+            };
+        });
     }
 
     private ContentSource ConvertToContentSource(WorkFile file, Video video)

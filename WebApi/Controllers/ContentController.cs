@@ -62,8 +62,8 @@ public class ContentController : ControllerBase
     }
 
     [HttpPost("UploadVideoFile")]
-    //
-    // [FileExtensionValidation(MP4, MP4, WEBM)]
+    [FileExtensionValidation(MP4, MP4, WEBM)]
+    [RequestSizeLimit(1024*1024*1024)]
     public async Task<IActionResult> UploadVideoFile([FromForm] IFormFile videoFile, CancellationToken cancellationToken = default(CancellationToken))
     {
         MemoryStream memoryStream = new MemoryStream();
@@ -99,6 +99,13 @@ public class ContentController : ControllerBase
                 if (source is null) return NotFound();
                 _cache.Set<CachedContentSource>($"{videoId}:{sourceId}", source, CacheOptions[source.Type]);
             }
+
+            if (source!.Type != ContentSourceType.Video)
+            {
+                Response.Headers["Cache-Control"] = "public, max-age=3600";
+                Response.Headers["Expires"] = DateTime.UtcNow.AddHours(1).ToString("R");
+            }
+            
             return File(source!.Data, source.ContentType, enableRangeProcessing: true);
         }
 

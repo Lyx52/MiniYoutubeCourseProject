@@ -16,7 +16,7 @@ public class VideoFileValidationAttribute : ValidationAttribute
     public override bool IsValid(object? value)
     {
         if (value is not IBrowserFile file) return false;
-        if (file.Name.Length > 20) return false;
+        if (file.Name.Length > 150) return false;
         if (file.Size > MaxFileSize) return false;
         if (AcceptedContentTypes.All(ct => ct.ToLower() != file.ContentType.ToLower())) return false;
         return true;
