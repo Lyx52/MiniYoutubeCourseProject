@@ -63,10 +63,7 @@
             };
             Sources = response.ContentSources.ToList();
         }
-        catch (Exception e)
-        {
-                
-        }
+        catch (NavigationException _) { } // Another js related exception we can ignore
         await base.OnInitializedAsync();
     }
 

@@ -233,7 +233,46 @@ public class VideoHttpClient : IVideoHttpClient
             Message = "Request failed, please try again later"
         };
     }
-    
+
+    public async Task<UserVideosResponse> GetUserVideos(CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var jwt = await _loginManager.GetJwtToken(cancellationToken);
+        if (jwt is null)
+        {
+            return new UserVideosResponse()
+            {
+                Message = "Unauthorized",
+                Success = false
+            };
+        }
+        //
+        // using var client = _httpClientFactory.CreateClient(nameof(VideoHttpClient));
+        // try
+        // {
+        //     var response = await client.GetFromJsonAsync<VideoMetadataResponse>($"api/Video/Metadata?id={videoId.ToString()}",
+        //         cancellationToken);
+        //     return response ?? new VideoMetadataResponse()
+        //     {
+        //         Success = false,
+        //         Message = "Request failed, please try again later"
+        //     };
+        // }
+        // catch (Exception e)
+        // {
+        //     _logger.LogError("VideoApi request failed {ExceptionMessage}!", e.Message);
+        //     return new VideoMetadataResponse()
+        //     {
+        //         Success = false,
+        //         Message = "Request failed, please try again later"
+        //     };
+        // }
+        return new UserVideosResponse()
+        {
+            Success = false,
+            Message = "Request failed, please try again later"
+        };
+    }
+
     public async Task<VideoMetadataResponse> GetVideoMetadata(Guid videoId, CancellationToken cancellationToken = default(CancellationToken))
     {
         using var client = _httpClientFactory.CreateClient(nameof(VideoHttpClient));

@@ -17,4 +17,5 @@ public interface IVideoHttpClient
         CancellationToken cancellationToken = default(CancellationToken));
     Task<VideoPlaylistResponse> GetVideoPlaylist(int from, int count,
         CancellationToken cancellationToken = default(CancellationToken));
+    Task<UserVideosResponse> GetUserVideos(CancellationToken cancellationToken = default(CancellationToken));
 }

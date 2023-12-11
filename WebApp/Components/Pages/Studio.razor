@@ -3,18 +3,69 @@
 @using WebApp.Services
 @using Domain.Model.Response
 @using Domain.Interfaces
+@using Domain.Entity
+@using System.Security.Claims
+@using Microsoft.IdentityModel.JsonWebTokens
 @inject AuthenticationStateProvider _authenticationStateProvider
-@inject ILoginManager _loginManager;
+@inject ILoginManager _loginManager
+@inject IVideoHttpClient _videoHttpClient
+@inject NavigationManager _navigationManager
 @rendermode InteractiveServer
+<div class="container-fluid w-100">
+    <div class="row">
+        <div class="col-2">
+            
+        </div>
+        <div class="col-10">
+            <Grid TItem="Video" 
+                  class="table table-hover table-bordered table-striped" 
+                  DataProvider="VideoDataProvider"
+                  Responsive="true">
+                <GridColumn TItem="Video" HeaderText="Title" PropertyName="Title">
+                    @context.Title
+                </GridColumn>
+                <GridColumn TItem="Video" HeaderText="Status" PropertyName="Status">
+                    @context.Status.ToString()
+                </GridColumn>
+            </Grid>
+        </div>
+    </div>
+</div>
 <VideoUpload @ref="_videoUploadModal" />
 @code {
     private VideoUpload _videoUploadModal;
-    [CascadingParameter] 
-    public Task<AuthenticationState> _authState { get; set; }
+    private IEnumerable<Video> _userVideos = new List<Video>();
+
     protected override async Task OnInitializedAsync()
     {
+        var userId = string.Empty;
+        try
+        {
+            var authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
+            var userIdClaim = authState.User.FindFirst(JwtRegisteredClaimNames.Sub);
+            if (userIdClaim is null)
+            {
+                _navigationManager.NavigateTo("/login", true, true);
+                return;
+            }
+            userId = userIdClaim!.Value;
+        }
+        catch (NavigationException _) { } // Another js related exception we can ignore
+        
+        var response = await _videoHttpClient.GetUserVideos();
+        if (response.Success)
+        {
+            //_userVideos = response.Videos;
+        }
     }
+    
+    
 
+    private async Task<GridDataProviderResult<Video>> VideoDataProvider(GridDataProviderRequest<Video> request)
+    {
+        return await Task.FromResult(request.ApplyTo(_userVideos));
+    }
+    
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await base.OnAfterRenderAsync(firstRender);
