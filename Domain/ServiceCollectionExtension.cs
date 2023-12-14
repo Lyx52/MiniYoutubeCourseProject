@@ -51,7 +51,18 @@ public static class ServiceCollectionExtension
         services.AddHttpClient();
         services.AddScoped<IVideoHttpClient, VideoHttpClient>();
     }
-
+    public static void AddCommentClient(this IServiceCollection services, AppConfiguration configuration)
+    {
+        services.AddHttpClient<ICommentHttpClient, CommentHttpClient>(nameof(CommentHttpClient), client =>
+            {
+                client.BaseAddress = new Uri(configuration.ApiEndpoint);
+            })
+            .AddPolicyHandler(Policy<HttpResponseMessage>
+                .Handle<HttpRequestException>()
+                .WaitAndRetryAsync(Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromMilliseconds(500), 2)));
+        services.AddHttpClient();
+        services.AddScoped<ICommentHttpClient, CommentHttpClient>();
+    }
     public static AppConfiguration AddAppConfiguration(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<AppConfiguration>(configuration.GetSection(nameof(AppConfiguration)));

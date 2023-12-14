@@ -33,7 +33,7 @@
                 <div class="ms-3 d-flex flex-column">
                   <p class="fs-5 mb-1 text-break">@Video.Title</p>
                   <p class="small mb-0">@Creator</p>
-                  <p class="small mb-0 text-body-secondary">20 hours ago</p>
+                  <p class="small mb-0 text-body-secondary">@GetCreatedDate()</p>
                 </div>
               </div>
             </figcaption>
@@ -72,5 +72,15 @@
   {
     IsMouseOver = false;
     await InvokeAsync(StateHasChanged);
+  }
+
+  public string GetCreatedDate()
+  {
+    var diff = DateTime.UtcNow - Video.Created.ToUniversalTime();
+    if (diff.TotalDays is >= 1 and <= 30) return $"{diff.TotalDays:F0} days ago";
+    if (diff.TotalHours is >= 1 and <= 23) return $"{diff.TotalHours:F0} hours ago";
+    if (diff.TotalMinutes is >= 1 and <= 60) return $"{diff.TotalMinutes:F0} min ago";
+    if (diff.TotalSeconds is >= 1 and <= 60) return $"{diff.TotalSeconds:F0} sec ago";
+    return string.Empty;
   }
 }

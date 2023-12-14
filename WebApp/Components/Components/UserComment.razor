@@ -1,4 +1,8 @@
-﻿@rendermode InteractiveServer
+﻿@using Domain.Interfaces
+@using System.ComponentModel.DataAnnotations
+@using Domain.Model.View
+@rendermode InteractiveServer
+@inject ICommentHttpClient _commentHttpClient
 <div class="col d-inline-flex user-comment">
     <div class="creator-icon">
         <img src="@UserIconLink" alt="UserIconLink">
@@ -6,44 +10,61 @@
     <div class="ms-3 d-flex flex-column w-100">
         @if (IsNewComment)
         {
-            <EditForm EditContext="@_commentContext"  >
-                <div class="d-flex flex-column">
-                    <input @onfocusin="OnFocusCommentInput" class="form-control border-0 border-bottom shadow-none"/>
-                    @if (NewCommentInFocus)
-                    {
-                        <div class="mt-2 ms-auto d-flex flex-row">
-                            <button class="btn border-0" @onclick="OnClickCancel">Cancel</button>
-                            <button type="submit" class="btn btn-outline-secondary">Comment</button>
-                        </div>
-                    }
-                </div>
-            </EditForm>
+            <div class="d-flex flex-column">
+                <InputText @onfocusin="OnFocusCommentInput" @bind-Value="CommentText" class="form-control border-0 border-bottom shadow-none" />
+                @if (NewCommentInFocus)
+                {
+                    <div class="mt-2 ms-auto d-flex flex-row">
+                        <button class="btn border-0" @onclick="OnClickCancel">Cancel</button>
+                        <button @onclick="OnCommentSubmit" class="btn btn-outline-secondary">Comment</button>
+                    </div>
+                }
+            </div>
         }
         else
         {
             <div class="d-flex flex-column">
                 <p class="fs-5 mb-1">
-                    @Username
+                    @User.Username
                 </p>
-                <p class="small">
-                    @Comment
+                <p class="small mb-0">
+                    @Comment.Message
                 </p>
+                <div class="d-inline-flex">
+                    <button class="btn btn-like-dislike" @onclick="OnLikeClick">
+                        <i class="bi comment-like-button"></i>@Comment.Likes
+                    </button>
+                    <button class="btn btn-like-dislike" @onclick="OnDislikeClick">
+                        <i class="bi comment-dislike-button"></i>@Comment.Dislikes
+                    </button>
+                </div>
             </div>
         }
     </div>
 </div>
 
 @code {
+    [CascadingParameter(Name = "Metadata")]
+    public VideoMetadataModel Model { get; set; }
+    
     [Parameter]
     public bool IsNewComment { get; set; } 
+    
+    [Parameter]
+    public UserModel User { get; set; }
+    
+    [Parameter]
+    public CommentModel Comment { get; set; }
+    
+    [Parameter]
+    public EventCallback OnSubmit { get; set; }
+    
     public bool NewCommentInFocus { get; set; }
-    private EditContext _commentContext { get; set; }
     public string UserIconLink = "/favicon.png";
-    public string? Username { get; set; } = "Lyx.#";
-    public string? Comment { get; set; } = "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s";
+    public string CommentText { get; set; } = string.Empty;
+    
     protected override async Task OnInitializedAsync()
     {
-        _commentContext = new EditContext(new { Text = string.Empty });
     }
     public void OnClickCancel()
     {
@@ -52,5 +73,24 @@
     public void OnFocusCommentInput()
     {
         NewCommentInFocus = true;
+    }
+    public async Task OnCommentSubmit()
+    {
+        await _commentHttpClient.CreateComment(Model.VideoId, CommentText);
+        if (OnSubmit.HasDelegate)
+        {
+            await OnSubmit.InvokeAsync();
+        }
+        CommentText = string.Empty;
+        NewCommentInFocus = false;
+    }
+
+    public async Task OnLikeClick()
+    {
+        await _commentHttpClient.AddLikeDislike(Comment.Id, true);
+    }
+    public async Task OnDislikeClick()
+    {
+        await _commentHttpClient.AddLikeDislike(Comment.Id, false);
     }
 }

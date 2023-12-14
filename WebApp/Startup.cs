@@ -26,6 +26,7 @@ public class Startup
         services.AddJwtAuthentication(settings);
         services.AddContentClient(settings);
         services.AddVideoClient(settings);
+        services.AddCommentClient(settings);
         services.AddRazorComponents()
             .AddInteractiveServerComponents();
         services.AddBlazorBootstrap();

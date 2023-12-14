@@ -1,5 +1,6 @@
 ﻿@page "/watch/{EncodedVideoId}"
 @using Domain.Constants
+@using Domain.Entity
 @using Domain.Interfaces
 @using Domain.Model
 @using Domain.Model.Configuration
@@ -10,22 +11,15 @@
 @inject AppConfiguration _configuration
 <div class="p-3 container-fluid">
     <div class="row">
-        <CascadingValue Value="Model" Name="Metadata">
-            <div class="col-12 col-md-9 container-fluid">
-                <div class="row">
-                    <WatchView @ref="_watchView" />
-                </div>
-                <div class="row d-none d-md-block">
-                    <CommentSection/>
-                </div>
+        <CascadingValue Value="@Model" Name="Metadata">
+            <div class="col-12 col-md-9">
+                <WatchView @ref="_watchView"/>
             </div>
-            <div class="col-12 col-md-3 container-fluid">
-                <div class="row row-cols-1">
-                    <VideoPlaylist/>
-                </div>
-                <div class="row d-block d-md-none">
-                    <CommentSection/>
-                </div>
+            <div class="col-12 col-md-3 video-playlist-block">
+                <VideoPlaylist/>
+            </div>
+            <div class="col-12 col-md-6">
+                <CommentSection @ref="_commentSection" />
             </div>
         </CascadingValue>
     </div>
@@ -36,6 +30,8 @@
     
     public VideoMetadataModel Model { get; set; }
     public List<ContentSourceModel> Sources { get; set; }
+
+    private CommentSection _commentSection;
     private WatchView _watchView;
     protected override async Task OnInitializedAsync()
     {
@@ -81,6 +77,7 @@
                         Src = $"{_configuration.ApiEndpoint}/api/Content/Source?videoId={Model.VideoId}&sourceId={cs.Id}",
                         Type = cs.ContentType
                     }).ToList());
+            await _commentSection.LoadCommentSection(Model.VideoId);
         }
         await base.OnAfterRenderAsync(firstRender);
     }

@@ -1,17 +1,42 @@
-﻿@rendermode InteractiveServer
+﻿@using Domain.Model.View
+@using Domain.Interfaces
+@inject ICommentHttpClient _commentHttpClient
+@rendermode InteractiveServer
 <div class="col container-fluid">
     <div class="row row-cols-1">
-        @for (int i = 0; i < 12; i++)
+        <UserComment IsNewComment="@true" OnSubmit="RefreshCommentSection" />
+        @foreach (var comment in Comments)
         {
-            if (i == 0)
-            {
-                <UserComment IsNewComment="@true" />
-                continue;
-            } 
-            <UserComment />
+            var user = Users[comment.UserId];
+            <UserComment User="user" Comment="comment"/>    
         }
     </div>
 </div>
 @code {
-    
+    [Parameter]
+    public Guid VideoId { get; set; }
+
+    public Dictionary<string, UserModel> Users { get; set; } = new Dictionary<string, UserModel>();
+    public IEnumerable<CommentModel> Comments { get; set; } = new List<CommentModel>();
+
+    public async Task LoadCommentSection(Guid videoId)
+    {
+        VideoId = videoId; 
+        await RefreshCommentSection();
+    }
+
+    public async Task RefreshCommentSection()
+    {
+        var response = await _commentHttpClient.GetVideoComments(VideoId.ToString());
+        if (response.Success)
+        {
+            Users = new Dictionary<string, UserModel>();
+            foreach (var user in response.Users)
+            {
+                Users.Add(user.Id, user);
+            }
+            Comments = response.Comments.OrderByDescending(c => c.Created);
+        }
+        await InvokeAsync(StateHasChanged);
+    }
 }

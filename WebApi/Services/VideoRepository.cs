@@ -31,7 +31,7 @@ public class VideoRepository : IVideoRepository
             Status = VideoProcessingStatus.CreatedMetadata,
             Description = payload.Description,
             IsUnlisted = payload.IsUnlisted,
-            Created = DateTime.Now
+            Created = DateTime.UtcNow
         }, cancellationToken);
             
         await _dbContext.SaveChangesAsync(cancellationToken);    

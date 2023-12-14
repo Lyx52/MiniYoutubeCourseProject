@@ -9,6 +9,7 @@ public class Video : IdEntity<string>
     public string CreatorId { get; set; }
     public string WorkSpaceId { get; set; }
     public IEnumerable<ContentSource>? Sources { get; set; }
+    public IEnumerable<Comment> Comments { get; set; }
     public VideoProcessingStatus Status { get; set; }
     public bool IsUnlisted { get; set; }
     public DateTime Created { get; set; }

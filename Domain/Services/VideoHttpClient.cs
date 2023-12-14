@@ -63,7 +63,7 @@ public class VideoHttpClient : IVideoHttpClient
         }
         var message = postResponse.StatusCode switch
         {
-            HttpStatusCode.Unauthorized => "Invalid username or password",
+            HttpStatusCode.Unauthorized => "Unauthorized",
             HttpStatusCode.OK => string.Empty,
             _ => "Request failed, please try again later"
         };
