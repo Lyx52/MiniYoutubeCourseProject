@@ -11,8 +11,10 @@
             @* User icon, Username, Subscribe, Likes  *@
         </div>
         <div class="d-inline-block overflow-hidden text-truncate text-nowrap w-100">
-            @* TODO: Prettify descriptions *@
-            @Metadata.Description
+            @foreach (var line in Metadata.Description.Split("\n"))
+            {
+                @line <br/>
+            }
         </div>
     }
 </div>

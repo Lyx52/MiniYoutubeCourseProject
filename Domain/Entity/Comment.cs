@@ -9,4 +9,5 @@ public class Comment : IdEntity<string>
     public long Likes { get; set; }
     public long Dislikes { get; set; }
     public DateTime Created { get; set; }
+    public IEnumerable<CommentImpression> Impressions { get; set; }
 }

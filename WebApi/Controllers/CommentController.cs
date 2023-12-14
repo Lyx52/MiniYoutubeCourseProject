@@ -39,19 +39,16 @@ public class CommentController : ControllerBase
         _userRepository = userRepository;
     }
     
-    [HttpPost("LikeDislike")]
-    public async Task<IActionResult> CommentLikeDislike(LikeDislikeRequest payload,
+    [HttpPost("Impression")]
+    public async Task<IActionResult> CommentImpression(CommentImpressionRequest payload,
         CancellationToken cancellationToken = default(CancellationToken))
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
         if (userIdClaim is null) return Unauthorized();
         var user = await _userRepository.GetById(userIdClaim.Value, cancellationToken);
         if (user is null) return Unauthorized();
-        await _commentRepository.LikeDislikeComment(payload.CommentId, payload.IsLike, cancellationToken);
-        return Ok(new Response()
-        {
-            Success = true
-        });
+        await _commentRepository.SetCommentImpression(user.Id, payload.CommentId, payload.Impression, cancellationToken);
+        return Ok();
     }
 
         
@@ -86,7 +83,14 @@ public class CommentController : ControllerBase
     {
         try
         {
-            var comments = (await _commentRepository.GetByVideoIds(id, cancellationToken)).ToList();
+            string? userId = string.Empty;
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim is not null)
+            {
+                var user = await _userRepository.GetById(userIdClaim.Value, cancellationToken);
+                userId = user?.Id;
+            }
+            var comments = (await _commentRepository.GetByVideoIds(id, userId, cancellationToken)).ToList();
             var userIds = comments.Select(c => c.UserId).Distinct();
             var users = await _userRepository.GetUsersByIds(userIds, cancellationToken);
             return Ok(new QueryCommentsResponse()

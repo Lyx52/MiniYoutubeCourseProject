@@ -130,7 +130,7 @@
 .comment-dislike-button::before {
     content: "\F405" !important;
 }
-.btn-like-dislike {
+.btn-comment-action {
     padding-left: 3px;
     padding-right: 3px;
 }

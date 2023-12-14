@@ -1,5 +1,6 @@
 ﻿@using Domain.Interfaces
 @using System.ComponentModel.DataAnnotations
+@using Domain.Constants
 @using Domain.Model.View
 @rendermode InteractiveServer
 @inject ICommentHttpClient _commentHttpClient
@@ -27,16 +28,22 @@
                 <p class="fs-5 mb-1">
                     @User.Username
                 </p>
-                <p class="small mb-0">
+                <p class="small text-break @(IsFullText ? string.Empty : "text-truncate") mb-0">
                     @Comment.Message
                 </p>
                 <div class="d-inline-flex">
-                    <button class="btn btn-like-dislike" @onclick="OnLikeClick">
-                        <i class="bi comment-like-button"></i>@Comment.Likes
+                    <button class="btn btn-comment-action" @onclick="OnLikeClick">
+                        <i class="bi @(Comment.Impression is ImpressionType.Like ? "bi-hand-thumbs-up-fill" : "comment-like-button")"></i>@Comment.Likes
                     </button>
-                    <button class="btn btn-like-dislike" @onclick="OnDislikeClick">
-                        <i class="bi comment-dislike-button"></i>@Comment.Dislikes
+                    <button class="btn btn-comment-action" @onclick="OnDislikeClick">
+                        <i class="bi @(Comment.Impression is ImpressionType.Dislike ? "bi-hand-thumbs-down-fill" : "comment-dislike-button")"></i>@Comment.Dislikes
                     </button>
+                    @if (Comment.Message.Length > 80)
+                    {
+                        <button class="btn btn-comment-action" @onclick="OnOpenCloseComment">
+                            <i class="bi @(IsFullText ? "bi-three-dots-vertical" : "bi-three-dots")"></i>
+                        </button>    
+                    }
                 </div>
             </div>
         }
@@ -58,23 +65,21 @@
     
     [Parameter]
     public EventCallback OnSubmit { get; set; }
-    
-    public bool NewCommentInFocus { get; set; }
-    public string UserIconLink = "/favicon.png";
-    public string CommentText { get; set; } = string.Empty;
-    
-    protected override async Task OnInitializedAsync()
-    {
-    }
-    public void OnClickCancel()
+    private bool IsFullText { get; set; } = false;
+    private bool NewCommentInFocus { get; set; }
+    private string UserIconLink = "/favicon.png";
+    private string CommentText { get; set; } = string.Empty;
+    private DateTime LastUpdated { get; set; } = DateTime.UtcNow;
+
+    private void OnClickCancel()
     {
         NewCommentInFocus = false;
     }
-    public void OnFocusCommentInput()
+    private void OnFocusCommentInput()
     {
         NewCommentInFocus = true;
     }
-    public async Task OnCommentSubmit()
+    private async Task OnCommentSubmit()
     {
         await _commentHttpClient.CreateComment(Model.VideoId, CommentText);
         if (OnSubmit.HasDelegate)
@@ -85,12 +90,25 @@
         NewCommentInFocus = false;
     }
 
-    public async Task OnLikeClick()
+    private Task OnLikeClick() => OnImpressionClick(ImpressionType.Like);
+    private Task OnDislikeClick() => OnImpressionClick(ImpressionType.Dislike);
+    private async Task OnImpressionClick(ImpressionType impression)
     {
-        await _commentHttpClient.AddLikeDislike(Comment.Id, true);
+        if (DateTime.UtcNow - LastUpdated <= TimeSpan.FromSeconds(1)) return;
+        ImpressionType impressionType = Comment.Impression == impression ? ImpressionType.None : impression;
+        await _commentHttpClient.AddCommentImpression(Comment.Id, impressionType);
+        if (Comment.Impression == ImpressionType.Dislike) Comment.Dislikes--;
+        if (Comment.Impression == ImpressionType.Like) Comment.Likes--;
+        Comment.Impression = impressionType;
+        if (impressionType == ImpressionType.Dislike) Comment.Dislikes++;
+        if (impressionType == ImpressionType.Like) Comment.Likes++;
+        LastUpdated = DateTime.UtcNow;
+        await InvokeAsync(StateHasChanged);
     }
-    public async Task OnDislikeClick()
+
+    private Task OnOpenCloseComment()
     {
-        await _commentHttpClient.AddLikeDislike(Comment.Id, false);
+        IsFullText = !IsFullText;
+        return InvokeAsync(StateHasChanged);
     }
 }

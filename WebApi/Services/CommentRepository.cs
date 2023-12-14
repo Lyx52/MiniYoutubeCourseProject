@@ -38,28 +38,61 @@ public class CommentRepository : ICommentRepository
         return id.ToString();
     }
 
-    public async Task<IEnumerable<CommentModel>> GetByVideoIds(string videoId, CancellationToken cancellationToken = default(CancellationToken))
+    public async Task<IEnumerable<CommentModel>> GetByVideoIds(string videoId, string? userId = null, CancellationToken cancellationToken = default(CancellationToken))
     {
         var video = await _dbContext.Videos
-            .Include(v => v.Comments)
+            .Include(v => v.Comments) 
+            .ThenInclude(c => c.Impressions)
             .FirstOrDefaultAsync(v => v.Id == videoId, cancellationToken);
-        return video?.Comments.Select(c => new CommentModel()
+        var comments = new List<CommentModel>();
+        if (video is null) return comments;
+        foreach (var comment in video.Comments)
         {
-            Message = c.Message,
-            Created = c.Created,
-            Dislikes = c.Dislikes,
-            Likes = c.Likes,
-            UserId = c.CommenterId
-        }) ?? new List<CommentModel>();
+            var totalDislikes = comment.Impressions.Count(i => i.Impression == ImpressionType.Dislike);
+            var totalLikes = comment.Impressions.Count(i => i.Impression == ImpressionType.Like);
+            var model = new CommentModel()
+            {
+                Message = comment.Message,
+                Created = comment.Created,
+                Dislikes = totalDislikes,
+                Likes = totalLikes,
+                UserId = comment.CommenterId,
+                Id = comment.Id,
+                Impression = ImpressionType.None
+            };
+            comments.Add(model);
+            if (string.IsNullOrEmpty(userId)) continue;
+            var compositeId = $"{userId[0..18]}-{comment.Id[19..36]}";
+            model.Impression = comment.Impressions.FirstOrDefault(i => i.Id == compositeId)?.Impression ?? ImpressionType.None;
+        }
+        
+        return comments;
     }
 
-    public async Task LikeDislikeComment(string id, bool isLike,
+    public async Task SetCommentImpression(string userId, string commentId, ImpressionType impressionType,
         CancellationToken cancellationToken = default(CancellationToken))
     {
-        var comment = await _dbContext.Comments.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
-        if (isLike)
+        var compositeId = $"{userId[0..18]}-{commentId[19..36]}";
+        var impression =
+            await _dbContext.CommentImpressions.FirstOrDefaultAsync(
+                ci => ci.Id == compositeId, cancellationToken);
+        if (impression is not null)
         {
-            comment.Likes++;
-        } else comment.Dislikes++;
+            impression.Impression = impressionType;
+        }
+        else
+        {
+            var comment = await _dbContext.Comments.FirstOrDefaultAsync(c => c.Id == commentId, cancellationToken);
+            if (comment is null) return;
+            await _dbContext.CommentImpressions.AddAsync(new CommentImpression()
+            {
+                Id = compositeId,
+                Impression = impressionType,
+                CommentId = commentId,
+                Comment = comment
+            }, cancellationToken);
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
     }
 }

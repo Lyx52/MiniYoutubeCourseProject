@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Net.Http.Json;
+using Domain.Constants;
 using Domain.Interfaces;
 using Domain.Model.Request;
 using Domain.Model.Response;
@@ -22,7 +23,9 @@ public class CommentHttpClient : ICommentHttpClient
     
     public async Task<QueryCommentsResponse> GetVideoComments(string videoId, CancellationToken cancellationToken = default(CancellationToken))
     {
+        var jwt = await _loginManager.GetJwtToken(cancellationToken);
         using var client = _httpClientFactory.CreateClient(nameof(CommentHttpClient));
+        if (!string.IsNullOrEmpty(jwt)) client.DefaultRequestHeaders.Add("Authorization", $"Bearer {jwt}");
         try
         {
             var response = await client.GetFromJsonAsync<QueryCommentsResponse>($"api/Comment/Query?id={videoId}",
@@ -91,7 +94,7 @@ public class CommentHttpClient : ICommentHttpClient
         };
     }
 
-    public async Task AddLikeDislike(string commentId, bool isLike, CancellationToken cancellationToken = default(CancellationToken))
+    public async Task AddCommentImpression(string commentId, ImpressionType impressionType, CancellationToken cancellationToken = default(CancellationToken))
     {
         var jwt = await _loginManager.GetJwtToken(cancellationToken);
         if (jwt is null) return;
@@ -99,10 +102,10 @@ public class CommentHttpClient : ICommentHttpClient
         client.DefaultRequestHeaders.Add("Authorization", $"Bearer {jwt}");
         try
         {
-            await client.PostAsJsonAsync<LikeDislikeRequest>("api/Comment/LikeDislike", new LikeDislikeRequest()
+            var response = await client.PostAsJsonAsync<CommentImpressionRequest>("api/Comment/Impression", new CommentImpressionRequest()
             {
                 CommentId = commentId,
-                IsLike = isLike
+                Impression = impressionType
             }, cancellationToken);
         } catch (HttpRequestException e)
         {

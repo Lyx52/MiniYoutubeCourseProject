@@ -64,7 +64,7 @@ public class AuthHttpClient : IAuthHttpClient
 
     public async Task<Response> RegisterAsync(RegisterModel model)
     {
-        using HttpClient client = _httpClientFactory.CreateClient();
+        using HttpClient client = _httpClientFactory.CreateClient(nameof(AuthHttpClient));
         var postResponse = await client.PostAsJsonAsync<RegisterRequest>("api/Auth/Register", new RegisterRequest()
         {
             Password = model.Password,
@@ -75,7 +75,7 @@ public class AuthHttpClient : IAuthHttpClient
         {
             return new Response()
             {
-                Message = $"Request failed with status: {postResponse.StatusCode}",
+                Message = "Request failed, please try again later",
                 Success = false,
             };
         }
@@ -84,7 +84,7 @@ public class AuthHttpClient : IAuthHttpClient
         if (content is not null) return content;
         return new Response()
         {
-            Message = "Failed to parse response from server",
+            Message = "Request failed, please try again later",
             Success = false,
         };
     }

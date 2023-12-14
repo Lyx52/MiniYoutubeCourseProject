@@ -1,4 +1,5 @@
-﻿using Domain.Model.Response;
+﻿using Domain.Constants;
+using Domain.Model.Response;
 
 namespace Domain.Interfaces;
 
@@ -10,6 +11,6 @@ public interface ICommentHttpClient
     Task<Response> CreateComment(Guid videoId, string message,
         CancellationToken cancellationToken = default(CancellationToken));
 
-    Task AddLikeDislike(string commentId, bool isLike,
+    Task AddCommentImpression(string commentId, ImpressionType impressionType,
         CancellationToken cancellationToken = default(CancellationToken));
 }

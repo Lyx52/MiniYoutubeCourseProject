@@ -1,4 +1,6 @@
-﻿namespace Domain.Model.View;
+﻿using Domain.Constants;
+
+namespace Domain.Model.View;
 
 public class CommentModel
 {
@@ -8,4 +10,5 @@ public class CommentModel
     public long Likes { get; set; }
     public long Dislikes { get; set; }
     public DateTime Created { get; set; }
+    public ImpressionType Impression { get; set; }
 }
