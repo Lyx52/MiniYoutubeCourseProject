@@ -7,7 +7,7 @@
 <div class="row justify-content-center">
     <EditForm EditContext="@_loginContext" class="card col-12 col-md-8 col-lg-4 px-4 py-4 mt-5 border-0" OnValidSubmit="OnLogin">
         <Preload/>
-        <h1 class="fs-3 fw-bold text-center user-select-none">Sign in</h1>
+        <h1 class="fs-3 fw-bold text-center user-select-none">Log in</h1>
         <hr/>
         <DataAnnotationsValidator/>
         @if (!_responseModel.Success)
@@ -25,7 +25,8 @@
             <ValidationMessage For="() => _model.Password" class="text-danger"/>
         </div>
         <hr/>
-        <Button class="w-100 btn btn-lg btn-dark" Type="ButtonType.Submit">Sign in</Button>
+        <NavLink class="link-body-emphasis text-end mb-2 link-underline-opacity-0 link-underline-opacity-50-hover" href="register" Match="@NavLinkMatch.All">Don't have account? Register here</NavLink>    
+        <Button class="w-100 btn btn-lg btn-dark" Type="ButtonType.Submit">Log in</Button>
     </EditForm>
 </div>
 @code {

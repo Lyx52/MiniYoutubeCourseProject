@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Domain.Interfaces;
 using Domain.Model.Configuration;
+using Domain.Model.Response;
 using Domain.Model.View;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
@@ -51,6 +52,21 @@ public class LoginManagerService : ILoginManager
             Success = response.Success
         };
     }
+    public async Task<UserProfileResponse> GetUserProfile(CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var jwt = await GetJwtToken(cancellationToken);
+        if (jwt is null)
+        {
+            return new UserProfileResponse()
+            {
+                Message = "Unauthorized",
+                Success = false
+            };
+        }
+
+        return await _authHttpClient.GetUserProfile(jwt, cancellationToken);
+    }
+    
     public async Task<List<Claim>> GetUserClaimsAsync(CancellationToken cancellationToken = default(CancellationToken))
     {
         var accessToken = await GetJwtToken(cancellationToken);

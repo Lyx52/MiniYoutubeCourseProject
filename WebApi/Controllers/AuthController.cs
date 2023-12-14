@@ -65,14 +65,29 @@ public class AuthController : ControllerBase
         });
 
     }
-    
+
     [HttpPost]
     [Route("Register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest payload)
     {
         var userExists = await _userManager.FindByNameAsync(payload.Username);
-        if (userExists is not null) return BadRequest("User already exists!");
-        
+        if (userExists is not null)
+        {
+            return BadRequest(new Response()
+            {
+                Message = "User with this username already exists!",
+                Success = false
+            });
+        }
+        userExists = await _userManager.FindByEmailAsync(payload.Email);
+        if (userExists is not null)
+        {
+            return BadRequest(new Response()
+            {
+                Message = "User with this email already exists!",
+                Success = false
+            });
+        }
         var user = new User()
         {
             Email = payload.Email,
@@ -85,6 +100,27 @@ public class AuthController : ControllerBase
             ? Created()
             : StatusCode(StatusCodes.Status500InternalServerError,
                 new Response() { Success = false, Message = $"Failed to create user: {string.Join(',', result.Errors.Select(e => e.Code))}" });
+    }
+
+    [HttpGet]
+    [Route("Profile")]
+    public async Task<IActionResult> Profile(CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim is null) return Unauthorized();
+        var user = await _userManager.FindByIdAsync(userIdClaim.Value);
+        if (user is null) return Unauthorized();
+        return Ok(new UserProfileResponse()
+        {
+            User = new UserModel()
+            {
+                Username = user.UserName ?? string.Empty,
+                Email = user.Email ?? string.Empty,
+                Id = user.Id,
+                IconLink = user.Icon ?? string.Empty
+            },
+            Success = true
+        });
     }
     
     private JwtSecurityToken GetToken(List<Claim> authClaims)

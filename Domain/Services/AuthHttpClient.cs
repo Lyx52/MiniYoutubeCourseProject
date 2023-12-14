@@ -62,24 +62,59 @@ public class AuthHttpClient : IAuthHttpClient
         };
     }
 
+    public async Task<UserProfileResponse> GetUserProfile(string jwt, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        using var client = _httpClientFactory.CreateClient(nameof(AuthHttpClient));
+        client.DefaultRequestHeaders.Add("Authorization", $"Bearer {jwt}");
+        try
+        {
+            var content = await client.GetFromJsonAsync<UserProfileResponse>("api/Auth/Profile", cancellationToken);
+            if (content is not null) return content;
+        }
+        catch (HttpRequestException e)
+        {
+            _logger.LogError("AuthApi request failed {ExceptionMessage}!", e.Message);
+            return new UserProfileResponse()
+            {
+                Success = false,
+                Message = "Request failed, please try again later"
+            };
+        }
+        return new UserProfileResponse()
+        {
+            Success = false,
+            Message = "Request failed, please try again later"
+        };
+    }
     public async Task<Response> RegisterAsync(RegisterModel model)
     {
         using HttpClient client = _httpClientFactory.CreateClient(nameof(AuthHttpClient));
-        var postResponse = await client.PostAsJsonAsync<RegisterRequest>("api/Auth/Register", new RegisterRequest()
-        {
-            Password = model.Password,
-            Username = model.Username,
-            Email = model.Email
-        });
-        if (!postResponse.IsSuccessStatusCode)
-        {
-            return new Response()
+        HttpResponseMessage? postResponse;
+        try {
+            postResponse = await client.PostAsJsonAsync<RegisterRequest>("api/Auth/Register", new RegisterRequest()
             {
-                Message = "Request failed, please try again later",
+                Password = model.Password,
+                Username = model.Username,
+                Email = model.Email
+            });
+            if (postResponse.IsSuccessStatusCode)
+            {
+                return new Response()
+                {
+                    Success = true
+                };
+            }
+        }
+        catch (HttpRequestException e)
+        {
+            _logger.LogError("AuthApi request failed {ExceptionMessage}!", e.Message);
+            return new LoginResponse()
+            {
                 Success = false,
+                Message = "Request failed, please try again later"
             };
         }
-
+        
         var content = await postResponse.Content.ReadFromJsonAsync<Response>();
         if (content is not null) return content;
         return new Response()

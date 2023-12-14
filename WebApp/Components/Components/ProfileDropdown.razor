@@ -7,7 +7,7 @@
         <i class="bi bi-person-circle"></i>
     </button>
     <ul class="dropdown-menu text-small shadow main-navbar-dropdown profile-dropdown" data-popper-placement="bottom-end">
-        <li><a class="dropdown-item" href="#">Profile</a></li>
+        <li><NavLink class="dropdown-item" href="profile" Match="NavLinkMatch.All">Profile</NavLink></li>
         <li><a class="dropdown-item" @onclick="OnLogOut">Log out</a></li>
     </ul>
 </div>

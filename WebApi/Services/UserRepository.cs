@@ -27,7 +27,8 @@ public class UserRepository : IUserRepository
             {
                 Id = u.Id,
                 Username = u.UserName ?? string.Empty,
-                IconLink = u.Icon ?? string.Empty
+                IconLink = u.Icon ?? string.Empty,
+                Email = u.Email ?? string.Empty
             })
             .ToListAsync(cancellationToken);
     }
