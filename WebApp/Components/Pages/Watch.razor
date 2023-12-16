@@ -8,18 +8,21 @@
 @rendermode InteractiveServer
 @inject NavigationManager _navigationManager
 @inject IVideoHttpClient _videoHttpClient
+@inject IUserHttpClient _userHttpClient
 @inject AppConfiguration _configuration
 <div class="p-3 container-fluid">
     <div class="row">
         <CascadingValue Value="@Model" Name="Metadata">
+            <CascadingValue Value="@Creator" Name="Creator">
             <div class="col-12 col-md-9">
                 <WatchView @ref="_watchView"/>
             </div>
+            </CascadingValue>
             <div class="col-12 col-md-3 video-playlist-block">
                 <VideoPlaylist/>
             </div>
             <div class="col-12 col-md-6">
-                <CommentSection @ref="_commentSection" />
+                <CommentSection @ref="_commentSection"/>
             </div>
         </CascadingValue>
     </div>
@@ -29,6 +32,7 @@
     public string? EncodedVideoId { get; set; }
     
     public VideoMetadataModel Model { get; set; }
+    public UserModel Creator { get; set; }
     public List<ContentSourceModel> Sources { get; set; }
 
     private CommentSection _commentSection;
@@ -37,7 +41,7 @@
     {
         try
         {
-            var id = EncodedVideoId.ToVideoId();
+            var id = EncodedVideoId.FromEncodedId();
             if (EncodedVideoId is null || id == Guid.Empty)
             {
                 _navigationManager.NavigateTo("/", true);
@@ -58,6 +62,14 @@
                 VideoId = Guid.Parse(response.VideoId)
             };
             Sources = response.ContentSources.ToList();
+            var creatorResponse = await _userHttpClient.GetPublicUserProfile(Guid.Parse(response.CreatorId));
+            if (!creatorResponse.Success)
+            {
+                _navigationManager.NavigateTo("/", true);
+                await base.OnInitializedAsync();
+                return;
+            }
+            Creator = creatorResponse.User;
         }
         catch (NavigationException _) { } // Another js related exception we can ignore
         await base.OnInitializedAsync();

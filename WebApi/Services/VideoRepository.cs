@@ -101,13 +101,22 @@ public class VideoRepository : IVideoRepository
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<IEnumerable<VideoPlaylistModel>> GetVideoPlaylist(int from, int count, CancellationToken cancellationToken = default(CancellationToken))
+    public async Task<IEnumerable<VideoPlaylistModel>> GetVideoPlaylist(VideoQuery query, CancellationToken cancellationToken = default(CancellationToken))
     {
-        var videos = await _dbContext.Videos
-            .Include((v) => v.Sources)
-            .OrderBy((v) => v.Created)
-            .Skip(from)
-            .Take(count)
+        var queryable = _dbContext.Videos
+            .Include((v) => v.Sources).AsQueryable();
+        
+        if (query.OrderByCreated) 
+            queryable = queryable.OrderBy((v) => v.Created);
+
+        if (query.CreatorId != Guid.Empty) 
+            queryable = queryable.Where(v => v.CreatorId == query.CreatorId.ToString());
+        
+        var videos = await 
+            queryable
+            .Where(v => v.IsUnlisted == query.IncludeUnlisted)
+            .Skip(query.From)
+            .Take(query.Count)
             .ToListAsync(cancellationToken);
         
         return videos.Select((v) =>

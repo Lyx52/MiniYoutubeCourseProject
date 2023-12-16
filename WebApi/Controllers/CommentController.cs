@@ -45,7 +45,7 @@ public class CommentController : ControllerBase
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
         if (userIdClaim is null) return Unauthorized();
-        var user = await _userRepository.GetById(userIdClaim.Value, cancellationToken);
+        var user = await _userRepository.GetUserById(userIdClaim.Value, cancellationToken);
         if (user is null) return Unauthorized();
         await _commentRepository.SetCommentImpression(user.Id, payload.CommentId, payload.Impression, cancellationToken);
         return Ok();
@@ -58,7 +58,7 @@ public class CommentController : ControllerBase
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
         if (userIdClaim is null) return Unauthorized();
-        var user = await _userRepository.GetById(userIdClaim.Value, cancellationToken);
+        var user = await _userRepository.GetUserById(userIdClaim.Value, cancellationToken);
         if (user is null) return Unauthorized();
         var video = await _videoRepository.GetVideoById(payload.VideoId, false, cancellationToken);
         if (video is null) return NotFound();
@@ -87,7 +87,7 @@ public class CommentController : ControllerBase
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
             if (userIdClaim is not null)
             {
-                var user = await _userRepository.GetById(userIdClaim.Value, cancellationToken);
+                var user = await _userRepository.GetUserById(userIdClaim.Value, cancellationToken);
                 userId = user?.Id;
             }
             var comments = (await _commentRepository.GetByVideoIds(id, userId, cancellationToken)).ToList();

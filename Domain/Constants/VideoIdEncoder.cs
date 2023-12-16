@@ -2,7 +2,7 @@
 
 public static class VideoIdEncoder
 {
-    public static string ToVideoUrlId(this Guid id)
+    public static string ToEncodedId(this Guid id)
     {
         try
         {
@@ -18,7 +18,7 @@ public static class VideoIdEncoder
         }
     }
 
-    public static Guid ToVideoId(this string? id)
+    public static Guid FromEncodedId(this string? id)
     {
         try
         {

@@ -61,31 +61,7 @@ public class AuthHttpClient : IAuthHttpClient
             BearerToken = string.Empty
         };
     }
-
-    public async Task<UserProfileResponse> GetUserProfile(string jwt, CancellationToken cancellationToken = default(CancellationToken))
-    {
-        using var client = _httpClientFactory.CreateClient(nameof(AuthHttpClient));
-        client.DefaultRequestHeaders.Add("Authorization", $"Bearer {jwt}");
-        try
-        {
-            var content = await client.GetFromJsonAsync<UserProfileResponse>("api/Auth/Profile", cancellationToken);
-            if (content is not null) return content;
-        }
-        catch (HttpRequestException e)
-        {
-            _logger.LogError("AuthApi request failed {ExceptionMessage}!", e.Message);
-            return new UserProfileResponse()
-            {
-                Success = false,
-                Message = "Request failed, please try again later"
-            };
-        }
-        return new UserProfileResponse()
-        {
-            Success = false,
-            Message = "Request failed, please try again later"
-        };
-    }
+    
     public async Task<Response> RegisterAsync(RegisterModel model)
     {
         using HttpClient client = _httpClientFactory.CreateClient(nameof(AuthHttpClient));

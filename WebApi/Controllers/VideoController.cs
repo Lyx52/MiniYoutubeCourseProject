@@ -96,7 +96,7 @@ public class VideoController : ControllerBase
     public async Task<IActionResult> GetVideoPlaylist([FromBody] VideoPlaylistRequest payload,
         CancellationToken cancellationToken = default(CancellationToken))
     {
-        var videos = await _videoRepository.GetVideoPlaylist(payload.From, payload.Count, cancellationToken);
+        var videos = await _videoRepository.GetVideoPlaylist(payload.Query, cancellationToken);
         return Ok(new VideoPlaylistResponse()
         {
             Videos = videos,
@@ -121,6 +121,7 @@ public class VideoController : ControllerBase
                     VideoId = video.Id,
                     Description = video.Description,
                     Title = video.Title,
+                    CreatorId = video.CreatorId,
                     ContentSources = video.Sources?.Select((s) => new ContentSourceModel()
                     {
                         Id = s.Id,

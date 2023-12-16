@@ -3,9 +3,10 @@
 @using Domain.Model.View
 @using Domain.Constants
 @using System.Text.Json
+@using Domain.Interfaces
 @inject AppConfiguration _configuration
 @inject NavigationManager _navigationManager
-
+@inject IUserHttpClient _userHttpClient
 <a @onclick="OnVideoClicked" @onmouseover="OnMouseOver" @onmouseleave="OnMouseLeave" class="text-decoration-none cursor-pointer">
   @if (IsPlaylistView)
   {
@@ -54,13 +55,15 @@
   public bool IsPlaylistView { get; set; }
   
   private bool IsMouseOver { get; set; }
+  private bool IsLoaded { get; set; }
   private string GetSourceLink(string sourceId)
   {
     return $"{_configuration.ApiEndpoint}/api/Content/Source?videoId={Video.VideoId}&sourceId={sourceId}";
   }
+
   private void OnVideoClicked()
   {
-    _navigationManager.NavigateTo($"/watch/{Guid.Parse(Video.VideoId).ToVideoUrlId()}", true, true);    
+    _navigationManager.NavigateTo($"/watch/{Guid.Parse(Video.VideoId).ToEncodedId()}", true, true);    
   }
 
   public async Task OnMouseOver()

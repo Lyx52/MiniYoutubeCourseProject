@@ -8,5 +8,5 @@ public interface IUserRepository
     Task<IEnumerable<UserModel>> GetUsersByIds(IEnumerable<string> userIds,
         CancellationToken cancellationToken = default(CancellationToken));
 
-    Task<User?> GetById(string userId, CancellationToken cancellationToken = default(CancellationToken));
+    Task<UserModel?> GetUserById(string userId, CancellationToken cancellationToken = default(CancellationToken));
 }

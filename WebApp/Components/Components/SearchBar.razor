@@ -41,7 +41,7 @@
     {
         if (Guid.TryParse(video.Id, out var videoId))
         {
-            _navigationManager.NavigateTo($"/watch/{videoId.ToVideoUrlId()}", true, true);    
+            _navigationManager.NavigateTo($"/watch/{videoId.ToEncodedId()}", true, true);    
         }
         await _autocomplete.ResetAsync();
     }

@@ -27,6 +27,7 @@ public class Startup
         services.AddContentClient(settings);
         services.AddVideoClient(settings);
         services.AddCommentClient(settings);
+        services.AddUserClient(settings);
         services.AddRazorComponents()
             .AddInteractiveServerComponents();
         services.AddBlazorBootstrap();

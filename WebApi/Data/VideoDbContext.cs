@@ -10,6 +10,7 @@ public class VideoDbContext : DbContext
     public DbSet<ContentSource> Sources { get; set; }
     public DbSet<Comment> Comments { get; set; }
     public DbSet<CommentImpression> CommentImpressions { get; set; }
+    public DbSet<Subscriber> Subscribers { get; set; }
     public VideoDbContext(DbContextOptions<VideoDbContext> options) : base(options)
     {
     }

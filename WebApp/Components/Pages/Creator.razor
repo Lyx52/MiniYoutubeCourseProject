@@ -1,0 +1,73 @@
+﻿@page "/creator/{EncodedUserId}"
+@using Domain.Interfaces
+@using Domain.Model.View
+@using Domain.Constants
+@inject NavigationManager _navigationManager
+@inject IUserHttpClient _userHttpClient
+<div class="container-fluid">
+    <div class="row">
+        <div class="d-flex">
+            <div class="w-25">
+                <img src="https://bootdey.com/img/Content/avatar/avatar7.png" alt="Admin" class="rounded-circle">
+            </div>
+            <div>
+                <h2>@Model.CreatorName</h2>
+                <span class="small">123 subscribers</span>
+                <button class="btn btn-outline-dark">Subscribe</button>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <ul class="nav nav-tabs">
+            <li class="nav-item">
+                <a class="nav-link active" aria-current="page" href="#">Home</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">Videos</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">Playlists</a>
+            </li>
+        </ul>        
+    </div>
+    <div class="row">
+         
+    </div>
+</div>
+@code {
+    [Parameter]
+    public string? EncodedUserId { get; set; }
+    
+    private Guid UserId { get; set; }
+    private UserModel Model { get; set; }
+    private bool IsLoaded { get; set; }
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadContent();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task LoadContent()
+    {
+        
+        if (IsLoaded) return;
+        UserId = EncodedUserId.FromEncodedId();
+        if (EncodedUserId is null || UserId == Guid.Empty)
+        {
+            _navigationManager.NavigateTo("/", true);
+            return;
+        }
+        var response = await _userHttpClient.GetPublicUserProfile(UserId);
+        if (!response.Success)
+        {
+            _navigationManager.NavigateTo("/", true);
+            return;
+        }
+        Model = response.User;
+        IsLoaded = true;
+    }
+}

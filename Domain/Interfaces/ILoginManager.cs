@@ -10,5 +10,4 @@ public interface ILoginManager
     Task<LoginResponseModel> LoginAsync(LoginModel model, CancellationToken cancellationToken = default(CancellationToken));
     Task<List<Claim>> GetUserClaimsAsync(CancellationToken cancellationToken = default(CancellationToken));
     Task<string?> GetJwtToken(CancellationToken cancellationToken);
-    Task<UserProfileResponse> GetUserProfile(CancellationToken cancellationToken = default(CancellationToken));
 }

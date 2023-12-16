@@ -25,16 +25,33 @@
 @code {
     private List<VideoPlaylistModel> _videos = new List<VideoPlaylistModel>();
     public int CurrentOffset { get; set; } = 0;
+    private bool IsLoaded { get; set; }
     protected override async Task OnInitializedAsync()
     {
         _videos = new List<VideoPlaylistModel>();
-        await LoadMoreVideos();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !IsLoaded)
+        {
+            await LoadMoreVideos();
+            await InvokeAsync(StateHasChanged);
+            IsLoaded = true;
+        }
     }
 
     private async Task LoadMoreVideos()
     {
         _preloadService.Show();
-        var response = await _videoHttpClient.GetVideoPlaylist(CurrentOffset, 12);
+        var response = await _videoHttpClient.GetVideoPlaylist(new VideoQuery()
+        {
+            From = CurrentOffset,
+            Count = 12,
+            IncludeUnlisted = false,
+            OrderByCreated = true,
+            CreatorId = Guid.Empty
+        });
         _videos.AddRange(response.Videos);
         await InvokeAsync(StateHasChanged);
         _preloadService.Hide();

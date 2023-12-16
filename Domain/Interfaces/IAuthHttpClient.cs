@@ -8,7 +8,4 @@ public interface IAuthHttpClient
 {
     Task<LoginResponse> LoginAsync(LoginModel model, CancellationToken cancellationToken = default(CancellationToken));
     Task<Response> RegisterAsync(RegisterModel model);
-
-    Task<UserProfileResponse> GetUserProfile(string jwt,
-        CancellationToken cancellationToken = default(CancellationToken));
 }

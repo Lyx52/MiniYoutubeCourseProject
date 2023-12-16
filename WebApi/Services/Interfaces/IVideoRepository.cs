@@ -16,5 +16,5 @@ public interface IVideoRepository
     Task<List<ContentSource>> GetVideoSourcesById(Guid videoId, CancellationToken cancellationToken = default(CancellationToken));
     Task<VideoProcessingStatus?> GetVideoStatus(Guid videoId, CancellationToken cancellationToken = default(CancellationToken));
     Task<List<Video>> QueryVideosByTitle(string searchText, CancellationToken cancellationToken = default(CancellationToken));
-    Task<IEnumerable<VideoPlaylistModel>> GetVideoPlaylist(int from, int count, CancellationToken cancellationToken = default(CancellationToken));
+    Task<IEnumerable<VideoPlaylistModel>> GetVideoPlaylist(VideoQuery query, CancellationToken cancellationToken = default(CancellationToken));
 }

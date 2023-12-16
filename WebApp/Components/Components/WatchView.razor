@@ -1,5 +1,7 @@
 ﻿@using Domain.Model
 @using Domain.Model.View
+@using Domain.Interfaces
+@inject IUserHttpClient _userHttpClient
 <div class="mb-3 d-flex flex-column">
     <VideoPlayer @ref="_videoPlayer" />
     @if (Metadata is not null)
@@ -8,6 +10,11 @@
             <p class="fs-4 fw-bold mb-1">@Metadata.Title</p>
         </div>
         <div class="d-flex flex-row">
+            @if (Creator is not null)
+            {
+                @Creator.Username
+                <button class="btn @(IsSubscribed ? "btn-dark" : "btn-outline-dark")" @onclick="OnSubscribeClick">Subscribe</button>
+            }
             @* User icon, Username, Subscribe, Likes  *@
         </div>
         <div class="d-inline-block overflow-hidden text-truncate text-nowrap w-100">
@@ -22,8 +29,27 @@
     [CascadingParameter(Name = "Metadata")]
     public VideoMetadataModel? Metadata { get; set; }
     
-    private VideoPlayer _videoPlayer { get; set; }
-
-    public Task InitVideoPlayer(List<VideoSourceModel> sources) => _videoPlayer.InitializeVideoPlayer(sources);
+    [CascadingParameter(Name = "Creator")]
+    public UserModel? Creator { get; set; }
     
+    private VideoPlayer _videoPlayer { get; set; }
+    private bool IsSubscribed { get; set; } = false;
+    public Task InitVideoPlayer(List<VideoSourceModel> sources) => _videoPlayer.InitializeVideoPlayer(sources);
+
+    private async Task OnSubscribeClick()
+    {
+        if (Creator is null) return;
+        if (IsSubscribed)
+        {
+            await _userHttpClient.Unsubscribe(Creator.Id);
+            IsSubscribed = false;    
+        }
+        else
+        {
+            await _userHttpClient.Subscribe(Creator.Id);
+            IsSubscribed = true;    
+        }
+        
+        await InvokeAsync(StateHasChanged);
+    }
 }

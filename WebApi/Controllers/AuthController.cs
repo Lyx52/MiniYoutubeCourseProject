@@ -10,6 +10,7 @@ using Domain.Model.View;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using WebApi.Services.Interfaces;
 
 namespace WebApi.Controllers;
 
@@ -21,12 +22,15 @@ public class AuthController : ControllerBase
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly ApiConfiguration _configuration;
     private readonly ILogger<AuthController> _logger;
+    private readonly IUserRepository _userRepository;
     public AuthController(
         ILogger<AuthController> logger,
         UserManager<User> userManager,
         RoleManager<IdentityRole> roleManager,
-        ApiConfiguration configuration)
+        ApiConfiguration configuration,
+        IUserRepository userRepository)
     {
+        _userRepository = userRepository;
         _userManager = userManager;
         _roleManager = roleManager;
         _configuration = configuration;
@@ -92,7 +96,8 @@ public class AuthController : ControllerBase
         {
             Email = payload.Email,
             SecurityStamp = Guid.NewGuid().ToString(),
-            UserName = payload.Username
+            UserName = payload.Username,
+            CreatorName = payload.Username
         };
         
         var result = await _userManager.CreateAsync(user, payload.Password);
@@ -108,17 +113,11 @@ public class AuthController : ControllerBase
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
         if (userIdClaim is null) return Unauthorized();
-        var user = await _userManager.FindByIdAsync(userIdClaim.Value);
+        var user = await _userRepository.GetUserById(userIdClaim.Value, cancellationToken);
         if (user is null) return Unauthorized();
         return Ok(new UserProfileResponse()
         {
-            User = new UserModel()
-            {
-                Username = user.UserName ?? string.Empty,
-                Email = user.Email ?? string.Empty,
-                Id = user.Id,
-                IconLink = user.Icon ?? string.Empty
-            },
+            User = user,
             Success = true
         });
     }

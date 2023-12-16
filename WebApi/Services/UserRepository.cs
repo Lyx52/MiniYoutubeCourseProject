@@ -19,22 +19,30 @@ public class UserRepository : IUserRepository
         _logger = logger;
     }
 
-    public async Task<IEnumerable<UserModel>> GetUsersByIds(IEnumerable<string> userIds, CancellationToken cancellationToken = default(CancellationToken))
+    public async Task<IEnumerable<UserModel>> GetUsersByIds(IEnumerable<string> userIds,
+        CancellationToken cancellationToken = default(CancellationToken))
     {
         return await _userManager.Users
             .Where(u => userIds.Contains(u.Id))
-            .Select(u => new UserModel()
-            {
-                Id = u.Id,
-                Username = u.UserName ?? string.Empty,
-                IconLink = u.Icon ?? string.Empty,
-                Email = u.Email ?? string.Empty
-            })
+            .Select(u => AsPublicUser(u)!)
             .ToListAsync(cancellationToken);
     }
 
-    public Task<User?> GetById(string userId, CancellationToken cancellationToken = default(CancellationToken))
+    public async Task<UserModel?> GetUserById(string userId, CancellationToken cancellationToken = default(CancellationToken))
     {
-        return _userManager.FindByIdAsync(userId);
+        return AsPublicUser(await _userManager.FindByIdAsync(userId));
+    }
+
+    private static UserModel? AsPublicUser(User? user)
+    {
+        if (user is null) return null;
+        return new UserModel()
+        {
+            Id = user.Id,
+            Username = user.UserName ?? string.Empty,
+            IconLink = user.Icon ?? string.Empty,
+            Email = user.Email ?? string.Empty,
+            CreatorName = user.CreatorName ?? user.UserName ?? string.Empty
+        };
     }
 }

@@ -7,6 +7,7 @@ using Domain.Interfaces;
 using Domain.Model;
 using Domain.Model.Request;
 using Domain.Model.Response;
+using Domain.Model.View;
 using Microsoft.Extensions.Logging;
 
 namespace Domain.Services;
@@ -198,15 +199,14 @@ public class VideoHttpClient : IVideoHttpClient
         }
     }
     
-    public async Task<VideoPlaylistResponse> GetVideoPlaylist(int from, int count, CancellationToken cancellationToken = default(CancellationToken))
+    public async Task<VideoPlaylistResponse> GetVideoPlaylist(VideoQuery query, CancellationToken cancellationToken = default(CancellationToken))
     {
         using var client = _httpClientFactory.CreateClient(nameof(VideoHttpClient));
         try
         {
             var response = await client.PostAsJsonAsync<VideoPlaylistRequest>($"api/Video/Playlist", new VideoPlaylistRequest()
             {
-                Count = count,
-                From = from
+                Query = query
             }, cancellationToken);
 
             if (response.IsSuccessStatusCode)

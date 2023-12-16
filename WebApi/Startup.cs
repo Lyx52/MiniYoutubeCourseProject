@@ -113,6 +113,7 @@ public class Startup
         services.AddTransient<IContentRepository, ContentRepository>();
         services.AddTransient<ICommentRepository, CommentRepository>();
         services.AddTransient<IUserRepository, UserRepository>();
+        services.AddTransient<ISubscriberRepository, SubscriberRepository>();
         services.AddMemoryCache();
         
         // Processing channel
