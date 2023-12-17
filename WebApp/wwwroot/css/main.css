@@ -75,6 +75,9 @@
     .video-playlist-block {
         position: relative !important;
     }
+    .video-like-container {
+        margin-right: 0 !important;
+    }
     /*.video-card-container {*/
     /*    height: 300px !important;*/
     /*}*/
@@ -133,4 +136,15 @@
 .btn-comment-action {
     padding-left: 3px;
     padding-right: 3px;
+}
+.profile-icon { 
+    width: 48px;
+    height: 48px;
+}
+.btn-subscribe {
+    height: 32px !important;
+    padding: 0px 3px;
+}
+.video-like-container {
+    margin-right: 5%;
 }

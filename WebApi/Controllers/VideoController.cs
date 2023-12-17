@@ -22,17 +22,17 @@ public class VideoController : ControllerBase
 {
     private readonly ILogger<VideoController> _logger;
     private readonly ChannelWriter<VideoTask> _channel;
-    private readonly UserManager<User> _userManager;
     private readonly IVideoRepository _videoRepository;
+    private readonly IUserRepository _userRepository;
     private static readonly IEnumerable<Video> EmptyVideos = new List<Video>();
     public VideoController(ILogger<VideoController> logger, 
         ChannelWriter<VideoTask> channel, 
-        UserManager<User> userManager,
+        IUserRepository userRepository,
         IVideoRepository videoRepository)
     {
         _logger = logger;
         _channel = channel;
-        _userManager = userManager;
+        _userRepository = userRepository;
         _videoRepository = videoRepository;
     }
     
@@ -41,9 +41,9 @@ public class VideoController : ControllerBase
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
         if (userIdClaim is null) return Unauthorized();
-        var user = await _userManager.FindByIdAsync(userIdClaim.Value);
+        var user = await _userRepository.GetUserById(userIdClaim.Value, cancellationToken);
         if (user is null) return Unauthorized();
-        var videoId = await _videoRepository.CreateVideo(payload, user, cancellationToken);
+        var videoId = await _videoRepository.CreateVideo(payload, user.Id, cancellationToken);
         await _channel.WriteAsync(new VideoTask()
         {
             VideoId = videoId,
@@ -63,9 +63,9 @@ public class VideoController : ControllerBase
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
         if (userIdClaim is null) return Unauthorized();
-        var user = await _userManager.FindByIdAsync(userIdClaim.Value);
+        var user = await _userRepository.GetUserById(userIdClaim.Value, cancellationToken);
         if (user is null) return Unauthorized();
-        var video = await _videoRepository.GetVideoById(payload.VideoId, user, cancellationToken);
+        var video = await _videoRepository.GetVideoById(payload.VideoId, user.Id, cancellationToken);
         if (video is null) return NotFound();
         await _channel.WriteAsync(new VideoTask()
         {
@@ -110,18 +110,45 @@ public class VideoController : ControllerBase
     public async Task<IActionResult> GetVideoMetadata([FromQuery] string id,
         CancellationToken cancellationToken = default(CancellationToken))
     {
+        UserModel? user = null;
+        ImpressionType userImpression = ImpressionType.None;
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim is not null)
+        {
+            user = await _userRepository.GetUserById(userIdClaim.Value, cancellationToken);    
+        }
         try
         {
             if (Guid.TryParse(id, out var videoId))
             {
                 var video = await _videoRepository.GetVideoById(videoId, true, cancellationToken);
                 if (video is null) return NotFound();
-                return Ok(new VideoMetadataResponse()
+                
+                var dislikes = video.Impressions
+                    .LongCount(i => i.Impression == ImpressionType.Dislike);
+                var likes = video.Impressions
+                    .LongCount(i => i.Impression == ImpressionType.Like);
+                if (user is not null)
                 {
-                    VideoId = video.Id,
+                    var compositeId = $"{user.Id[0..18]}-{video.Id[19..36]}";
+                    userImpression = video.Impressions
+                        .FirstOrDefault(i => i.Id == compositeId)?.Impression ?? ImpressionType.None;
+                }
+
+                var metadata = new VideoMetadataModel()
+                {
                     Description = video.Description,
                     Title = video.Title,
-                    CreatorId = video.CreatorId,
+                    VideoId = videoId,
+                    CreatorId = Guid.Parse(video.CreatorId),
+                    Dislikes = dislikes,
+                    Likes = likes,
+                    UserImpression = userImpression
+                };
+                
+                return Ok(new VideoMetadataResponse()
+                {
+                    Metadata = metadata,
                     ContentSources = video.Sources?.Select((s) => new ContentSourceModel()
                     {
                         Id = s.Id,
@@ -188,5 +215,16 @@ public class VideoController : ControllerBase
                 Videos = EmptyVideos
             });
         }
+    }
+    [HttpPost("Impression")]
+    public async Task<IActionResult> VideoImpression(VideoImpressionRequest payload,
+        CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim is null) return Unauthorized();
+        var user = await _userRepository.GetUserById(userIdClaim.Value, cancellationToken);
+        if (user is null) return Unauthorized();
+        await _videoRepository.SetVideoImpression(user.Id, payload.VideoId, payload.Impression, cancellationToken);
+        return Ok();
     }
 }

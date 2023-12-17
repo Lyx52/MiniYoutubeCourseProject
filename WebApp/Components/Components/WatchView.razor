@@ -1,7 +1,9 @@
 ﻿@using Domain.Model
 @using Domain.Model.View
 @using Domain.Interfaces
+@using Domain.Constants
 @inject IUserHttpClient _userHttpClient
+@inject IVideoHttpClient _videoHttpClient
 <div class="mb-3 d-flex flex-column">
     <VideoPlayer @ref="_videoPlayer" />
     @if (Metadata is not null)
@@ -12,10 +14,43 @@
         <div class="d-flex flex-row">
             @if (Creator is not null)
             {
-                @Creator.Username
-                <button class="btn @(IsSubscribed ? "btn-dark" : "btn-outline-dark")" @onclick="OnSubscribeClick">Subscribe</button>
+                var id = @Guid.Parse(Creator.Id).ToEncodedId();
+                <NavLink href="@($"/creator/{id}")" Match="NavLinkMatch.All">
+                    <img src="https://bootdey.com/img/Content/avatar/avatar7.png" alt="Admin" class="rounded-circle profile-icon" />
+                </NavLink>
+                <div class="px-2 d-flex flex-column">
+                    <h6 class="m-0">@Creator.CreatorName</h6>
+                    <small>@GetSubscriberCount() subscribers</small>
+                </div>
+                <AuthorizeView>
+                    <Authorized>
+                        <button class="btn my-auto btn-subscribe @(IsSubscribed ? "btn-dark" : "btn-outline-dark")" @onclick="OnSubscribeClick">
+                            @(IsSubscribed ? "Subscribed" : "Subscribe")
+                        </button>    
+                    </Authorized>
+                </AuthorizeView>
+                
+                <div class="ms-auto d-inline-flex video-like-container">
+                    <AuthorizeView>
+                        <Authorized>
+                            <button class="btn btn-comment-action" @onclick="OnLikeClick">
+                                <i class="bi @(Metadata.UserImpression is ImpressionType.Like ? "bi-hand-thumbs-up-fill" : "comment-like-button")"></i>@Metadata.Likes
+                            </button>
+                            <button class="btn btn-comment-action" @onclick="OnDislikeClick">
+                                <i class="bi @(Metadata.UserImpression is ImpressionType.Dislike ? "bi-hand-thumbs-down-fill" : "comment-dislike-button")"></i>@Metadata.Dislikes
+                            </button>    
+                        </Authorized>
+                        <NotAuthorized>
+                            <span>
+                                <i class="bi bi-hand-thumbs-up-fill"></i>@Metadata.Likes
+                            </span>
+                            <span class="ms-2">
+                                <i class="bi bi-hand-thumbs-down-fill"></i>@Metadata.Dislikes
+                            </span>        
+                        </NotAuthorized>
+                    </AuthorizeView>
+                </div>
             }
-            @* User icon, Username, Subscribe, Likes  *@
         </div>
         <div class="d-inline-block overflow-hidden text-truncate text-nowrap w-100">
             @foreach (var line in Metadata.Description.Split("\n"))
@@ -32,8 +67,14 @@
     [CascadingParameter(Name = "Creator")]
     public UserModel? Creator { get; set; }
     
+    [Parameter]
+    public bool IsSubscribed { get; set; }
+    
+    [Parameter]
+    public long SubscriberCount { get; set; }
+    
+    private DateTime LastUpdated { get; set; } = DateTime.UtcNow;
     private VideoPlayer _videoPlayer { get; set; }
-    private bool IsSubscribed { get; set; } = false;
     public Task InitVideoPlayer(List<VideoSourceModel> sources) => _videoPlayer.InitializeVideoPlayer(sources);
 
     private async Task OnSubscribeClick()
@@ -47,9 +88,33 @@
         else
         {
             await _userHttpClient.Subscribe(Creator.Id);
-            IsSubscribed = true;    
+            IsSubscribed = true;
         }
         
         await InvokeAsync(StateHasChanged);
     }
+
+    private string GetSubscriberCount()
+    {
+        if (SubscriberCount >= 1_000) return $"{SubscriberCount / 1_000f:F1}K";
+        if (SubscriberCount >= 1_000_000) return $"{SubscriberCount / 1_000_000f:F1}M";
+        return SubscriberCount.ToString();
+    }
+    private Task OnLikeClick() => OnImpressionClick(ImpressionType.Like);
+    private Task OnDislikeClick() => OnImpressionClick(ImpressionType.Dislike);
+    private async Task OnImpressionClick(ImpressionType impression)
+    {
+        if (Metadata is null) return;
+        if (DateTime.UtcNow - LastUpdated <= TimeSpan.FromSeconds(1)) return;
+        ImpressionType impressionType = Metadata.UserImpression == impression ? ImpressionType.None : impression;
+        await _videoHttpClient.AddVideoImpression(Metadata.VideoId.ToString(), impressionType);
+        if (Metadata.UserImpression == ImpressionType.Dislike) Metadata.Dislikes--;
+        if (Metadata.UserImpression == ImpressionType.Like) Metadata.Likes--;
+        Metadata.UserImpression = impressionType;
+        if (impressionType == ImpressionType.Dislike) Metadata.Dislikes++;
+        if (impressionType == ImpressionType.Like) Metadata.Likes++;
+        LastUpdated = DateTime.UtcNow;
+        await InvokeAsync(StateHasChanged);
+    }
+
 }

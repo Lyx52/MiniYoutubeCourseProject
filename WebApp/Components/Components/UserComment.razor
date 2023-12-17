@@ -32,17 +32,30 @@
                     @Comment.Message
                 </p>
                 <div class="d-inline-flex">
-                    <button class="btn btn-comment-action" @onclick="OnLikeClick">
-                        <i class="bi @(Comment.Impression is ImpressionType.Like ? "bi-hand-thumbs-up-fill" : "comment-like-button")"></i>@Comment.Likes
-                    </button>
-                    <button class="btn btn-comment-action" @onclick="OnDislikeClick">
-                        <i class="bi @(Comment.Impression is ImpressionType.Dislike ? "bi-hand-thumbs-down-fill" : "comment-dislike-button")"></i>@Comment.Dislikes
-                    </button>
+                    <AuthorizeView>
+                        <Authorized>
+                            <button class="btn btn-comment-action" @onclick="OnLikeClick">
+                                <i class="bi @(Comment.Impression is ImpressionType.Like ? "bi-hand-thumbs-up-fill" : "comment-like-button")"></i>@Comment.Likes
+                            </button>
+                            <button class="btn btn-comment-action" @onclick="OnDislikeClick">
+                                <i class="bi @(Comment.Impression is ImpressionType.Dislike ? "bi-hand-thumbs-down-fill" : "comment-dislike-button")"></i>@Comment.Dislikes
+                            </button>    
+                        </Authorized>
+                        <NotAuthorized>
+                            <span>
+                                <i class="bi bi-hand-thumbs-up-fill"></i>@Comment.Likes
+                            </span>
+                            <span class="ms-2">
+                                <i class="bi bi-hand-thumbs-down-fill"></i>@Comment.Dislikes
+                            </span>   
+                        </NotAuthorized>
+                    </AuthorizeView>
+                    
                     @if (Comment.Message.Length > 80)
                     {
                         <button class="btn btn-comment-action" @onclick="OnOpenCloseComment">
                             <i class="bi @(IsFullText ? "bi-three-dots-vertical" : "bi-three-dots")"></i>
-                        </button>    
+                        </button>
                     }
                 </div>
             </div>

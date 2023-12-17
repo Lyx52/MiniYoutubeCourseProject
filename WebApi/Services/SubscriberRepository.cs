@@ -36,18 +36,17 @@ public class SubscriberRepository : ISubscriberRepository
             .GetUsersByIds(creators.Select(c => c.CreatorId), cancellationToken);
     }
 
-    public async Task<Guid> Subscribe(string userId, string creatorId,
+    public async Task Subscribe(string userId, string creatorId,
         CancellationToken cancellationToken = default(CancellationToken))
     {
-        var id = Guid.NewGuid();
+        if (await IsSubscribed(userId, creatorId, cancellationToken)) return;
         await _dbContext.Subscribers.AddAsync(new Subscriber()
         {
-            Id = id.ToString(),
+            Id = Guid.NewGuid().ToString(),
             CreatorId = creatorId,
             SubscriberId = userId
         }, cancellationToken);
         await _dbContext.SaveChangesAsync(cancellationToken);
-        return id;
     }
     
     public async Task Unsubscribe(string userId, string creatorId,
@@ -58,5 +57,17 @@ public class SubscriberRepository : ISubscriberRepository
         if (subscription is null) return;
         _dbContext.Subscribers.Remove(subscription);
         await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public Task<bool> IsSubscribed(string userId, string creatorId, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        return _dbContext.Subscribers
+            .AnyAsync(s => s.CreatorId == creatorId && s.SubscriberId == userId, cancellationToken);
+    }
+    public Task<long> GetSubscriberCount(string creatorId,
+        CancellationToken cancellationToken = default(CancellationToken))
+    {
+        return _dbContext.Subscribers
+            .LongCountAsync(s => s.CreatorId == creatorId, cancellationToken);
     }
 }

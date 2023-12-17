@@ -12,10 +12,10 @@
 @inject AppConfiguration _configuration
 <div class="p-3 container-fluid">
     <div class="row">
-        <CascadingValue Value="@Model" Name="Metadata">
+        <CascadingValue Value="@Metadata" Name="Metadata">
             <CascadingValue Value="@Creator" Name="Creator">
             <div class="col-12 col-md-9">
-                <WatchView @ref="_watchView"/>
+                <WatchView @ref="_watchView" IsSubscribed="IsSubscribed" SubscriberCount="SubscriberCount"/>
             </div>
             </CascadingValue>
             <div class="col-12 col-md-3 video-playlist-block">
@@ -31,12 +31,14 @@
     [Parameter]
     public string? EncodedVideoId { get; set; }
     
-    public VideoMetadataModel Model { get; set; }
+    public VideoMetadataModel Metadata { get; set; }
     public UserModel Creator { get; set; }
     public List<ContentSourceModel> Sources { get; set; }
 
     private CommentSection _commentSection;
     private WatchView _watchView;
+    private bool IsSubscribed { get; set; }
+    private long SubscriberCount { get; set; }
     protected override async Task OnInitializedAsync()
     {
         try
@@ -55,21 +57,18 @@
                 await base.OnInitializedAsync();
                 return;
             }
-            Model = new VideoMetadataModel()
-            {
-                Description = response.Description,
-                Title = response.Title,
-                VideoId = Guid.Parse(response.VideoId)
-            };
+            Metadata = response.Metadata;
             Sources = response.ContentSources.ToList();
-            var creatorResponse = await _userHttpClient.GetPublicUserProfile(Guid.Parse(response.CreatorId));
+            var creatorResponse = await _userHttpClient.GetCreatorProfile(Metadata.CreatorId);
             if (!creatorResponse.Success)
             {
                 _navigationManager.NavigateTo("/", true);
                 await base.OnInitializedAsync();
                 return;
             }
-            Creator = creatorResponse.User;
+            Creator = creatorResponse.Creator;
+            IsSubscribed = creatorResponse.IsSubscribed;
+            SubscriberCount = creatorResponse.SubscriberCount;
         }
         catch (NavigationException _) { } // Another js related exception we can ignore
         await base.OnInitializedAsync();
@@ -86,10 +85,10 @@
                     {
                         Label = cs.Resolution,
                         Selected = i == 0,
-                        Src = $"{_configuration.ApiEndpoint}/api/Content/Source?videoId={Model.VideoId}&sourceId={cs.Id}",
+                        Src = $"{_configuration.ApiEndpoint}/api/Content/Source?videoId={Metadata.VideoId}&sourceId={cs.Id}",
                         Type = cs.ContentType
                     }).ToList());
-            await _commentSection.LoadCommentSection(Model.VideoId);
+            await _commentSection.LoadCommentSection(Metadata.VideoId);
         }
         await base.OnAfterRenderAsync(firstRender);
     }

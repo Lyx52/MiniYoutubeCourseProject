@@ -198,7 +198,7 @@ public class VideoHttpClient : IVideoHttpClient
             };
         }
     }
-    
+
     public async Task<VideoPlaylistResponse> GetVideoPlaylist(VideoQuery query, CancellationToken cancellationToken = default(CancellationToken))
     {
         using var client = _httpClientFactory.CreateClient(nameof(VideoHttpClient));
@@ -275,7 +275,9 @@ public class VideoHttpClient : IVideoHttpClient
 
     public async Task<VideoMetadataResponse> GetVideoMetadata(Guid videoId, CancellationToken cancellationToken = default(CancellationToken))
     {
+        var jwt = await _loginManager.GetJwtToken(cancellationToken);
         using var client = _httpClientFactory.CreateClient(nameof(VideoHttpClient));
+        if (!string.IsNullOrEmpty(jwt)) client.DefaultRequestHeaders.Add("Authorization", $"Bearer {jwt}");
         try
         {
             var response = await client.GetFromJsonAsync<VideoMetadataResponse>($"api/Video/Metadata?id={videoId.ToString()}",
@@ -294,6 +296,26 @@ public class VideoHttpClient : IVideoHttpClient
                 Success = false,
                 Message = "Request failed, please try again later"
             };
+        }
+    }
+    
+    public async Task AddVideoImpression(string videoId, ImpressionType impressionType, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var jwt = await _loginManager.GetJwtToken(cancellationToken);
+        if (jwt is null) return;
+        using var client = _httpClientFactory.CreateClient(nameof(VideoHttpClient));
+        client.DefaultRequestHeaders.Add("Authorization", $"Bearer {jwt}");
+        try
+        {
+            var response = await client.PostAsJsonAsync<VideoImpressionRequest>("api/Video/Impression", new VideoImpressionRequest()
+            {
+                VideoId = videoId,
+                Impression = impressionType
+            }, cancellationToken);
+        } catch (HttpRequestException e)
+        {
+            _logger.LogError("CommentApi request failed {ExceptionMessage}!", e.Message);
+            return;
         }
     }
 }

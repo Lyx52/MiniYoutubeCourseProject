@@ -19,13 +19,13 @@ public class VideoRepository : IVideoRepository
         _logger = logger;
     }
 
-    public async Task<Guid> CreateVideo(CreateVideoRequest payload, User creator, CancellationToken cancellationToken)
+    public async Task<Guid> CreateVideo(CreateVideoRequest payload, string creatorId, CancellationToken cancellationToken)
     {
         var id = Guid.NewGuid();
         await _dbContext.Videos.AddAsync(new Video()
         {
             Id = id.ToString(),
-            CreatorId = creator.Id,
+            CreatorId = creatorId,
             WorkSpaceId = payload.WorkSpaceId.ToString(),
             Title = payload.Title,
             Status = VideoProcessingStatus.CreatedMetadata,
@@ -62,20 +62,20 @@ public class VideoRepository : IVideoRepository
         return true;
     }
 
-    public Task<Video?> GetVideoById(Guid id, bool includeSources = false, CancellationToken cancellationToken = default(CancellationToken))
+    public Task<Video?> GetVideoById(Guid id, bool includeSourcesImpressions = false, CancellationToken cancellationToken = default(CancellationToken))
     {
-        return includeSources
+        return includeSourcesImpressions
             ? _dbContext.Videos
                 .Include(v => v.Sources)
+                .Include(v => v.Impressions)
                 .FirstOrDefaultAsync(v => v.Id.ToLower() == id.ToString().ToLower(), cancellationToken)
             : _dbContext.Videos
                 .FirstOrDefaultAsync(v => v.Id.ToLower() == id.ToString().ToLower(), cancellationToken);
     }
-
-    public Task<Video?> GetVideoById(Guid id, User user, CancellationToken cancellationToken = default(CancellationToken))
+    public Task<Video?> GetVideoById(Guid id, string userId, CancellationToken cancellationToken = default(CancellationToken))
     {
         return _dbContext.Videos.FirstOrDefaultAsync((v) =>
-            v.CreatorId.ToLower() == user.Id.ToLower() &&
+            v.CreatorId.ToLower() == userId.ToLower() &&
             v.Id.ToLower() == id.ToString().ToLower(), cancellationToken);
     }
 
@@ -163,5 +163,32 @@ public class VideoRepository : IVideoRepository
             Video = video,
             Resolution = file.Tags.FirstOrDefault((tag) => tag.StartsWith("Resolution"))?.Replace("Resolution=", string.Empty) ?? string.Empty
         };
+    }
+    
+    public async Task SetVideoImpression(string userId, string videoId, ImpressionType impressionType,
+        CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var compositeId = $"{userId[0..18]}-{videoId[19..36]}";
+        var impression =
+            await _dbContext.VideoImpressions.FirstOrDefaultAsync(
+                ci => ci.Id == compositeId, cancellationToken);
+        if (impression is not null)
+        {
+            impression.Impression = impressionType;
+        }
+        else
+        {
+            var video = await _dbContext.Videos.FirstOrDefaultAsync(c => c.Id == videoId, cancellationToken);
+            if (video is null) return;
+            await _dbContext.VideoImpressions.AddAsync(new VideoImpression()
+            {
+                Id = compositeId,
+                Impression = impressionType,
+                VideoId = videoId,
+                Video = video
+            }, cancellationToken);
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
     }
 }

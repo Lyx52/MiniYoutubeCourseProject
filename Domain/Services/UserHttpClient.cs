@@ -47,7 +47,33 @@ public class UserHttpClient : IUserHttpClient
             Message = "Request failed, please try again later"
         };
     }
-    
+
+    public async Task<CreatorProfileResponse> GetCreatorProfile(Guid creatorId, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var jwt = await _loginManager.GetJwtToken(cancellationToken);
+        using var client = _httpClientFactory.CreateClient(nameof(UserHttpClient));
+        if (!string.IsNullOrEmpty(jwt)) client.DefaultRequestHeaders.Add("Authorization", $"Bearer {jwt}");
+        try
+        {
+            var content = await client.GetFromJsonAsync<CreatorProfileResponse>($"api/User/CreatorProfile?creatorId={creatorId.ToString()}", cancellationToken);
+            if (content is not null) return content;
+        }
+        catch (HttpRequestException e)
+        {
+            _logger.LogError("UserApi request failed {ExceptionMessage}!", e.Message);
+            return new CreatorProfileResponse()
+            {
+                Success = false,
+                Message = "Request failed, please try again later"
+            };
+        }
+        return new CreatorProfileResponse()
+        {
+            Success = false,
+            Message = "Request failed, please try again later"
+        };
+    }
+
     public async Task<UserProfileResponse> GetUserProfile(CancellationToken cancellationToken = default(CancellationToken))
     {
         var jwt = await _loginManager.GetJwtToken(cancellationToken);

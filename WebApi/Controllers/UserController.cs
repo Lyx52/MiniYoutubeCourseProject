@@ -77,6 +77,38 @@ public class UserController : ControllerBase
     }
     
     [HttpGet]
+    [Route("CreatorProfile")]
+    [AllowAnonymous]
+    public async Task<IActionResult> CreatorProfile(string creatorId, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        UserModel? user = null;
+        if (userIdClaim is not null)
+        {
+            user = await _userRepository.GetUserById(userIdClaim.Value, cancellationToken);
+        }
+        
+        var creator = await _userRepository.GetUserById(creatorId, cancellationToken);
+        if (creator is null) return NotFound();
+        creator.Email = string.Empty;
+        creator.Username = string.Empty;
+        
+        bool isSubscribed = false;
+        if (user is not null)
+        {
+            isSubscribed = await _subscriberRepository.IsSubscribed(user.Id, creator.Id, cancellationToken);
+        }
+
+        var subscriberCount = await _subscriberRepository.GetSubscriberCount(creator.Id, cancellationToken);
+        return Ok(new CreatorProfileResponse()
+        {
+            SubscriberCount = subscriberCount,
+            Creator = creator,
+            IsSubscribed = isSubscribed,
+            Success = true
+        });
+    }
+    [HttpGet]
     [Route("PublicProfile")]
     [AllowAnonymous]
     public async Task<IActionResult> PublicProfile(string userId, CancellationToken cancellationToken = default(CancellationToken))

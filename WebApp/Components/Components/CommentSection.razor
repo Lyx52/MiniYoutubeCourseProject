@@ -4,11 +4,15 @@
 @rendermode InteractiveServer
 <div class="col container-fluid">
     <div class="row row-cols-1">
-        <UserComment IsNewComment="@true" OnSubmit="RefreshCommentSection" />
+        <AuthorizeView>
+            <Authorized>
+                <UserComment IsNewComment="@true" OnSubmit="RefreshCommentSection"/>    
+            </Authorized>
+        </AuthorizeView>
         @foreach (var comment in Comments)
         {
             var user = Users[comment.UserId];
-            <UserComment User="user" Comment="comment"/>    
+            <UserComment User="user" Comment="comment"/>
         }
     </div>
 </div>

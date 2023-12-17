@@ -10,6 +10,7 @@ public class VideoDbContext : DbContext
     public DbSet<ContentSource> Sources { get; set; }
     public DbSet<Comment> Comments { get; set; }
     public DbSet<CommentImpression> CommentImpressions { get; set; }
+    public DbSet<VideoImpression> VideoImpressions { get; set; }
     public DbSet<Subscriber> Subscribers { get; set; }
     public VideoDbContext(DbContextOptions<VideoDbContext> options) : base(options)
     {
@@ -45,6 +46,16 @@ public class VideoDbContext : DbContext
             .HasMany<CommentImpression>(c => c.Impressions)
             .WithOne(c => c.Comment)
             .HasForeignKey(c => c.CommentId);
+        
+        builder.Entity<VideoImpression>()
+            .HasOne<Video>(c => c.Video)
+            .WithMany(v => v.Impressions)
+            .HasForeignKey(c => c.VideoId);
+        
+        builder.Entity<Video>()
+            .HasMany<VideoImpression>(c => c.Impressions)
+            .WithOne(c => c.Video)
+            .HasForeignKey(c => c.VideoId);
         
         base.OnModelCreating(builder);
     }

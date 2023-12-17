@@ -9,8 +9,12 @@ public interface ISubscriberRepository
         CancellationToken cancellationToken = default(CancellationToken));
     Task<IEnumerable<UserModel>> GetSubscribedCreators(string userId,
         CancellationToken cancellationToken = default(CancellationToken));
-    Task<Guid> Subscribe(string userId, string creatorId,
+
+    Task Subscribe(string userId, string creatorId,
         CancellationToken cancellationToken = default(CancellationToken));
     Task Unsubscribe(string userId, string creatorId,
+        CancellationToken cancellationToken = default(CancellationToken));
+    Task<bool> IsSubscribed(string userId, string creatorId, CancellationToken cancellationToken = default(CancellationToken));
+    Task<long> GetSubscriberCount(string creatorId,
         CancellationToken cancellationToken = default(CancellationToken));
 }
