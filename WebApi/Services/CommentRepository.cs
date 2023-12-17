@@ -11,8 +11,8 @@ namespace WebApi.Services;
 public class CommentRepository : ICommentRepository
 {
     private readonly ILogger<CommentRepository> _logger;
-    private readonly VideoDbContext _dbContext;
-    public CommentRepository(ILogger<CommentRepository> logger, VideoDbContext dbContext)
+    private readonly ApplicationDbContext _dbContext;
+    public CommentRepository(ILogger<CommentRepository> logger, ApplicationDbContext dbContext)
     {
         _dbContext = dbContext;
         _logger = logger;

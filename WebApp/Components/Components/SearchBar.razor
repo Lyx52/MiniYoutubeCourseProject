@@ -3,6 +3,7 @@
 @using Domain.Constants
 @inject IVideoHttpClient _videoHttpClient
 @inject NavigationManager _navigationManager
+@implements IAsyncDisposable
 <div class="input-group search-bar">
     <AutoComplete @ref="_autocomplete"
         @bind-Value="_videoTitle"
@@ -45,4 +46,17 @@
         }
         await _autocomplete.ResetAsync();
     }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await _autocomplete.DisposeAsync();
+        }
+        catch (Exception _)
+        {
+            // ignored
+        }
+    }
+
 }

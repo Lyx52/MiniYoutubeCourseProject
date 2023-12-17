@@ -100,9 +100,22 @@
     transform: translate(-116px, 8px);
 }
 .notification-dropdown {
-    transform: translate(-132px, 8px);
     height: 200px;
     overflow-y: auto;
+    position: fixed !important;
+    top: 56px !important;
+    left: unset !important;
+    right: 2px !important;
+    width: max-content !important;
+}
+.notification-dropdown .dropdown-item {
+    cursor: pointer !important;
+}
+.notification-dismiss-button::before {
+    content: "\F623" !important;
+}
+.notification-dismiss-button:hover::before {
+    content: "\F622" !important;
 }
 .autocomplete .spinner-border-md {
     --bs-spinner-width: 1rem;
@@ -140,6 +153,9 @@
 .profile-icon { 
     width: 48px;
     height: 48px;
+}
+.profile-icon:hover {
+    border: 1px solid black !important;
 }
 .btn-subscribe {
     height: 32px !important;

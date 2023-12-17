@@ -21,12 +21,12 @@ namespace WebApi.Controllers;
 public class VideoController : ControllerBase
 {
     private readonly ILogger<VideoController> _logger;
-    private readonly ChannelWriter<VideoTask> _channel;
+    private readonly ChannelWriter<BackgroundTask> _channel;
     private readonly IVideoRepository _videoRepository;
     private readonly IUserRepository _userRepository;
     private static readonly IEnumerable<Video> EmptyVideos = new List<Video>();
     public VideoController(ILogger<VideoController> logger, 
-        ChannelWriter<VideoTask> channel, 
+        ChannelWriter<BackgroundTask> channel, 
         IUserRepository userRepository,
         IVideoRepository videoRepository)
     {
@@ -48,7 +48,7 @@ public class VideoController : ControllerBase
         {
             VideoId = videoId,
             WorkSpaceId = payload.WorkSpaceId,
-            Type = VideoTaskType.ProcessVideo
+            Type = BackgroundTaskType.ProcessVideo
         }, cancellationToken);
         return Ok(new CreateVideoResponse()
         {
@@ -71,7 +71,7 @@ public class VideoController : ControllerBase
         {
             VideoId = Guid.Parse(video.Id),
             WorkSpaceId = Guid.Parse(video.WorkSpaceId),
-            Type = VideoTaskType.PublishVideo
+            Type = BackgroundTaskType.PublishVideo
         }, cancellationToken);
         return Ok();
     }

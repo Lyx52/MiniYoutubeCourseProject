@@ -1,20 +1,62 @@
-﻿<div class="flex-shrink-0 dropdown">
+﻿@using Domain.Interfaces
+@using Domain.Entity
+@inject IUserHttpClient _userHttpClient
+@inject NavigationManager _navigationManager
+<div class="flex-shrink-0 dropdown">
     <button type="button" class="nav-link d-block link-body-emphasis text-decoration-none nav-link-color" data-bs-toggle="dropdown" aria-expanded="false">
         <i class="bi bi-bell"></i>
     </button>
     <ul class="dropdown-menu text-small shadow main-navbar-dropdown notification-dropdown" data-popper-placement="bottom-end">
-        <li><a class="dropdown-item" href="#">Menu item</a></li>
-        <li><a class="dropdown-item" href="#">Menu item</a></li>
-        <li><a class="dropdown-item" href="#">Menu item</a></li>
-        <li><a class="dropdown-item" href="#">Menu item</a></li>
-        <li><a class="dropdown-item" href="#">Menu item</a></li>
-        <li><a class="dropdown-item" href="#">Menu item</a></li>
-        <li><a class="dropdown-item" href="#">Menu item</a></li>
-        <li><a class="dropdown-item" href="#">Menu item</a></li>
-        <li><a class="dropdown-item" href="#">Menu item</a></li>
+        @foreach (var notification in Notifications)
+        {
+            <li>
+                <div class="d-flex flex-row gap-1">
+                    <a class="dropdown-item" @onclick="(() => OnNotificationClick(notification.RedirectLink))">
+                        @notification.Message
+                    </a>
+                    <button class="btn" @onclick="(() => OnDismissNotification(notification.Id))">
+                        <i class="bi notification-dismiss-button"></i>
+                    </button>
+                </div>
+            </li>
+        }
     </ul>
 </div>
 
 @code {
-    
+    private IEnumerable<UserNotification> Notifications { get; set; } = new List<UserNotification>();
+    private bool IsLoaded { get; set; }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !IsLoaded)
+        {
+            await LoadNotifications();
+        }
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    private async Task LoadNotifications()
+    {
+        var response = await _userHttpClient.GetUserNotifications();
+        if (response.Success)
+        {
+            Notifications = response.Notifications;
+        }
+        IsLoaded = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void OnNotificationClick(string link)
+    {
+        _navigationManager.NavigateTo(link, true, true);
+    }
+
+    private async Task OnDismissNotification(string notificationId)
+    {
+        var response = await _userHttpClient.DismissUserNotifications(notificationId);
+        if (response.Success)
+        {
+            await LoadNotifications();
+        }
+    }
 }

@@ -43,7 +43,7 @@ public class Startup
                 .EnableDetailedErrors(true);
             //options.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
         });
-        services.AddDbContext<VideoDbContext>((options) =>
+        services.AddDbContext<ApplicationDbContext>((options) =>
         {
             // TODO: Use proper db.
             options
@@ -108,16 +108,18 @@ public class Startup
         
         services.AddTransient<IWorkFileService, WorkFileService>();
         services.AddTransient<IContentProcessingService, ContentProcessingService>();
+        services.AddTransient<INotificationProcessingService, NotificationProcessingService>();
         services.AddTransient<IContentService, ContentService>();
         services.AddTransient<IVideoRepository, VideoRepository>();
         services.AddTransient<IContentRepository, ContentRepository>();
         services.AddTransient<ICommentRepository, CommentRepository>();
         services.AddTransient<IUserRepository, UserRepository>();
         services.AddTransient<ISubscriberRepository, SubscriberRepository>();
+        services.AddTransient<INotificationRepository, NotificationRepository>();
         services.AddMemoryCache();
         
         // Processing channel
-        services.AddChannel<VideoTask>();
+        services.AddChannel<BackgroundTask>();
         
         services.AddSingleton<ApiConfiguration>(
             _ => Configuration.GetSection(nameof(ApiConfiguration)).Get<ApiConfiguration>()!

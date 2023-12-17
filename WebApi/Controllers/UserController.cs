@@ -23,16 +23,19 @@ public class UserController : ControllerBase
     private readonly ILogger<UserController> _logger;
     private readonly IUserRepository _userRepository;
     private readonly ISubscriberRepository _subscriberRepository;
+    private readonly INotificationRepository _notificationRepository;
     public UserController(
         ILogger<UserController> logger,
         ApiConfiguration configuration,
         IUserRepository userRepository,
-        ISubscriberRepository subscriberRepository)
+        ISubscriberRepository subscriberRepository,
+        INotificationRepository notificationRepository)
     {
         _userRepository = userRepository;
         _configuration = configuration;
         _logger = logger;
         _subscriberRepository = subscriberRepository;
+        _notificationRepository = notificationRepository;
     }
 
     [HttpPost]
@@ -74,6 +77,36 @@ public class UserController : ControllerBase
             User = user,
             Success = true
         });
+    }
+    
+    [HttpGet]
+    [Route("Notifications")]
+    public async Task<IActionResult> Notifications(CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim is null) return Unauthorized();
+        var user = await _userRepository.GetUserById(userIdClaim.Value, cancellationToken);
+        if (user is null) return Unauthorized();
+        var notifications = await _notificationRepository.GetUserNotifications(user.Id, cancellationToken);
+        return Ok(new UserNotificationResponse()
+        {
+            UserId = user.Id,
+            Notifications = notifications,
+            Success = true
+        });
+    }
+    
+    [HttpPost]
+    [Route("DismissNotification")]
+    public async Task<IActionResult> DismissNotification([FromBody] DismissNotificationRequest payload, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim is null) return Unauthorized();
+        var user = await _userRepository.GetUserById(userIdClaim.Value, cancellationToken);
+        if (user is null) return Unauthorized();
+        
+        await _notificationRepository.DismissNotification(user.Id, payload.NotificationId, cancellationToken);
+        return Ok();
     }
     
     [HttpGet]

@@ -7,53 +7,59 @@
 @inject AppConfiguration _configuration
 @inject NavigationManager _navigationManager
 @inject IUserHttpClient _userHttpClient
-<a @onclick="OnVideoClicked" @onmouseover="OnMouseOver" @onmouseleave="OnMouseLeave" class="text-decoration-none cursor-pointer">
-  @if (IsPlaylistView)
-  {
-    
-  }
-  else
-  {
-    <div class="col video-card-container">
-      <div class="card border-0 video-card">
-        <div class="gap-3 card-body d-flex justify-content-between video-card-body">
-          <figure class="figure">
-            @if (IsMouseOver)
-            {
-              <img src="@GetSourceLink(Video.PosterGif!.Id)" class="figure-img img-fluid rounded mb-1 w-100" alt="poster gif">
-            }
-            else
-            {
-              <img src="@GetSourceLink(Video.Poster!.Id)" class="figure-img img-fluid rounded mb-1" alt="poster image">
-            }
-            <figcaption class="figure-caption">
-              <div class="d-inline-flex w-100">
-                <div class="creator-icon">
-                  <img src="@CreatorIconLink" alt="CreatorIconLink">
-                </div>
-                <div class="ms-3 d-flex flex-column">
-                  <p class="fs-5 mb-1 text-break">@Video.Title</p>
-                  <p class="small mb-0">@Creator</p>
-                  <p class="small mb-0 text-body-secondary">@GetCreatedDate()</p>
-                </div>
+
+@if (IsPlaylistView)
+{
+  
+}
+else
+{
+  <div class="col video-card-container">
+    <div class="card border-0 video-card">
+      <div class="gap-3 card-body d-flex justify-content-between video-card-body">
+        <figure class="figure">
+          @{
+            var videoId = @Guid.Parse(Video.VideoId).ToEncodedId();
+            <NavLink href="@($"/watch/{videoId}")" Match="NavLinkMatch.All" @onclick="OnVideoClicked" @onmouseover="OnMouseOver" @onmouseleave="OnMouseLeave" class="text-decoration-none cursor-pointer">
+              @if (IsMouseOver)
+              {
+                <img src="@GetSourceLink(Video.PosterGif!.Id)" class="figure-img img-fluid rounded mb-1 w-100" alt="poster gif">
+              }
+              else
+              {
+                <img src="@GetSourceLink(Video.Poster!.Id)" class="figure-img img-fluid rounded mb-1" alt="poster image">
+              }
+            </NavLink>
+          }
+          <figcaption class="figure-caption">
+            <div class="d-inline-flex w-100">
+              @{
+                var creatorId = @Guid.Parse(Video.CreatorId).ToEncodedId();
+                <NavLink href="@($"/creator/{creatorId}")" Match="NavLinkMatch.All">
+                  <img src="https://bootdey.com/img/Content/avatar/avatar7.png" alt="CreatorIconLink" class="rounded-circle profile-icon"/>
+                </NavLink>
+              }
+              <div class="ms-3 d-flex flex-column">
+                <p class="fs-5 mb-1 text-break">@Video.Title</p>
+                <p class="small mb-0">@Video.CreatorName</p>
+                <p class="small mb-0 text-body-secondary">@GetCreatedDate()</p>
               </div>
-            </figcaption>
-          </figure>
-        </div>
+            </div>
+          </figcaption>
+        </figure>
       </div>
     </div>
-  }
-</a>
+  </div>
+}
 
 @code {
   [Parameter]
   public VideoPlaylistModel Video { get; set; }
-  string Creator = "Linus Tech Tips";
-  string CreatorIconLink = "/favicon.png";
-  
+
   [Parameter]
   public bool IsPlaylistView { get; set; }
-  
+
+  private string CreatorIconLink = "./favicon.png";
   private bool IsMouseOver { get; set; }
   private bool IsLoaded { get; set; }
   private string GetSourceLink(string sourceId)

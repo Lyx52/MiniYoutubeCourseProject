@@ -10,13 +10,13 @@ namespace WebApi.Services;
 public class BackgroundProcessingService : BackgroundService
 {
     private readonly ILogger<BackgroundProcessingService> _logger;
-    private readonly ChannelReader<VideoTask> _channel;
+    private readonly ChannelReader<BackgroundTask> _channel;
     private readonly ConcurrentBag<Task> _processingList;
     private readonly ConcurrentQueue<Task> _processingQueue;
     private readonly IServiceScopeFactory _serviceScopeFactory;
     public BackgroundProcessingService(
         ILogger<BackgroundProcessingService> logger,
-        ChannelReader<VideoTask> channel,
+        ChannelReader<BackgroundTask> channel,
         IServiceScopeFactory serviceScopeFactory)
     {
         _logger = logger;
@@ -26,19 +26,28 @@ public class BackgroundProcessingService : BackgroundService
         _processingQueue = new ConcurrentQueue<Task>();
     }
 
-    private async Task BuildTask(VideoTask payload, CancellationToken cancellationToken)
+    private async Task BuildTask(BackgroundTask task, CancellationToken cancellationToken)
     {
         await using var scope = _serviceScopeFactory.CreateAsyncScope();
-        var processingService = scope.ServiceProvider.GetRequiredService<IContentProcessingService>();
-        switch (payload.Type)
+        switch (task.Type)
         {
-            case VideoTaskType.ProcessVideo:
+            case BackgroundTaskType.ProcessVideo:
             {
+                var processingService = scope.ServiceProvider.GetRequiredService<IContentProcessingService>();
+                if (task is not VideoTask payload) return;
                 await processingService!.ProcessVideo(payload, cancellationToken);    
             } break;
-            case VideoTaskType.PublishVideo:
+            case BackgroundTaskType.PublishVideo:
             {
+                var processingService = scope.ServiceProvider.GetRequiredService<IContentProcessingService>();
+                if (task is not VideoTask payload) return;
                 await processingService!.PublishVideo(payload, cancellationToken); 
+            } break;
+            case BackgroundTaskType.GenerateUploadNotifications:
+            {
+                var processingService = scope.ServiceProvider.GetRequiredService<INotificationProcessingService>();
+                if (task is not NotificationTask payload) return;
+                await processingService!.GenerateSubscriptionNotifications(payload, cancellationToken);          
             } break;
         }
         

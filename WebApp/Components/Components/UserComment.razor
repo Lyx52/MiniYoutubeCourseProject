@@ -94,6 +94,7 @@
     }
     private async Task OnCommentSubmit()
     {
+        if (CommentText is { Length: <= 3 }) return;
         await _commentHttpClient.CreateComment(Model.VideoId, CommentText);
         if (OnSubmit.HasDelegate)
         {

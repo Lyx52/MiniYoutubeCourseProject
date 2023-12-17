@@ -11,4 +11,6 @@ public interface IUserHttpClient
         CancellationToken cancellationToken = default(CancellationToken));
     Task<Response> Subscribe(string creatorId, CancellationToken cancellationToken = default(CancellationToken));
     Task<Response> Unsubscribe(string creatorId, CancellationToken cancellationToken = default(CancellationToken));
+    Task<UserNotificationResponse> GetUserNotifications(CancellationToken cancellationToken = default(CancellationToken));
+    Task<Response> DismissUserNotifications(string notificationId, CancellationToken cancellationToken = default(CancellationToken));
 }

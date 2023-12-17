@@ -12,11 +12,13 @@ namespace WebApi.Services;
 public class VideoRepository : IVideoRepository
 {
     private readonly ILogger<VideoRepository> _logger;
-    private readonly VideoDbContext _dbContext;
-    public VideoRepository(ILogger<VideoRepository> logger, VideoDbContext dbContext)
+    private readonly ApplicationDbContext _dbContext;
+    private readonly IUserRepository _userRepository;
+    public VideoRepository(ILogger<VideoRepository> logger, ApplicationDbContext dbContext, IUserRepository userRepository)
     {
         _dbContext = dbContext;
         _logger = logger;
+        _userRepository = userRepository;
     }
 
     public async Task<Guid> CreateVideo(CreateVideoRequest payload, string creatorId, CancellationToken cancellationToken)
@@ -118,33 +120,39 @@ public class VideoRepository : IVideoRepository
             .Skip(query.From)
             .Take(query.Count)
             .ToListAsync(cancellationToken);
-        
-        return videos.Select((v) =>
-        {
-            var poster = v.Sources!.First((s) => s.Type == ContentSourceType.Thumbnail);
-            var posterGif = v.Sources!.First((s) => s.Type == ContentSourceType.ThumbnailGif);
-
-            return new VideoPlaylistModel()
+        var creators = await _userRepository.GetUsersByIds(videos.Select(v => v.CreatorId), cancellationToken);
+        return videos
+            .Select((v) =>
             {
-                Created = v.Created,
-                Title = v.Title,
-                VideoId = v.Id,
-                Poster = new ContentSourceModel()
+                var poster = v.Sources!.First((s) => s.Type == ContentSourceType.Thumbnail);
+                var posterGif = v.Sources!.First((s) => s.Type == ContentSourceType.ThumbnailGif);
+                var creator = creators.FirstOrDefault(c => c.Id == v.CreatorId);
+                if (creator is null) return null;
+                return new VideoPlaylistModel()
                 {
-                    ContentType = poster.ContentType,
-                    Id = poster.Id,
-                    Resolution = poster.Resolution,
-                    Type = poster.Type
-                },
-                PosterGif = new ContentSourceModel()
-                {
-                    ContentType = posterGif.ContentType,
-                    Id = posterGif.Id,
-                    Resolution = posterGif.Resolution,
-                    Type = posterGif.Type
-                },
-            };
-        });
+                    Created = v.Created,
+                    Title = v.Title,
+                    VideoId = v.Id,
+                    CreatorId = creator.Id,
+                    CreatorName = creator.CreatorName,
+                    CreatorIconLink = creator.IconLink,
+                    Poster = new ContentSourceModel()
+                    {
+                        ContentType = poster.ContentType,
+                        Id = poster.Id,
+                        Resolution = poster.Resolution,
+                        Type = poster.Type
+                    },
+                    PosterGif = new ContentSourceModel()
+                    {
+                        ContentType = posterGif.ContentType,
+                        Id = posterGif.Id,
+                        Resolution = posterGif.Resolution,
+                        Type = posterGif.Type
+                    },
+                };
+            })
+            .Where(m => m is not null)!;
     }
 
     private ContentSource ConvertToContentSource(WorkFile file, Video video)

@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace WebApi.Data;
 
-public class VideoDbContext : DbContext
+public class ApplicationDbContext : DbContext
 {
     public DbSet<Video> Videos { get; set; }
     public DbSet<ContentSource> Sources { get; set; }
@@ -12,7 +12,8 @@ public class VideoDbContext : DbContext
     public DbSet<CommentImpression> CommentImpressions { get; set; }
     public DbSet<VideoImpression> VideoImpressions { get; set; }
     public DbSet<Subscriber> Subscribers { get; set; }
-    public VideoDbContext(DbContextOptions<VideoDbContext> options) : base(options)
+    public DbSet<UserNotification> Notifications { get; set; }
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
     {
     }
     protected override void OnModelCreating(ModelBuilder builder)

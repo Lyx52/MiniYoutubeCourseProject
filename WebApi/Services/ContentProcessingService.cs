@@ -1,4 +1,5 @@
 ﻿using System.Drawing;
+using System.Threading.Channels;
 using Domain.Constants;
 using Domain.Model;
 using Domain.Model.Configuration;
@@ -17,19 +18,20 @@ public class ContentProcessingService : IContentProcessingService
     private readonly IWorkFileService _workFileService;
     private readonly IVideoRepository _videoRepository;
     private readonly ApiConfiguration _configuration;
+    private readonly ChannelWriter<BackgroundTask> _channel;
     public ContentProcessingService(
         ILogger<ContentProcessingService> logger, 
         IWorkFileService workFileService,
         IVideoRepository videoRepository,
-        ApiConfiguration configuration
+        ApiConfiguration configuration,
+        ChannelWriter<BackgroundTask> channel
     )
     {
         _logger = logger;
         _configuration = configuration;
         _workFileService = workFileService;
         _videoRepository = videoRepository;
-        //_videoRepository = videoRepository;
-        // TODO: Move this to configuration
+        _channel = channel;
         _ffOptions = new FFOptions
         {
             BinaryFolder = _configuration.Processing.FFMpegLocation,
@@ -207,6 +209,11 @@ public class ContentProcessingService : IContentProcessingService
             
             await _workFileService.MoveWorkSpace(WorkSpaceDirectory.WorkDir, WorkSpaceDirectory.RepoDir, payload.WorkSpaceId);
             await _videoRepository.UpdateVideoStatus(payload.VideoId, VideoProcessingStatus.Published, cancellationToken);
+            await _channel.WriteAsync(new NotificationTask()
+            {
+                VideoId = payload.VideoId,
+                Type = BackgroundTaskType.GenerateUploadNotifications
+            }, cancellationToken);
         }
         catch (Exception e)
         {

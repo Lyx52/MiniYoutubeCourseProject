@@ -183,4 +183,77 @@ public class UserHttpClient : IUserHttpClient
             Message = response.IsSuccessStatusCode ? "Request failed, please try again later" : string.Empty
         };
     }
+
+    public async Task<UserNotificationResponse> GetUserNotifications(CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var jwt = await _loginManager.GetJwtToken(cancellationToken);
+        if (jwt is null)
+        {
+            return new UserNotificationResponse()
+            {
+                Message = "Unauthorized",
+                Success = false
+            };
+        }
+        
+        using var client = _httpClientFactory.CreateClient(nameof(UserHttpClient));
+        client.DefaultRequestHeaders.Add("Authorization", $"Bearer {jwt}");
+        try
+        {
+            var content = await client.GetFromJsonAsync<UserNotificationResponse>("api/User/Notifications", cancellationToken);
+            if (content is not null) return content;
+        }
+        catch (HttpRequestException e)
+        {
+            _logger.LogError("UserApi request failed {ExceptionMessage}!", e.Message);
+            return new UserNotificationResponse()
+            {
+                Success = false,
+                Message = "Request failed, please try again later"
+            };
+        }
+        return new UserNotificationResponse()
+        {
+            Success = false,
+            Message = "Request failed, please try again later"
+        };
+    }
+
+    public async Task<Response> DismissUserNotifications(string notificationId, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var jwt = await _loginManager.GetJwtToken(cancellationToken);
+        if (jwt is null)
+        {
+            return new Response()
+            {
+                Message = "Unauthorized",
+                Success = false
+            };
+        }
+        
+        using var client = _httpClientFactory.CreateClient(nameof(UserHttpClient));
+        client.DefaultRequestHeaders.Add("Authorization", $"Bearer {jwt}");
+        HttpResponseMessage? response;
+        try
+        {
+            response = await client.PostAsJsonAsync<DismissNotificationRequest>($"api/User/DismissNotification", new DismissNotificationRequest()
+            {
+                NotificationId = notificationId
+            }, cancellationToken);
+        }
+        catch (HttpRequestException e)
+        {
+            _logger.LogError("UserApi request failed {ExceptionMessage}!", e.Message);
+            return new Response()
+            {
+                Success = false,
+                Message = "Request failed, please try again later"
+            };
+        }
+        return new Response()
+        {
+            Success = response.IsSuccessStatusCode,
+            Message = response.IsSuccessStatusCode ? "Request failed, please try again later" : string.Empty
+        };
+    }
 }

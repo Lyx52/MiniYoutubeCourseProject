@@ -10,8 +10,8 @@ public class SubscriberRepository : ISubscriberRepository
 {
     private readonly ILogger<SubscriberRepository> _logger;
     private readonly IUserRepository _userRepository;
-    private readonly VideoDbContext _dbContext;
-    public SubscriberRepository(ILogger<SubscriberRepository> logger, IUserRepository userRepository, VideoDbContext dbContext)
+    private readonly ApplicationDbContext _dbContext;
+    public SubscriberRepository(ILogger<SubscriberRepository> logger, IUserRepository userRepository, ApplicationDbContext dbContext)
     {
         _logger = logger;
         _dbContext = dbContext;

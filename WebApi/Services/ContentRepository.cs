@@ -9,9 +9,9 @@ namespace WebApi.Services;
 public class ContentRepository : IContentRepository
 {
     private readonly ILogger<ContentRepository> _logger;
-    private readonly VideoDbContext _dbContext;
+    private readonly ApplicationDbContext _dbContext;
     private readonly IWorkFileService _workFileService;
-    public ContentRepository(ILogger<ContentRepository> logger, VideoDbContext dbContext, IWorkFileService workFileService)
+    public ContentRepository(ILogger<ContentRepository> logger, ApplicationDbContext dbContext, IWorkFileService workFileService)
     {
         _dbContext = dbContext;
         _logger = logger;
