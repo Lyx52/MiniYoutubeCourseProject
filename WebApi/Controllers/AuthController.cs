@@ -1,6 +1,8 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Threading.Channels;
+using Domain.Constants;
 using Domain.Entity;
 using Domain.Model;
 using Domain.Model.Configuration;
@@ -11,6 +13,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using WebApi.Services.Interfaces;
+using WebApi.Services.Models;
 
 namespace WebApi.Controllers;
 
@@ -23,18 +26,21 @@ public class AuthController : ControllerBase
     private readonly ApiConfiguration _configuration;
     private readonly ILogger<AuthController> _logger;
     private readonly IUserRepository _userRepository;
+    private readonly ChannelWriter<BackgroundTask> _channel;
     public AuthController(
         ILogger<AuthController> logger,
         UserManager<User> userManager,
         RoleManager<IdentityRole> roleManager,
         ApiConfiguration configuration,
-        IUserRepository userRepository)
+        IUserRepository userRepository,
+        ChannelWriter<BackgroundTask> channel)
     {
         _userRepository = userRepository;
         _userManager = userManager;
         _roleManager = roleManager;
         _configuration = configuration;
         _logger = logger;
+        _channel = channel;
     }
     
     [HttpPost]
@@ -45,7 +51,13 @@ public class AuthController : ControllerBase
         var user = await _userManager.FindByNameAsync(payload.Username);
         if (user is null || !await _userManager.CheckPasswordAsync(user, payload.Password)) 
             return Unauthorized();
-            
+
+        if (!await _userManager.IsEmailConfirmedAsync(user))
+            return StatusCode(StatusCodes.Status403Forbidden, new LoginResponse()
+            {
+                Success = false,
+                Message = "Email not confirmed!"
+            });
         var userRoles = await _userManager.GetRolesAsync(user);
 
         var authClaims = new List<Claim>
@@ -72,7 +84,7 @@ public class AuthController : ControllerBase
 
     [HttpPost]
     [Route("Register")]
-    public async Task<IActionResult> Register([FromBody] RegisterRequest payload)
+    public async Task<IActionResult> Register([FromBody] RegisterRequest payload, CancellationToken cancellationToken = default(CancellationToken))
     {
         var userExists = await _userManager.FindByNameAsync(payload.Username);
         if (userExists is not null)
@@ -97,16 +109,37 @@ public class AuthController : ControllerBase
             Email = payload.Email,
             SecurityStamp = Guid.NewGuid().ToString(),
             UserName = payload.Username,
-            CreatorName = payload.Username
+            CreatorName = payload.Username,
+            EmailConfirmed = false,
         };
-        
         var result = await _userManager.CreateAsync(user, payload.Password);
+        var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+        
+        await _channel.WriteAsync(new SendConfirmationTask()
+        {
+            Email = payload.Email,
+            Token = token,
+            Type = BackgroundTaskType.SendConfirmationEmail
+        }, cancellationToken);
         return result.Succeeded
             ? Created()
             : StatusCode(StatusCodes.Status500InternalServerError,
                 new Response() { Success = false, Message = $"Failed to create user: {string.Join(',', result.Errors.Select(e => e.Code))}" });
     }
 
+    [HttpGet]
+    [Route("ConfirmUser")]
+    public async Task<IActionResult> ConfirmUser([FromQuery] string token, [FromQuery] string email, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var redirectAddress = _configuration.Endpoints
+            .First(c => c.Name == EndpointNames.MiniTubeApp.ToString()).Hostname;
+        var user = await _userManager.FindByEmailAsync(email);
+        if (user is null) return Redirect($"{redirectAddress}/confirmation?success=false");
+        if (await _userManager.IsEmailConfirmedAsync(user)) return Redirect(redirectAddress);
+        var result = await _userManager.ConfirmEmailAsync(user, token);
+        return Redirect($"{redirectAddress}/confirmation?success={result.Succeeded}");
+    }
+    
     [HttpGet]
     [Route("Profile")]
     public async Task<IActionResult> Profile(CancellationToken cancellationToken = default(CancellationToken))

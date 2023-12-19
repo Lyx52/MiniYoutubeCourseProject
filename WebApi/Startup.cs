@@ -109,6 +109,7 @@ public class Startup
         services.AddTransient<IWorkFileService, WorkFileService>();
         services.AddTransient<IContentProcessingService, ContentProcessingService>();
         services.AddTransient<INotificationProcessingService, NotificationProcessingService>();
+        services.AddTransient<IEmailProcessingService, EmailProcessingService>();
         services.AddTransient<IContentService, ContentService>();
         services.AddTransient<IVideoRepository, VideoRepository>();
         services.AddTransient<IContentRepository, ContentRepository>();

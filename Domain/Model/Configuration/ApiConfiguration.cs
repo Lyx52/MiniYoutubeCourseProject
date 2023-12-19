@@ -4,4 +4,6 @@ public class ApiConfiguration
 {
     public JWTConfiguration JWT { get; set; }
     public VideoProcessingConfiguration Processing { get; set; }
+    public SmtpConfiguration Email { get; set; }
+    public EndpointConfig[] Endpoints { get; set; }
 }

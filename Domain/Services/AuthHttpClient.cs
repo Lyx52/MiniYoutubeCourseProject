@@ -40,13 +40,15 @@ public class AuthHttpClient : IAuthHttpClient
                 Message = "Request failed, please try again later"
             };
         }
+        var content = await postResponse.Content.ReadFromJsonAsync<LoginResponse>(cancellationToken);
         var message = postResponse.StatusCode switch
         {
             HttpStatusCode.Unauthorized => "Invalid username or password",
+            HttpStatusCode.Forbidden => content?.Message ?? "Unauthorized",
             HttpStatusCode.OK => string.Empty,
             _ => "Request failed, please try again later"
         };
-        var content = await postResponse.Content.ReadFromJsonAsync<LoginResponse>(cancellationToken);
+        
         if (content is not null)
         {
             content.Message = message;

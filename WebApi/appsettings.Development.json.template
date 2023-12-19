@@ -16,6 +16,23 @@
       "TempDirectory": "./Temp",
       "RepoDirectory": "./Repo",
       "FFMpegLocation": "C:\\ProgramData\\chocolatey\\bin"
-    }  
+    },
+    "Email": {
+      "Host": "smtp.gmail.com",
+      "Port": 465,
+      "EmailAddress": "",
+      "EmailSender": "MiniTube",
+      "EmailPassword": ""
+    },
+    "Endpoints": [
+        {
+            "Name": "MiniTubeApi",
+            "Hostname": "http://localhost:4200"
+        },
+        {
+            "Name": "MiniTubeApp",
+            "Hostname": "http://localhost:8080"
+        }
+    ]
   }
 }

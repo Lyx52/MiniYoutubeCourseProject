@@ -1,0 +1,16 @@
+﻿@page "/Confirmation"
+<div class="d-flex flex-column w-100 text-center">
+    @if (Success is true)
+    {
+        <h2>Account confirmed</h2>
+        <NavLink class="link-dark" href="/login" Match="NavLinkMatch.All">To login page...</NavLink>
+    }
+    else
+    {
+        <h2>Account confirmation failed, try again later</h2>
+    }
+</div>
+@code {
+    [SupplyParameterFromQuery(Name = "success")]
+    public bool? Success { get; set; }
+}

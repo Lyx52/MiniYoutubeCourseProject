@@ -49,6 +49,12 @@ public class BackgroundProcessingService : BackgroundService
                 if (task is not NotificationTask payload) return;
                 await processingService!.GenerateSubscriptionNotifications(payload, cancellationToken);          
             } break;
+            case BackgroundTaskType.SendConfirmationEmail:
+            {
+                var processingService = scope.ServiceProvider.GetRequiredService<IEmailProcessingService>();
+                if (task is not SendConfirmationTask payload) return;
+                await processingService!.SendConfirmationEmail(payload.Email, payload.Token, cancellationToken);          
+            } break;
         }
         
     }
