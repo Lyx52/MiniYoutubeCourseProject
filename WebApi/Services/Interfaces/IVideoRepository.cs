@@ -18,4 +18,8 @@ public interface IVideoRepository
     Task<List<Video>> QueryVideosByTitle(string searchText, CancellationToken cancellationToken = default(CancellationToken));
     Task<IEnumerable<VideoPlaylistModel>> GetVideoPlaylist(VideoQuery query, CancellationToken cancellationToken = default(CancellationToken));
     Task SetVideoImpression(string userId, string videoId, ImpressionType impressionType, CancellationToken cancellationToken = default(CancellationToken));
+
+    Task<IEnumerable<Video>> GetUserVideos(string userId, int page, int pageSize,
+        CancellationToken cancellationToken = default(CancellationToken));
+    Task<int> GetUserVideoCount(string userId, CancellationToken cancellationToken = default(CancellationToken));
 }

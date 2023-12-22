@@ -6,36 +6,56 @@
 @using Domain.Entity
 @using System.Security.Claims
 @using Microsoft.IdentityModel.JsonWebTokens
+@using WebApp.Models
 @inject AuthenticationStateProvider _authenticationStateProvider
 @inject ILoginManager _loginManager
 @inject IVideoHttpClient _videoHttpClient
 @inject NavigationManager _navigationManager
 @rendermode InteractiveServer
-<div class="container-fluid w-100">
-    <div class="row">
-        <div class="col-2">
-            
+<div class="container-fluid">
+    <div class="row flex-nowrap">
+        <div class="col-auto px-0">
+            <div id="sidebar" class="collapse collapse-horizontal show border-end">
+                <div id="sidebar-nav" class="list-group border-0 rounded-0 text-sm-start min-vh-100">
+                    <a @onclick="OnOpenVideosPage" class="list-group-item border-end-0 d-inline-block text-truncate cursor-pointer" data-bs-parent="#sidebar">
+                        <i class="bi bi-film"></i> <span>Videos</span>
+                    </a>
+                    <a @onclick="OnOpenPlaylistPage" class="list-group-item border-end-0 d-inline-block text-truncate cursor-pointer" data-bs-parent="#sidebar">
+                        <i class="bi bi-view-list"></i> <span>Playlists</span>
+                    </a>
+                </div>
+            </div>
         </div>
-        <div class="col-10">
-            <Grid TItem="Video" 
-                  class="table table-hover table-bordered table-striped" 
-                  DataProvider="VideoDataProvider"
-                  Responsive="true">
-                <GridColumn TItem="Video" HeaderText="Title" PropertyName="Title">
-                    @context.Title
-                </GridColumn>
-                <GridColumn TItem="Video" HeaderText="Status" PropertyName="Status">
-                    @context.Status.ToString()
-                </GridColumn>
-            </Grid>
+        <div class="col ps-md-2 pt-2">
+            <div class="d-flex flex-column w-100">
+                <div class="d-flex flex-row w-100">
+                     <a href="#" data-bs-target="#sidebar" data-bs-toggle="collapse" class="border rounded-3 p-1 text-decoration-none text-dark border-dark"><i class="bi bi-list bi-lg py-2 p-1"></i> Menu</a>    
+                </div>
+                <div class="d-flex flex-row w-100">
+                    
+                </div>
+            </div>
+            <hr>
+            @switch (CurrentState)
+            {
+                case StudioState.VideoListView:
+                {
+                    <StudioVideoList @ref="_videoListView"/>
+                }
+                    break;
+                case StudioState.PlayListView:
+                {
+                    <StudioPlaylistList/>
+                }
+                    break;
+            }
         </div>
     </div>
 </div>
-<VideoUpload @ref="_videoUploadModal" />
 @code {
-    private VideoUpload _videoUploadModal;
-    private IEnumerable<Video> _userVideos = new List<Video>();
-
+    
+    private StudioState CurrentState { get; set; }
+    private StudioVideoList _videoListView;
     protected override async Task OnInitializedAsync()
     {
         var userId = string.Empty;
@@ -51,19 +71,6 @@
             userId = userIdClaim!.Value;
         }
         catch (NavigationException _) { } // Another js related exception we can ignore
-        
-        var response = await _videoHttpClient.GetUserVideos();
-        if (response.Success)
-        {
-            //_userVideos = response.Videos;
-        }
-    }
-    
-    
-
-    private async Task<GridDataProviderResult<Video>> VideoDataProvider(GridDataProviderRequest<Video> request)
-    {
-        return await Task.FromResult(request.ApplyTo(_userVideos));
     }
     
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -71,8 +78,18 @@
         await base.OnAfterRenderAsync(firstRender);
         if (firstRender)
         {
-            await _videoUploadModal.OpenModalAsync();
+            await _videoListView.OpenUploadModal();
         }
     }
 
+    private async Task OnOpenVideosPage()
+    {
+        CurrentState = StudioState.VideoListView;
+        await InvokeAsync(StateHasChanged);
+    }
+    private async Task OnOpenPlaylistPage()
+    {
+        CurrentState = StudioState.PlayListView;
+        await InvokeAsync(StateHasChanged);
+    }
 }

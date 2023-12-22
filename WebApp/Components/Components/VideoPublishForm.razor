@@ -68,6 +68,11 @@
     {
         var response = await _videoHttpClient.GetProcessingStatus(VideoId);
         if (response.Success) CurrentStatus = response.Status;
+        if (CurrentStatus is VideoProcessingStatus.ProcessingFinished or VideoProcessingStatus.ProcessingFailed)
+        {
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
         _timerResetEvent = new AutoResetEvent(false);
         _publishTimer = new Timer( async (_) =>
         {

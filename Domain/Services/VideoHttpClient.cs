@@ -234,7 +234,7 @@ public class VideoHttpClient : IVideoHttpClient
         };
     }
 
-    public async Task<UserVideosResponse> GetUserVideos(CancellationToken cancellationToken = default(CancellationToken))
+    public async Task<UserVideosResponse> GetUserVideos(int page, int pageSize, CancellationToken cancellationToken = default(CancellationToken))
     {
         var jwt = await _loginManager.GetJwtToken(cancellationToken);
         if (jwt is null)
@@ -245,27 +245,34 @@ public class VideoHttpClient : IVideoHttpClient
                 Success = false
             };
         }
-        //
-        // using var client = _httpClientFactory.CreateClient(nameof(VideoHttpClient));
-        // try
-        // {
-        //     var response = await client.GetFromJsonAsync<VideoMetadataResponse>($"api/Video/Metadata?id={videoId.ToString()}",
-        //         cancellationToken);
-        //     return response ?? new VideoMetadataResponse()
-        //     {
-        //         Success = false,
-        //         Message = "Request failed, please try again later"
-        //     };
-        // }
-        // catch (Exception e)
-        // {
-        //     _logger.LogError("VideoApi request failed {ExceptionMessage}!", e.Message);
-        //     return new VideoMetadataResponse()
-        //     {
-        //         Success = false,
-        //         Message = "Request failed, please try again later"
-        //     };
-        // }
+        
+        using var client = _httpClientFactory.CreateClient(nameof(VideoHttpClient));
+        client.DefaultRequestHeaders.Add("Authorization", $"Bearer {jwt}");
+        try
+        {
+            var response = await client.PostAsJsonAsync<UserVideosRequest>("api/Video/UserVideos", new UserVideosRequest()
+            {
+                Page = page,
+                PageSize = pageSize
+            }, cancellationToken);
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<UserVideosResponse>(cancellationToken) ?? new UserVideosResponse()
+                {
+                    Success = false,
+                    Message = "Request failed, please try again later"
+                };
+            }
+        }
+        catch (Exception e)
+        {
+            _logger.LogError("VideoApi request failed {ExceptionMessage}!", e.Message);
+            return new UserVideosResponse()
+            {
+                Success = false,
+                Message = "Request failed, please try again later"
+            };
+        }
         return new UserVideosResponse()
         {
             Success = false,

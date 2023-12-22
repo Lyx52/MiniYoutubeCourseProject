@@ -1,0 +1,127 @@
+﻿@using Domain.Entity
+@using Domain.Interfaces
+@using Domain.Constants
+@inject IVideoHttpClient _videoHttpClient
+<div class="row">
+    <div class="col-12">
+        <Grid @ref="_videoGrid" TItem="Video"
+              Class="table table-hover table-bordered table-striped"
+              DataProvider="UserVideoDataProvider"
+              AllowPaging="true"
+              Responsive="true">
+        
+            <GridColumn TItem="Video" HeaderText="Title" PropertyName="Title" HeaderTextAlignment="Alignment.Center" TextAlignment="Alignment.Center">
+                @context.Title
+            </GridColumn>
+            <GridColumn TItem="Video" HeaderText="Created" PropertyName="Created" HeaderTextAlignment="Alignment.Center" TextAlignment="Alignment.Center" >
+                @context.Created.ToString("dd.MM.yyyy")
+            </GridColumn>
+            <GridColumn TItem="Video" HeaderText="Status" PropertyName="Status" HeaderTextAlignment="Alignment.Center" TextAlignment="Alignment.Center" >
+                @switch (context.Status)
+                {
+                    case VideoProcessingStatus.CreatedMetadata:
+                    {
+                        <div class="d-flex flex-row align-items-center justify-content-center">
+                            <span>Draft</span>
+                        </div>
+                    } break;
+                    case VideoProcessingStatus.Processing:
+                    {
+                        <div class="d-flex flex-row align-items-center justify-content-center">
+                            <div class="spinner-border spinner-border-sm me-2" role="status">
+                                <span class="visually-hidden">Processing...</span>
+                            </div>
+                            <span>Processing...</span>
+                        </div>
+                    } break;
+                    case VideoProcessingStatus.ProcessingFailed:
+                    {
+                        <div class="d-flex flex-row align-items-center justify-content-center">
+                            <i class="bi bi-exclamation-circle me-2"></i>
+                            <span>Processing failed</span>
+                        </div>
+                    } break;
+                    case VideoProcessingStatus.ProcessingFinished:
+                    {
+                        <div class="d-flex flex-row align-items-center justify-content-center">
+                            <i class="bi bi-check-circle me-2"></i>
+                            <span>Processing finished</span>
+                        </div>
+                    } break;
+                    case VideoProcessingStatus.Published:
+                    {
+                        <div class="d-flex flex-row align-items-center justify-content-center">
+                            <i class="bi bi-share me-2"></i>
+                            <span>
+                                Published
+                                @if (context.IsUnlisted)
+                                {
+                                    @: (Private)
+                                }
+                            </span>
+                        </div>
+                    } break;
+                }
+            </GridColumn>
+            <GridColumn TItem="Video" HeaderText="Actions" HeaderTextAlignment="Alignment.Center" TextAlignment="Alignment.Start" >
+                <div class="btn-group" role="group" aria-label="Video action button group">
+                    @if (context.Status is VideoProcessingStatus.ProcessingFinished)
+                    {
+                        <button type="button" class="btn btn-outline-dark" @onclick="() => OnPublishVideo(context)">
+                            Publish
+                        </button>
+                    }
+                    <button type="button" class="btn btn-outline-dark" @onclick="() => OnChangeVisibility(context)">
+                        Make @(context.IsUnlisted ? "public" : "private")
+                    </button>
+                    <button type="button" class="btn btn-outline-dark">???</button>
+                </div>
+            </GridColumn>
+        </Grid>
+    </div>
+</div>
+<VideoUpload @ref="_videoUploadModal" />
+@code {
+    private VideoUpload _videoUploadModal;
+    private Grid<Video> _videoGrid;
+    private Timer? _publishTimer { get; set; }
+    private AutoResetEvent _timerResetEvent { get; set; }
+    private bool IsTimerLoaded { get; set; } = false;
+    private async Task<GridDataProviderResult<Video>> UserVideoDataProvider(GridDataProviderRequest<Video> request)
+    {
+        var response = await _videoHttpClient.GetUserVideos(request.PageNumber, request.PageSize);
+        if (!response.Success) return new GridDataProviderResult<Video>();
+        if (!IsTimerLoaded)
+        {
+            InitVideoStateTimer();
+        }
+        return new GridDataProviderResult<Video>()
+        {
+            Data = response.Videos,
+            TotalCount = response.TotalCount
+        };
+    }
+    private void InitVideoStateTimer()
+    {
+        IsTimerLoaded = true;
+        _timerResetEvent = new AutoResetEvent(false);
+        _publishTimer = new Timer( async (_) =>
+        {
+            await _videoGrid.RefreshDataAsync();
+            await InvokeAsync(StateHasChanged);
+        }, _timerResetEvent, 2500L, 2500L);
+    }
+    public async Task OpenUploadModal()
+    {
+        await _videoUploadModal.OpenModalAsync();
+    }
+    private async Task OnPublishVideo(Video video)
+    {
+        _videoUploadModal.VideoId = Guid.Parse(video.Id);
+        await _videoUploadModal.ChangeStage(VideoUploadStage.SubmitStage);
+    }
+    private async Task OnChangeVisibility(Video video)
+    {
+        
+    }
+}

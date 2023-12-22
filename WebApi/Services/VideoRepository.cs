@@ -199,4 +199,20 @@ public class VideoRepository : IVideoRepository
 
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
+
+    public async Task<IEnumerable<Video>> GetUserVideos(string userId, int page, int pageSize, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var videos = await _dbContext.Videos
+            .Where(v => v.CreatorId == userId)
+            .Skip(Math.Max(0, page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+        return videos;
+    }
+
+    public Task<int> GetUserVideoCount(string userId, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        return _dbContext.Videos
+            .CountAsync(v => v.CreatorId == userId, cancellationToken);
+    }
 }

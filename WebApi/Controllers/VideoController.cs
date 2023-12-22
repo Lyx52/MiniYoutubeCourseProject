@@ -227,4 +227,23 @@ public class VideoController : ControllerBase
         await _videoRepository.SetVideoImpression(user.Id, payload.VideoId, payload.Impression, cancellationToken);
         return Ok();
     }
+    
+    [HttpPost("UserVideos")]
+    public async Task<IActionResult> GetUserVideos(UserVideosRequest payload,
+        CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim is null) return Unauthorized();
+        var user = await _userRepository.GetUserById(userIdClaim.Value, cancellationToken);
+        if (user is null) return Unauthorized();
+        var videos = await _videoRepository.GetUserVideos(user.Id, payload.Page, payload.PageSize, cancellationToken);
+        var videoCount =  await _videoRepository.GetUserVideoCount(user.Id, cancellationToken); 
+        return Ok(new UserVideosResponse()
+        {
+            Success = true,
+            Videos = videos,
+            TotalCount = videoCount,
+            UserId = user.Id
+        });
+    }
 }

@@ -6,4 +6,5 @@ public class UserVideosResponse : Response
 {
     public string UserId { get; set; }
     public IEnumerable<Video> Videos { get; set; }
+    public int TotalCount { get; set; }
 }
