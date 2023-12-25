@@ -21,7 +21,7 @@
     private static IEnumerable<Video> Empty = new List<Video>();
     private async Task<AutoCompleteDataProviderResult<Video>> VideoDataProvider(AutoCompleteDataProviderRequest<Video> request)
     {
-        var response = await _videoHttpClient.GetVideosByTitle(request.Filter.Value, request.CancellationToken);
+        var response = await _videoHttpClient.GetVideosByTitle(request.Filter.Value, 0, 20, request.CancellationToken);
         if (!response.Success)
         {
             return await Task.FromResult(new AutoCompleteDataProviderResult<Video>

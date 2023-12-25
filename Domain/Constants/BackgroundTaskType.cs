@@ -4,6 +4,7 @@ public enum BackgroundTaskType
 {
     ProcessVideo,
     PublishVideo,
+    DeleteVideo,
     GenerateUploadNotifications,
     SendConfirmationEmail
 }

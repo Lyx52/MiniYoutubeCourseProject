@@ -1,0 +1,62 @@
+﻿using System.Collections;
+using System.Linq.Expressions;
+using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
+using Domain.Constants;
+using Domain.Entity;
+using Domain.Model.View;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query;
+using WebApi.Services.Interfaces;
+
+namespace Domain.Model.Query;
+
+public class VideoQuery : IEntityQuery<Video>
+{
+    public string? Title { get; set; }
+    public Guid? VideoId { get; set; }
+    public Guid? CreatorId { get; set; }
+    public bool IncludeUnlisted { get; set; }
+    public VideoProcessingStatus? Status { get; set; } = null;
+    public int From { get; set; }
+    public int Count { get; set; }
+    public bool OrderByCreated { get; set; }
+    
+    public bool AddSources { get; set; }
+    public bool AddComments { get; set; }
+    public bool AddImpressions { get; set; }
+    
+    [JsonIgnore]
+    public Expression<Func<Video, bool>> AsExpression
+    {
+        get
+        {
+            return (v) =>
+                (string.IsNullOrEmpty(Title) || v.Title.ToLower().Contains(Title.ToLower())) &&
+                (!VideoId.HasValue || v.Id == VideoId.Value.ToString()) &&
+                (IncludeUnlisted || v.IsUnlisted == false) &&
+                (!Status.HasValue || v.Status == Status.Value) &&
+                (!CreatorId.HasValue || v.CreatorId == CreatorId.Value.ToString());
+        }
+    }
+
+    public IQueryable<Video> ToQueryable(IQueryable<Video>? queryable, bool asNonTracking)
+    {
+        if (asNonTracking)
+            queryable = queryable!.AsNoTracking();
+        
+        if (AddSources)
+            queryable = queryable!.Include(v => v.Sources);
+       
+        if (AddComments)
+            queryable = queryable!.Include(v => v.Comments);
+        
+        if (AddImpressions)
+            queryable = queryable!.Include(v => v.Impressions);
+        
+        return queryable!
+            .Where(AsExpression)
+            .Skip(From)
+            .Take(Count);
+    }
+}

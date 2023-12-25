@@ -1,4 +1,5 @@
 ﻿@using Domain.Constants
+@using Domain.Entity
 @using Domain.Interfaces
 @using Domain.Model
 
@@ -43,7 +44,7 @@
                     CurrentStage = VideoUploadStage.MetadataFormStage;
                     await _videoPublishForm.CloseModalAsync();
                     await _videoUploadForm.CloseModalAsync();
-                    await _videoMetadataForm.OpenModalAsync(WorkSpaceId.Value);
+                    await _videoMetadataForm.OpenCreateModalAsync(WorkSpaceId.Value);
                 }
             } break;
             default:
@@ -58,12 +59,24 @@
             } break;
         }
     }
-    
-    public async Task OpenModalAsync()
+
+    public async Task CloseModalAsync()
     {
+        await _videoMetadataForm.CloseModalAsync();
+        await _videoUploadForm.CloseModalAsync();
+        await _videoPublishForm.CloseModalAsync();
+    }
+    public async Task OpenModalAsync(bool reset = false)
+    {
+        if (reset)
+        {
+            CurrentStage = VideoUploadStage.FileUploadStage;
+            await _videoUploadForm.Reset();
+            await _videoMetadataForm.Reset();
+            await _videoPublishForm.Reset();
+        }
         await ChangeStage(CurrentStage);
     }
-
     private async Task OnVideoUploaded(Guid workSpaceId)
     {
         WorkSpaceId = workSpaceId;

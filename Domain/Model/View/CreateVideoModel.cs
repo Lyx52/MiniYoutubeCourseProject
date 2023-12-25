@@ -2,8 +2,9 @@
 
 namespace Domain.Model;
 
-public class CreateVideoModel
+public class EditVideoMetadataModel
 {
+    public string? VideoId { get; set; }
     [Required]
     [MinLength(10)]
     public string Title { get; set; }

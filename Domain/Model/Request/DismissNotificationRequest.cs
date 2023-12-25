@@ -2,5 +2,5 @@
 
 public class DismissNotificationRequest
 {
-    public string NotificationId { get; set; }
+    public Guid NotificationId { get; set; }
 }

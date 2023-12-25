@@ -64,6 +64,17 @@
         await InitVideoStateTimer();
     }
 
+    public async Task Reset()
+    {
+        if (_publishTimer is not null)
+        {
+            _publishTimer.Change(Timeout.Infinite, Timeout.Infinite);
+            await _publishTimer.DisposeAsync();    
+        }
+        
+        _isPublishing = false;
+        await InvokeAsync(StateHasChanged);
+    }
     private async Task InitVideoStateTimer()
     {
         var response = await _videoHttpClient.GetProcessingStatus(VideoId);

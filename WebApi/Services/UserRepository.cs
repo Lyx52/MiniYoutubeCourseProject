@@ -1,4 +1,5 @@
-﻿using Domain.Constants;
+﻿using System.Security.Claims;
+using Domain.Constants;
 using Domain.Entity;
 using Domain.Model.Response;
 using Domain.Model.View;
@@ -31,6 +32,12 @@ public class UserRepository : IUserRepository
     public async Task<UserModel?> GetUserById(string userId, CancellationToken cancellationToken = default(CancellationToken))
     {
         return AsPublicUser(await _userManager.FindByIdAsync(userId));
+    }
+
+    public Task<UserModel?> GetUserByClaimsPrincipal(ClaimsPrincipal user, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        return userId is null ? Task.FromResult(default(UserModel)) : GetUserById(userId, cancellationToken);
     }
 
     private static UserModel? AsPublicUser(User? user)

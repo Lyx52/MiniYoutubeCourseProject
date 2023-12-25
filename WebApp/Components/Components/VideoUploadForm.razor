@@ -74,7 +74,15 @@
     {
         await _modal.HideAsync();
     }
-    
+
+    public async Task Reset()
+    {
+        Model = new VideoFileSelectModel();
+        _validationContext = new ValidationContext(Model);
+        _isLoading = false;
+        InputMessage = string.Empty;
+        await InvokeAsync(StateHasChanged);
+    }
     private async Task UploadFile()
     {
         _isLoading = true;

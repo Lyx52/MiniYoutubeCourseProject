@@ -5,16 +5,16 @@ namespace WebApi.Services.Interfaces;
 
 public interface ISubscriberRepository
 {
-    Task<IEnumerable<Subscriber>> GetSubscribers(string creatorId,
+    Task<IEnumerable<Subscriber>> GetSubscribers(Guid creatorId,
         CancellationToken cancellationToken = default(CancellationToken));
-    Task<IEnumerable<UserModel>> GetSubscribedCreators(string userId,
+    Task<IEnumerable<UserModel>> GetSubscribedCreators(Guid userId,
         CancellationToken cancellationToken = default(CancellationToken));
 
-    Task Subscribe(string userId, string creatorId,
+    Task Subscribe(Guid userId, Guid creatorId,
         CancellationToken cancellationToken = default(CancellationToken));
-    Task Unsubscribe(string userId, string creatorId,
+    Task Unsubscribe(Guid userId, Guid creatorId,
         CancellationToken cancellationToken = default(CancellationToken));
-    Task<bool> IsSubscribed(string userId, string creatorId, CancellationToken cancellationToken = default(CancellationToken));
-    Task<long> GetSubscriberCount(string creatorId,
+    Task<bool> IsSubscribed(Guid userId, Guid creatorId, CancellationToken cancellationToken = default(CancellationToken));
+    Task<long> GetSubscriberCount(Guid creatorId,
         CancellationToken cancellationToken = default(CancellationToken));
 }

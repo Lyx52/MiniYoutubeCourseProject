@@ -11,4 +11,5 @@ public class VideoMetadataModel
     public long Likes { get; set; }
     public long Dislikes { get; set; }
     public ImpressionType UserImpression { get; set; }
+    public IEnumerable<ContentSourceModel> ContentSources { get; set; }
 }

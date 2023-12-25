@@ -10,4 +10,5 @@ public interface IContentProcessingService
     Task<bool> IsValidVideoFileAsync(Stream stream, CancellationToken cancellationToken = default(CancellationToken));
     Task ProcessVideo(VideoTask payload, CancellationToken cancellationToken = default(CancellationToken));
     Task PublishVideo(VideoTask payload, CancellationToken cancellationToken = default(CancellationToken));
+    Task DeleteVideo(VideoTask payload, CancellationToken cancellationToken = default(CancellationToken));
 }

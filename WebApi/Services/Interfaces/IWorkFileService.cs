@@ -13,4 +13,5 @@ public interface IWorkFileService
     Task SaveWorkSpaceAsync(WorkSpace workSpace);
     Task<WorkSpace> LoadWorkSpace(WorkSpaceDirectory directory, Guid id);
     Task MoveWorkSpace(WorkSpaceDirectory from, WorkSpaceDirectory to, Guid id);
+    Task RemoveWorkSpace(WorkSpaceDirectory directory, Guid workSpaceId);
 }

@@ -6,11 +6,7 @@ namespace WebApi.Services.Interfaces;
 
 public interface ICommentRepository
 {
-    Task<string> CreateComment(string userId, string videoId, string message, CancellationToken cancellationToken = default(CancellationToken));
-
-    Task<IEnumerable<CommentModel>> GetByVideoIds(string videoId, string? userId = null,
-        CancellationToken cancellationToken = default(CancellationToken));
-
-    Task SetCommentImpression(string userId, string commentId, ImpressionType impressionType,
-        CancellationToken cancellationToken = default(CancellationToken));
+    Task<string> CreateComment(Guid userId, Guid videoId, string message, CancellationToken cancellationToken = default(CancellationToken));
+    Task<IEnumerable<CommentModel>> GetByVideoIds(Guid videoId, Guid? userId = null, CancellationToken cancellationToken = default(CancellationToken));
+    Task SetCommentImpression(Guid userId, Guid commentId, ImpressionType impressionType, CancellationToken cancellationToken = default(CancellationToken));
 }

@@ -31,7 +31,7 @@
 
     public async Task RefreshCommentSection()
     {
-        var response = await _commentHttpClient.GetVideoComments(VideoId.ToString());
+        var response = await _commentHttpClient.GetVideoComments(VideoId);
         if (response.Success)
         {
             Users = new Dictionary<string, UserModel>();

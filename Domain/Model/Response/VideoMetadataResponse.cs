@@ -6,5 +6,4 @@ namespace Domain.Model.Response;
 public class VideoMetadataResponse : Response
 {
     public VideoMetadataModel Metadata { get; set; }
-    public IEnumerable<ContentSourceModel> ContentSources { get; set; }
 }

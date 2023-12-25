@@ -1,8 +1,11 @@
-﻿using Domain.Model.View;
+﻿using Domain.Model.Query;
+using Domain.Model.View;
 
 namespace Domain.Model.Request;
 
 public class VideoPlaylistRequest
 {
-    public VideoQuery Query { get; set; }
+    public Guid? CreatorId { get; set; }
+    public int From { get; set; }
+    public int Count { get; set; }
 }

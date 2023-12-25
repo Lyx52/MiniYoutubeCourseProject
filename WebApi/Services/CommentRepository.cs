@@ -1,5 +1,6 @@
 ﻿using Domain.Constants;
 using Domain.Entity;
+using Domain.Model.Query;
 using Domain.Model.Response;
 using Domain.Model.View;
 using Microsoft.EntityFrameworkCore;
@@ -18,32 +19,32 @@ public class CommentRepository : ICommentRepository
         _logger = logger;
     }
 
-    public async Task<string> CreateComment(string userId, string videoId, string message, CancellationToken cancellationToken = default(CancellationToken))
+    public async Task<string> CreateComment(Guid userId, Guid videoId, string message, CancellationToken cancellationToken = default(CancellationToken))
     {
-        var video = await _dbContext.Videos.FirstOrDefaultAsync(v => v.Id == videoId, cancellationToken);
+        var video = await _dbContext.Videos.FirstOrDefaultAsync(v => v.Id == videoId.ToString(), cancellationToken);
         if (video is null) return string.Empty;
         var id = Guid.NewGuid();
         var result = await _dbContext.Comments.AddAsync(new Comment()
         {
             Id = id.ToString(),
-            VideoId = videoId,
+            VideoId = videoId.ToString(),
             Video = video,
             Message = message,
             Dislikes = 0,
             Likes = 0,
-            CommenterId = userId,
+            CommenterId = userId.ToString(),
             Created = DateTime.UtcNow
         }, cancellationToken);
         await _dbContext.SaveChangesAsync(cancellationToken);
         return id.ToString();
     }
 
-    public async Task<IEnumerable<CommentModel>> GetByVideoIds(string videoId, string? userId = null, CancellationToken cancellationToken = default(CancellationToken))
+    public async Task<IEnumerable<CommentModel>> GetByVideoIds(Guid videoId, Guid? userId = null, CancellationToken cancellationToken = default(CancellationToken))
     {
         var video = await _dbContext.Videos
             .Include(v => v.Comments) 
             .ThenInclude(c => c.Impressions)
-            .FirstOrDefaultAsync(v => v.Id == videoId, cancellationToken);
+            .FirstOrDefaultAsync(v => v.Id == videoId.ToString(), cancellationToken);
         var comments = new List<CommentModel>();
         if (video is null) return comments;
         foreach (var comment in video.Comments)
@@ -61,18 +62,18 @@ public class CommentRepository : ICommentRepository
                 Impression = ImpressionType.None
             };
             comments.Add(model);
-            if (string.IsNullOrEmpty(userId)) continue;
-            var compositeId = $"{userId[0..18]}-{comment.Id[19..36]}";
+            if (!userId.HasValue) continue;
+            var compositeId = $"{userId.Value.ToString()[0..18]}-{comment.Id[19..36]}";
             model.Impression = comment.Impressions.FirstOrDefault(i => i.Id == compositeId)?.Impression ?? ImpressionType.None;
         }
         
         return comments;
     }
 
-    public async Task SetCommentImpression(string userId, string commentId, ImpressionType impressionType,
+    public async Task SetCommentImpression(Guid userId, Guid commentId, ImpressionType impressionType,
         CancellationToken cancellationToken = default(CancellationToken))
     {
-        var compositeId = $"{userId[0..18]}-{commentId[19..36]}";
+        var compositeId = $"{userId.ToString()[0..18]}-{commentId.ToString()[19..36]}";
         var impression =
             await _dbContext.CommentImpressions.FirstOrDefaultAsync(
                 ci => ci.Id == compositeId, cancellationToken);
@@ -82,13 +83,13 @@ public class CommentRepository : ICommentRepository
         }
         else
         {
-            var comment = await _dbContext.Comments.FirstOrDefaultAsync(c => c.Id == commentId, cancellationToken);
+            var comment = await _dbContext.Comments.FirstOrDefaultAsync(c => c.Id == commentId.ToString(), cancellationToken);
             if (comment is null) return;
             await _dbContext.CommentImpressions.AddAsync(new CommentImpression()
             {
                 Id = compositeId,
                 Impression = impressionType,
-                CommentId = commentId,
+                CommentId = commentId.ToString(),
                 Comment = comment
             }, cancellationToken);
         }

@@ -5,112 +5,43 @@ using Domain.Interfaces;
 using Domain.Model.Request;
 using Domain.Model.Response;
 using Domain.Model.View;
+using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.Extensions.Logging;
 
 namespace Domain.Services;
 
-public class CommentHttpClient : ICommentHttpClient
+public class CommentHttpClient(
+        ILogger<CommentHttpClient> logger,
+        IHttpClientFactory httpClientFactory,
+        ILoginManager loginManager)
+        : BaseHttpClient(nameof(CommentHttpClient), logger, httpClientFactory, loginManager), ICommentHttpClient
 {
-    private readonly ILogger<CommentHttpClient> _logger;
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly ILoginManager _loginManager;
-    public CommentHttpClient(ILogger<CommentHttpClient> logger, IHttpClientFactory httpClientFactory, ILoginManager loginManager)
+    public Task<QueryCommentsResponse> GetVideoComments(Guid videoId, 
+        CancellationToken cancellationToken = default(CancellationToken))
     {
-        _httpClientFactory = httpClientFactory;
-        _logger = logger;
-        _loginManager = loginManager;
-    }
-    
-    public async Task<QueryCommentsResponse> GetVideoComments(string videoId, CancellationToken cancellationToken = default(CancellationToken))
-    {
-        var jwt = await _loginManager.GetJwtToken(cancellationToken);
-        using var client = _httpClientFactory.CreateClient(nameof(CommentHttpClient));
-        if (!string.IsNullOrEmpty(jwt)) client.DefaultRequestHeaders.Add("Authorization", $"Bearer {jwt}");
-        try
-        {
-            var response = await client.GetFromJsonAsync<QueryCommentsResponse>($"api/Comment/Query?id={videoId}",
-                cancellationToken);
-            return response ?? new QueryCommentsResponse()
-            {
-                Success = false,
-                Message = "Request failed, please try again later",
-                Comments = new List<CommentModel>()
-            };
-        }
-        catch (Exception e)
-        {
-            _logger.LogError("CommentApi request failed {ExceptionMessage}!", e.Message);
-            return new QueryCommentsResponse()
-            {
-                Success = false,
-                Message = "Request failed, please try again later",
-                Comments = new List<CommentModel>()
-            };
-        }
+        var qb = new QueryBuilder { { "videoId", videoId.ToString() } };
+
+        return SendQueryRequest<QueryCommentsResponse>(HttpMethod.Get, "api/Comment/Query", qb.ToQueryString(), JwtRequirement.Optional,
+            cancellationToken);
     }
 
-    public async Task<Response> CreateComment(Guid videoId, string message, CancellationToken cancellationToken = default(CancellationToken))
+    public Task<Response> CreateComment(Guid videoId, string message, 
+        CancellationToken cancellationToken = default(CancellationToken))
     {
-        var jwt = await _loginManager.GetJwtToken(cancellationToken);
-        if (jwt is null)
+        return SendPayloadRequest<CreateCommentRequest, Response>("api/Comment/Create", new CreateCommentRequest()
         {
-            return new Response()
-            {
-                Message = "Unauthorized",
-                Success = false
-            };
-        }
-        
-        using var client = _httpClientFactory.CreateClient(nameof(CommentHttpClient));
-        client.DefaultRequestHeaders.Add("Authorization", $"Bearer {jwt}");
-        HttpResponseMessage? postResponse;
-        try
-        {
-            postResponse = await client.PostAsJsonAsync<CreateCommentRequest>("api/Comment/Create", new CreateCommentRequest()
-            {
-                VideoId = videoId,
-                Message = message
-            }, cancellationToken);
-        }
-        catch (HttpRequestException e)
-        {
-            _logger.LogError("CommentApi request failed {ExceptionMessage}!", e.Message);
-            return new Response()
-            {
-                Message = "Request failed, please try again later",
-                Success = false
-            };
-        }
-        var statusMessage = postResponse.StatusCode switch
-        {
-            HttpStatusCode.Unauthorized => "Unauthorized",
-            HttpStatusCode.Created => string.Empty,
-            _ => "Request failed, please try again later"
-        };
-        return new Response()
-        {
-            Message = statusMessage,
-            Success = true
-        };
+            VideoId = videoId,
+            Message = message
+        }, JwtRequirement.Mandatory, cancellationToken);
     }
 
-    public async Task AddCommentImpression(string commentId, ImpressionType impressionType, CancellationToken cancellationToken = default(CancellationToken))
+    public Task<Response> AddCommentImpression(Guid commentId, ImpressionType impressionType, 
+        CancellationToken cancellationToken = default(CancellationToken))
     {
-        var jwt = await _loginManager.GetJwtToken(cancellationToken);
-        if (jwt is null) return;
-        using var client = _httpClientFactory.CreateClient(nameof(CommentHttpClient));
-        client.DefaultRequestHeaders.Add("Authorization", $"Bearer {jwt}");
-        try
+        return SendPayloadRequest<CommentImpressionRequest, Response>("api/Comment/Impression", new CommentImpressionRequest()
         {
-            var response = await client.PostAsJsonAsync<CommentImpressionRequest>("api/Comment/Impression", new CommentImpressionRequest()
-            {
-                CommentId = commentId,
-                Impression = impressionType
-            }, cancellationToken);
-        } catch (HttpRequestException e)
-        {
-            _logger.LogError("CommentApi request failed {ExceptionMessage}!", e.Message);
-            return;
-        }
+            CommentId = commentId,
+            Impression = impressionType
+        }, JwtRequirement.Mandatory, cancellationToken);
     }
 }

@@ -1,328 +1,124 @@
 ﻿using System.Net;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 using Domain.Constants;
 using Domain.Entity;
 using Domain.Interfaces;
 using Domain.Model;
+using Domain.Model.Query;
 using Domain.Model.Request;
 using Domain.Model.Response;
 using Domain.Model.View;
+using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.Extensions.Logging;
 
 namespace Domain.Services;
 
-public class VideoHttpClient : IVideoHttpClient
+public class VideoHttpClient(
+    ILogger<VideoHttpClient> logger,
+    IHttpClientFactory httpClientFactory,
+    ILoginManager loginManager)
+    : BaseHttpClient(nameof(VideoHttpClient), logger, httpClientFactory, loginManager), IVideoHttpClient
 {
-    private readonly ILogger<VideoHttpClient> _logger;
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly ILoginManager _loginManager;
 
-    public VideoHttpClient(
-        ILogger<VideoHttpClient> logger, 
-        IHttpClientFactory httpClientFactory,
-        ILoginManager loginManager)
+    public Task<CreateOrUpdateVideoResponse> CreateVideo(EditVideoMetadataModel model, CancellationToken cancellationToken = default(CancellationToken))
     {
-        _httpClientFactory = httpClientFactory;
-        _logger = logger;
-        _loginManager = loginManager;
-    }
-
-    public async Task<CreateVideoResponse> CreateVideo(CreateVideoModel model, CancellationToken cancellationToken = default(CancellationToken))
-    {
-        var jwt = await _loginManager.GetJwtToken(cancellationToken);
-        if (jwt is null)
+        return SendPayloadRequest<CreateVideoRequest, CreateOrUpdateVideoResponse>("api/Video/CreateVideo", new CreateVideoRequest()
         {
-            return new CreateVideoResponse()
-            {
-                Message = "Unauthorized",
-                Success = false
-            };
-        }
-        
-        using var client = _httpClientFactory.CreateClient(nameof(VideoHttpClient));
-        client.DefaultRequestHeaders.Add("Authorization", $"Bearer {jwt}");
-        HttpResponseMessage? postResponse;
-        try
-        {
-            postResponse = await client.PostAsJsonAsync<CreateVideoRequest>("api/Video/CreateVideo", new CreateVideoRequest()
-            {
-                Description = model.Description,
-                Title = model.Title,
-                WorkSpaceId = model.WorkSpaceId,
-                IsUnlisted = model.IsUnlisted
-            }, cancellationToken);
-        }
-        catch (HttpRequestException e)
-        {
-            _logger.LogError("VideoApi request failed {ExceptionMessage}!", e.Message);
-            return new CreateVideoResponse()
-            {
-                Success = false,
-                Message = "Request failed, please try again later"
-            };
-        }
-        var message = postResponse.StatusCode switch
-        {
-            HttpStatusCode.Unauthorized => "Unauthorized",
-            HttpStatusCode.OK => string.Empty,
-            _ => "Request failed, please try again later"
-        };
-        var content = await postResponse.Content.ReadFromJsonAsync<CreateVideoResponse>(cancellationToken);
-        if (content is not null)
-        {
-            content.Message = message;
-            return content;
-        }
-        return new CreateVideoResponse()
-        {
-            Message = message,
-            Success = false,
-        };
+            Description = model.Description,
+            Title = model.Title,
+            WorkSpaceId = model.WorkSpaceId,
+            IsUnlisted = model.IsUnlisted
+        }, JwtRequirement.Mandatory, cancellationToken);
     }
     
-    public async Task<Response> PublishVideo(Guid videoId, CancellationToken cancellationToken = default(CancellationToken))
+    public Task<Response> PublishVideo(Guid videoId, CancellationToken cancellationToken = default(CancellationToken))
     {
-        var jwt = await _loginManager.GetJwtToken(cancellationToken);
-        if (jwt is null)
+        return SendPayloadRequest<PublishVideoRequest, Response>("api/Video/PublishVideo", new PublishVideoRequest()
         {
-            return new CreateVideoResponse()
-            {
-                Message = "Unauthorized",
-                Success = false
-            };
-        }
-        
-        using var client = _httpClientFactory.CreateClient(nameof(VideoHttpClient));
-        client.DefaultRequestHeaders.Add("Authorization", $"Bearer {jwt}");
-        HttpResponseMessage? postResponse;
-        try
-        {
-            postResponse = await client.PostAsJsonAsync<PublishVideoRequest>("api/Video/PublishVideo", new PublishVideoRequest()
-            {
-                VideoId = videoId
-            }, cancellationToken);
-        }
-        catch (HttpRequestException e)
-        {
-            _logger.LogError("VideoApi request failed {ExceptionMessage}!", e.Message);
-            return new Response()
-            {
-                Success = false,
-                Message = "Request failed, please try again later"
-            };
-        }
-        var message = postResponse.StatusCode switch
-        {
-            HttpStatusCode.Unauthorized => "Invalid username or password",
-            HttpStatusCode.OK => string.Empty,
-            _ => "Request failed, please try again later"
-        };
-        return new Response()
-        {
-            Message = message,
-            Success = postResponse.IsSuccessStatusCode,
-        };
+            VideoId = videoId
+        }, JwtRequirement.Mandatory, cancellationToken);
     }
 
-    public async Task<VideoStatusResponse> GetProcessingStatus(Guid videoId, CancellationToken cancellationToken = default(CancellationToken))
+    public Task<VideoStatusResponse> GetProcessingStatus(Guid videoId, CancellationToken cancellationToken = default(CancellationToken))
     {
-        var jwt = await _loginManager.GetJwtToken(cancellationToken);
-        if (jwt is null)
+        var qb = new QueryBuilder { { "videoId", videoId.ToString() } };
+        return SendQueryRequest<VideoStatusResponse>(HttpMethod.Get, "api/Video/Status", qb.ToQueryString(), 
+            JwtRequirement.Mandatory, cancellationToken);
+    }
+    public Task<Response> DeleteVideo(Guid videoId, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var qb = new QueryBuilder { { "videoId", videoId.ToString() } };
+        return SendQueryRequest<Response>(HttpMethod.Delete, "api/Video/Delete", qb.ToQueryString(), 
+            JwtRequirement.Mandatory, cancellationToken);
+    }
+    public Task<QueryVideosResponse> GetVideosByTitle(string searchText, int from, int count, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        return SendPayloadRequest<QueryVideosRequest, QueryVideosResponse>("api/Video/Query", new QueryVideosRequest()
         {
-            return new VideoStatusResponse()
-            {
-                Message = "Unauthorized",
-                Success = false
-            };
-        }
-        
-        using var client = _httpClientFactory.CreateClient(nameof(VideoHttpClient));
-        client.DefaultRequestHeaders.Add("Authorization", $"Bearer {jwt}");
-        HttpResponseMessage? postResponse;
-        try
-        {
-            postResponse = await client.PostAsJsonAsync<VideoStatusRequest>("api/Video/Status", new VideoStatusRequest()
-            {
-                VideoId = videoId
-            }, cancellationToken);
-        }
-        catch (HttpRequestException e)
-        {
-            _logger.LogError("VideoApi request failed {ExceptionMessage}!", e.Message);
-            return new VideoStatusResponse()
-            {
-                Success = false,
-                Message = "Request failed, please try again later"
-            };
-        }
-        var message = postResponse.StatusCode switch
-        {
-            HttpStatusCode.Unauthorized => "Invalid username or password",
-            HttpStatusCode.OK => string.Empty,
-            _ => "Request failed, please try again later"
-        };
-        var content = await postResponse.Content.ReadFromJsonAsync<VideoStatusResponse>(cancellationToken);
-        if (content is not null)
-        {
-            content.Message = message;
-            return content;
-        }
-        return new VideoStatusResponse()
-        {
-            Message = message,
-            Success = false,
-        };
+            Title = searchText,
+            From = from,
+            Count = count,
+            Status = VideoProcessingStatus.Published 
+        }, JwtRequirement.Optional, cancellationToken);
     }
 
-    public async Task<SearchVideosResponse> GetVideosByTitle(string searchText, CancellationToken cancellationToken = default(CancellationToken))
+    public Task<VideoPlaylistResponse> GetVideoPlaylist(int from, int count, Guid? creatorId = null, CancellationToken cancellationToken = default(CancellationToken))
     {
-        using var client = _httpClientFactory.CreateClient(nameof(VideoHttpClient));
-        try
+        return SendPayloadRequest<VideoPlaylistRequest, VideoPlaylistResponse>("api/Video/Playlist", new VideoPlaylistRequest()
         {
-            var response = await client.GetFromJsonAsync<SearchVideosResponse>($"api/Video/Query?searchText={searchText}",
-                cancellationToken);
-            return response ?? new SearchVideosResponse()
-            {
-                Success = false,
-                Message = "Request failed, please try again later"
-            };
-        }
-        catch (Exception e)
-        {
-            _logger.LogError("VideoApi request failed {ExceptionMessage}!", e.Message);
-            return new SearchVideosResponse()
-            {
-                Success = false,
-                Message = "Request failed, please try again later"
-            };
-        }
+            From = from,
+            Count = count,
+            CreatorId = creatorId
+        }, JwtRequirement.Optional, cancellationToken);
     }
 
-    public async Task<VideoPlaylistResponse> GetVideoPlaylist(VideoQuery query, CancellationToken cancellationToken = default(CancellationToken))
+    public Task<QueryVideosResponse> GetUserVideos(int from, int count, CancellationToken cancellationToken = default(CancellationToken))
     {
-        using var client = _httpClientFactory.CreateClient(nameof(VideoHttpClient));
-        try
+        return SendPayloadRequest<QueryVideosRequest, QueryVideosResponse>("api/Video/Query", new QueryVideosRequest()
         {
-            var response = await client.PostAsJsonAsync<VideoPlaylistRequest>($"api/Video/Playlist", new VideoPlaylistRequest()
-            {
-                Query = query
-            }, cancellationToken);
-
-            if (response.IsSuccessStatusCode)
-            {
-                return await response.Content.ReadFromJsonAsync<VideoPlaylistResponse>(cancellationToken) ?? new VideoPlaylistResponse()
-                {
-                    Success = false,
-                    Message = "Request failed, please try again later"
-                };
-            }
-        }
-        catch (Exception e)
-        {
-            _logger.LogError("VideoApi request failed {ExceptionMessage}!", e.Message);
-            return new VideoPlaylistResponse()
-            {
-                Success = false,
-                Message = "Request failed, please try again later"
-            };
-        }
-        return new VideoPlaylistResponse()
-        {
-            Success = false,
-            Message = "Request failed, please try again later"
-        };
+            QueryUserVideos = true,
+            From = from,
+            Count = count,
+            Status = null
+        }, JwtRequirement.Mandatory, cancellationToken);
     }
 
-    public async Task<UserVideosResponse> GetUserVideos(int page, int pageSize, CancellationToken cancellationToken = default(CancellationToken))
+    public Task<VideoMetadataResponse> GetVideoMetadata(Guid videoId, CancellationToken cancellationToken = default(CancellationToken))
     {
-        var jwt = await _loginManager.GetJwtToken(cancellationToken);
-        if (jwt is null)
-        {
-            return new UserVideosResponse()
-            {
-                Message = "Unauthorized",
-                Success = false
-            };
-        }
-        
-        using var client = _httpClientFactory.CreateClient(nameof(VideoHttpClient));
-        client.DefaultRequestHeaders.Add("Authorization", $"Bearer {jwt}");
-        try
-        {
-            var response = await client.PostAsJsonAsync<UserVideosRequest>("api/Video/UserVideos", new UserVideosRequest()
-            {
-                Page = page,
-                PageSize = pageSize
-            }, cancellationToken);
-            if (response.IsSuccessStatusCode)
-            {
-                return await response.Content.ReadFromJsonAsync<UserVideosResponse>(cancellationToken) ?? new UserVideosResponse()
-                {
-                    Success = false,
-                    Message = "Request failed, please try again later"
-                };
-            }
-        }
-        catch (Exception e)
-        {
-            _logger.LogError("VideoApi request failed {ExceptionMessage}!", e.Message);
-            return new UserVideosResponse()
-            {
-                Success = false,
-                Message = "Request failed, please try again later"
-            };
-        }
-        return new UserVideosResponse()
-        {
-            Success = false,
-            Message = "Request failed, please try again later"
-        };
-    }
-
-    public async Task<VideoMetadataResponse> GetVideoMetadata(Guid videoId, CancellationToken cancellationToken = default(CancellationToken))
-    {
-        var jwt = await _loginManager.GetJwtToken(cancellationToken);
-        using var client = _httpClientFactory.CreateClient(nameof(VideoHttpClient));
-        if (!string.IsNullOrEmpty(jwt)) client.DefaultRequestHeaders.Add("Authorization", $"Bearer {jwt}");
-        try
-        {
-            var response = await client.GetFromJsonAsync<VideoMetadataResponse>($"api/Video/Metadata?id={videoId.ToString()}",
-                cancellationToken);
-            return response ?? new VideoMetadataResponse()
-            {
-                Success = false,
-                Message = "Request failed, please try again later"
-            };
-        }
-        catch (Exception e)
-        {
-            _logger.LogError("VideoApi request failed {ExceptionMessage}!", e.Message);
-            return new VideoMetadataResponse()
-            {
-                Success = false,
-                Message = "Request failed, please try again later"
-            };
-        }
+        var qb = new QueryBuilder { { "videoId", videoId.ToString() } };
+        return SendQueryRequest<VideoMetadataResponse>(HttpMethod.Get, "api/Video/Metadata", 
+            JwtRequirement.Optional, cancellationToken);
     }
     
-    public async Task AddVideoImpression(string videoId, ImpressionType impressionType, CancellationToken cancellationToken = default(CancellationToken))
+    public Task<Response> AddVideoImpression(Guid videoId, ImpressionType impressionType, CancellationToken cancellationToken = default(CancellationToken))
     {
-        var jwt = await _loginManager.GetJwtToken(cancellationToken);
-        if (jwt is null) return;
-        using var client = _httpClientFactory.CreateClient(nameof(VideoHttpClient));
-        client.DefaultRequestHeaders.Add("Authorization", $"Bearer {jwt}");
-        try
+        return SendPayloadRequest<VideoImpressionRequest, Response>("api/Video/Impression", new VideoImpressionRequest()
         {
-            var response = await client.PostAsJsonAsync<VideoImpressionRequest>("api/Video/Impression", new VideoImpressionRequest()
-            {
-                VideoId = videoId,
-                Impression = impressionType
-            }, cancellationToken);
-        } catch (HttpRequestException e)
+            VideoId = videoId,
+            Impression = impressionType
+        }, JwtRequirement.Mandatory, cancellationToken);
+    }
+
+    public Task<Response> ChangeVideoVisibility(Guid videoId, bool isPrivate,
+        CancellationToken cancellationToken = default(CancellationToken))
+    {
+        return SendPayloadRequest<ChangeVideoVisibilityRequest, Response>("api/Video/ChangeVisibility", new ChangeVideoVisibilityRequest()
         {
-            _logger.LogError("CommentApi request failed {ExceptionMessage}!", e.Message);
-            return;
-        }
+            VideoId = videoId,
+            IsUnlisted = isPrivate
+        }, JwtRequirement.Mandatory, cancellationToken);
+    }
+
+    public Task<CreateOrUpdateVideoResponse> UpdateVideo(EditVideoMetadataModel model, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        return SendPayloadRequest<UpdateVideoRequest, CreateOrUpdateVideoResponse>("api/Video/UpdateVideo", new UpdateVideoRequest()
+        {
+            VideoId = model.VideoId!,
+            Description = model.Description,
+            Title = model.Title,
+            IsUnlisted = model.IsUnlisted
+        }, JwtRequirement.Mandatory, cancellationToken);
     }
 }

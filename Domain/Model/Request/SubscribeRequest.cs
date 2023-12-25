@@ -2,5 +2,5 @@
 
 public class SubscribeRequest
 {
-    public string CreatorId { get; set; }
+    public Guid CreatorId { get; set; }
 }

@@ -58,7 +58,7 @@
                 return;
             }
             Metadata = response.Metadata;
-            Sources = response.ContentSources.ToList();
+            Sources = response.Metadata.ContentSources.ToList();
             var creatorResponse = await _userHttpClient.GetCreatorProfile(Metadata.CreatorId);
             if (!creatorResponse.Success)
             {

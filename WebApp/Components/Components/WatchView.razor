@@ -82,12 +82,12 @@
         if (Creator is null) return;
         if (IsSubscribed)
         {
-            await _userHttpClient.Unsubscribe(Creator.Id);
+            await _userHttpClient.Unsubscribe(Guid.Parse(Creator.Id));
             IsSubscribed = false;    
         }
         else
         {
-            await _userHttpClient.Subscribe(Creator.Id);
+            await _userHttpClient.Subscribe(Guid.Parse(Creator.Id));
             IsSubscribed = true;
         }
         
@@ -107,7 +107,7 @@
         if (Metadata is null) return;
         if (DateTime.UtcNow - LastUpdated <= TimeSpan.FromSeconds(1)) return;
         ImpressionType impressionType = Metadata.UserImpression == impression ? ImpressionType.None : impression;
-        await _videoHttpClient.AddVideoImpression(Metadata.VideoId.ToString(), impressionType);
+        await _videoHttpClient.AddVideoImpression(Metadata.VideoId, impressionType);
         if (Metadata.UserImpression == ImpressionType.Dislike) Metadata.Dislikes--;
         if (Metadata.UserImpression == ImpressionType.Like) Metadata.Likes--;
         Metadata.UserImpression = impressionType;

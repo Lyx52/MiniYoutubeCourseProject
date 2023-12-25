@@ -77,6 +77,13 @@ public class WorkFileService : IWorkFileService
         await SaveWorkSpaceAsync(workSpace);
     }
 
+    public async Task RemoveWorkSpace(WorkSpaceDirectory directory, Guid workSpaceId)
+    {
+        var workSpace = await LoadWorkSpace(directory, workSpaceId);
+        var workSpaceDirectory = GetWorkSpaceDirectory(workSpace);
+        Directory.Delete(workSpaceDirectory, true);
+    }
+
     public WorkSpace CreateWorkSpace(WorkSpaceDirectory directory)
     {
         var id = Guid.NewGuid();

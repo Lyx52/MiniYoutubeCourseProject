@@ -110,7 +110,7 @@
     {
         if (DateTime.UtcNow - LastUpdated <= TimeSpan.FromSeconds(1)) return;
         ImpressionType impressionType = Comment.Impression == impression ? ImpressionType.None : impression;
-        await _commentHttpClient.AddCommentImpression(Comment.Id, impressionType);
+        await _commentHttpClient.AddCommentImpression(Guid.Parse(Comment.Id), impressionType);
         if (Comment.Impression == ImpressionType.Dislike) Comment.Dislikes--;
         if (Comment.Impression == ImpressionType.Like) Comment.Likes--;
         Comment.Impression = impressionType;

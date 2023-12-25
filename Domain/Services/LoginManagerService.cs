@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.JSInterop;
 
 namespace Domain.Services;
 
@@ -71,6 +72,16 @@ public class LoginManagerService : ILoginManager
         try
         {
             accessToken = await _localStorage.GetAsync<string>(AccessToken);
+        }
+        catch (TaskCanceledException _)
+        {
+            // In case of page reload
+            return null;
+        }
+        catch (JSDisconnectedException _)
+        {
+            // In case of page reload
+            return null;
         }
         catch (InvalidOperationException _)
         {

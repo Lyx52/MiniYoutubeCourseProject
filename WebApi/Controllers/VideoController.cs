@@ -2,13 +2,11 @@
 using System.Threading.Channels;
 using Domain.Constants;
 using Domain.Entity;
-using Domain.Model;
+using Domain.Model.Query;
 using Domain.Model.Request;
 using Domain.Model.Response;
 using Domain.Model.View;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using WebApi.Services.Interfaces;
 using WebApi.Services.Models;
@@ -24,7 +22,6 @@ public class VideoController : ControllerBase
     private readonly ChannelWriter<BackgroundTask> _channel;
     private readonly IVideoRepository _videoRepository;
     private readonly IUserRepository _userRepository;
-    private static readonly IEnumerable<Video> EmptyVideos = new List<Video>();
     public VideoController(ILogger<VideoController> logger, 
         ChannelWriter<BackgroundTask> channel, 
         IUserRepository userRepository,
@@ -35,58 +32,52 @@ public class VideoController : ControllerBase
         _userRepository = userRepository;
         _videoRepository = videoRepository;
     }
-    
-    [HttpPost("CreateVideo")]
-    public async Task<IActionResult> CreateVideo([FromBody] CreateVideoRequest payload, CancellationToken cancellationToken = default(CancellationToken))
-    {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim is null) return Unauthorized();
-        var user = await _userRepository.GetUserById(userIdClaim.Value, cancellationToken);
-        if (user is null) return Unauthorized();
-        var videoId = await _videoRepository.CreateVideo(payload, user.Id, cancellationToken);
-        await _channel.WriteAsync(new VideoTask()
-        {
-            VideoId = videoId,
-            WorkSpaceId = payload.WorkSpaceId,
-            Type = BackgroundTaskType.ProcessVideo
-        }, cancellationToken);
-        return Ok(new CreateVideoResponse()
-        {
-            VideoId = videoId.ToString(),
-            Message = string.Empty,
-            Success = true
-        });
-    }
 
-    [HttpPost("PublishVideo")]
-    public async Task<IActionResult> PublishVideo([FromBody] PublishVideoRequest payload, CancellationToken cancellationToken = default(CancellationToken))
-    {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim is null) return Unauthorized();
-        var user = await _userRepository.GetUserById(userIdClaim.Value, cancellationToken);
-        if (user is null) return Unauthorized();
-        var video = await _videoRepository.GetVideoById(payload.VideoId, user.Id, cancellationToken);
-        if (video is null) return NotFound();
-        await _channel.WriteAsync(new VideoTask()
-        {
-            VideoId = Guid.Parse(video.Id),
-            WorkSpaceId = Guid.Parse(video.WorkSpaceId),
-            Type = BackgroundTaskType.PublishVideo
-        }, cancellationToken);
-        return Ok();
-    }
-    
-    [HttpPost("Status")]
-    public async Task<IActionResult> GetVideoStatus([FromBody] VideoStatusRequest payload,
+    [HttpPost("Query")]
+    [AllowAnonymous]
+    public async Task<IActionResult> QueryVideos([FromBody] QueryVideosRequest payload,
         CancellationToken cancellationToken = default(CancellationToken))
     {
-        var status = await _videoRepository.GetVideoStatus(payload.VideoId, cancellationToken);
-        if (!status.HasValue) return BadRequest();
-        return Ok(new VideoStatusResponse()
+        var query = new VideoQuery()
         {
-            VideoId = payload.VideoId,
-            Status = status.Value ,
+            Title = payload.Title,
+            CreatorId = payload.CreatorId,
+            From = 0,
+            Count = 999999,
+            Status = payload.Status
+        };
+        if (payload.QueryUserVideos)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+            var user = await _userRepository.GetUserById(userId, cancellationToken);
+            if (user is null)
+            {
+                return Unauthorized(new QueryVideosResponse()
+                {
+                    Success = false,
+                    Message = "User is Unauthorized!",
+                    Videos = new List<Video>(),
+                    From = payload.From,
+                    Count = payload.Count,
+                    TotalCount = 0
+                });
+            }
+
+            query.CreatorId = Guid.Parse(user.Id);
+            query.IncludeUnlisted = true;
+        }
+        
+        var totalCount =  await _videoRepository.QueryCountAsync(query, cancellationToken);
+        query.Count = Math.Max(0, payload.Count);
+        query.From = Math.Max(0, (payload.From - 1) * query.Count);
+        var videos = await _videoRepository.QueryAsync(query, false, cancellationToken);
+        return Ok(new QueryVideosResponse()
+        {
             Success = true,
+            Videos = videos,
+            From = payload.From,
+            Count = payload.Count,
+            TotalCount = totalCount,
             Message = string.Empty
         });
     }
@@ -96,10 +87,30 @@ public class VideoController : ControllerBase
     public async Task<IActionResult> GetVideoPlaylist([FromBody] VideoPlaylistRequest payload,
         CancellationToken cancellationToken = default(CancellationToken))
     {
-        var videos = await _videoRepository.GetVideoPlaylist(payload.Query, cancellationToken);
+        var query = new VideoQuery()
+        {
+            CreatorId = payload.CreatorId,
+            From = payload.From,
+            Count = payload.Count,
+            AddSources = true
+        };
+        var videos = await _videoRepository.QueryAsync(query, true, cancellationToken);
+        var creators = (await _userRepository.GetUsersByIds(videos.Select(v => v.CreatorId), cancellationToken)).ToLookup(v => v.Id);
+        
+        var playlistVideos = videos
+            .Where(v => creators.Contains(v.CreatorId))
+            .Select(v =>new VideoPlaylistModel(v, creators[v.CreatorId].First()));
+        
+        var totalCount = await _videoRepository.QueryCountAsync(new VideoQuery()
+        {
+            CreatorId = payload.CreatorId
+        }, cancellationToken);
         return Ok(new VideoPlaylistResponse()
         {
-            Videos = videos,
+            Videos = playlistVideos,
+            From = query.From,
+            Count = query.Count,
+            TotalCount = totalCount,
             Success = true,
             Message = string.Empty
         });
@@ -107,143 +118,215 @@ public class VideoController : ControllerBase
     
     [HttpGet("Metadata")]
     [AllowAnonymous]
-    public async Task<IActionResult> GetVideoMetadata([FromQuery] string id,
+    public async Task<IActionResult> GetVideoMetadata([FromQuery] Guid videoId,
         CancellationToken cancellationToken = default(CancellationToken))
     {
-        UserModel? user = null;
-        ImpressionType userImpression = ImpressionType.None;
+        Guid? userId = null;
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
         if (userIdClaim is not null)
         {
-            user = await _userRepository.GetUserById(userIdClaim.Value, cancellationToken);    
+            var user = await _userRepository.GetUserById(userIdClaim.Value, cancellationToken);
+            userId = user is not null ? Guid.Parse(user.Id) : null;
         }
-        try
+        
+        var videoMetadata = await _videoRepository.GetVideoMetadataById(videoId, userId, cancellationToken);
+        if (videoMetadata is null)
         {
-            if (Guid.TryParse(id, out var videoId))
-            {
-                var video = await _videoRepository.GetVideoById(videoId, true, cancellationToken);
-                if (video is null) return NotFound();
-                
-                var dislikes = video.Impressions
-                    .LongCount(i => i.Impression == ImpressionType.Dislike);
-                var likes = video.Impressions
-                    .LongCount(i => i.Impression == ImpressionType.Like);
-                if (user is not null)
-                {
-                    var compositeId = $"{user.Id[0..18]}-{video.Id[19..36]}";
-                    userImpression = video.Impressions
-                        .FirstOrDefault(i => i.Id == compositeId)?.Impression ?? ImpressionType.None;
-                }
-
-                var metadata = new VideoMetadataModel()
-                {
-                    Description = video.Description,
-                    Title = video.Title,
-                    VideoId = videoId,
-                    CreatorId = Guid.Parse(video.CreatorId),
-                    Dislikes = dislikes,
-                    Likes = likes,
-                    UserImpression = userImpression
-                };
-                
-                return Ok(new VideoMetadataResponse()
-                {
-                    Metadata = metadata,
-                    ContentSources = video.Sources?.Select((s) => new ContentSourceModel()
-                    {
-                        Id = s.Id,
-                        Resolution = s.Resolution,
-                        Type = s.Type,
-                        ContentType = s.ContentType
-                    }) ?? new List<ContentSourceModel>(),
-                    Success = true
-                });
-            }
-            
-            return BadRequest(new VideoMetadataResponse()
+            return NotFound(new Response()
             {
                 Success = false,
-                Message = "Invalid videoId"
+                Message = "Video not found!"
             });
         }
-        catch (Exception e)
+        return Ok(new VideoMetadataResponse()
         {
-            _logger.LogError("Caught exception while querying videos {ExceptionMessage}", e.Message);
-            return StatusCode(500, new VideoMetadataResponse()
-            {
-                Success = false,
-                Message = "Failed to query videos, please try again later",
-            });
-        }
+            Metadata = videoMetadata,
+            Success = true
+        });
     }
-
+    
+    [HttpPost("CreateVideo")]
+    public async Task<IActionResult> CreateVideo([FromBody] CreateVideoRequest payload, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var user = await _userRepository.GetUserByClaimsPrincipal(User, cancellationToken);
+        if (user is null) {
+            return Unauthorized(new Response()
+            {
+                Success = false,
+                Message = "User is Unauthorized!"
+            });
+        }
+        
+        var videoId = await _videoRepository.CreateVideo(payload, Guid.Parse(user.Id), cancellationToken);
+        await _channel.WriteAsync(new VideoTask()
+        {
+            VideoId = videoId,
+            WorkSpaceId = payload.WorkSpaceId,
+            Type = BackgroundTaskType.ProcessVideo
+        }, cancellationToken);
+        return Ok(new CreateOrUpdateVideoResponse()
+        {
+            VideoId = videoId,
+            Message = string.Empty,
+            Success = true
+        });
+    }
+    
     [HttpGet("Sources")]
     [AllowAnonymous]
-    public async Task<IActionResult> GetVideoSources([FromQuery] string id,
+    public async Task<IActionResult> GetVideoSources([FromQuery] Guid videoId,
         CancellationToken cancellationToken = default(CancellationToken))
     {
-        if (Guid.TryParse(id, out var videoId))
-        {
-            var sources = await _videoRepository.GetVideoSourcesById(videoId, cancellationToken);
-            return Ok(sources);
-        }
-
-        return BadRequest("Invalid video id");
+        var sources = await _videoRepository.GetVideoSourcesById(videoId, cancellationToken);
+        return Ok(sources);
     }
     
-    [HttpGet("Query")]
-    [AllowAnonymous]
-    public async Task<IActionResult> QueryVideos([FromQuery] string searchText,
+    [HttpPost("Impression")]
+    public async Task<IActionResult> VideoImpression([FromBody] VideoImpressionRequest payload,
         CancellationToken cancellationToken = default(CancellationToken))
     {
-        try
-        {
-            var videos = await _videoRepository.QueryVideosByTitle(searchText, cancellationToken);
-            return Ok(new SearchVideosResponse()
-            {
-                Videos = videos,
-                Success = true,
-            });
-        }
-        catch (Exception e)
-        {
-            _logger.LogError("Caught exception while querying videos {ExceptionMessage}", e.Message);
-            return StatusCode(500, new SearchVideosResponse()
+        var user = await _userRepository.GetUserByClaimsPrincipal(User, cancellationToken);
+        if (user is null) {
+            return Unauthorized(new Response()
             {
                 Success = false,
-                Message = "Failed to query videos, please try again later",
-                Videos = EmptyVideos
+                Message = "User is Unauthorized!"
             });
         }
-    }
-    [HttpPost("Impression")]
-    public async Task<IActionResult> VideoImpression(VideoImpressionRequest payload,
-        CancellationToken cancellationToken = default(CancellationToken))
-    {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim is null) return Unauthorized();
-        var user = await _userRepository.GetUserById(userIdClaim.Value, cancellationToken);
-        if (user is null) return Unauthorized();
-        await _videoRepository.SetVideoImpression(user.Id, payload.VideoId, payload.Impression, cancellationToken);
-        return Ok();
+        await _videoRepository.SetVideoImpression(Guid.Parse(user.Id), payload.VideoId, payload.Impression, cancellationToken);
+        return Ok(new Response()
+        {
+            Success = true
+        });
     }
     
-    [HttpPost("UserVideos")]
-    public async Task<IActionResult> GetUserVideos(UserVideosRequest payload,
+    [HttpPost("ChangeVisibility")]
+    public async Task<IActionResult> ChangeVideoVisibility([FromBody] ChangeVideoVisibilityRequest payload,
         CancellationToken cancellationToken = default(CancellationToken))
     {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim is null) return Unauthorized();
-        var user = await _userRepository.GetUserById(userIdClaim.Value, cancellationToken);
-        if (user is null) return Unauthorized();
-        var videos = await _videoRepository.GetUserVideos(user.Id, payload.Page, payload.PageSize, cancellationToken);
-        var videoCount =  await _videoRepository.GetUserVideoCount(user.Id, cancellationToken); 
-        return Ok(new UserVideosResponse()
+        var user = await _userRepository.GetUserByClaimsPrincipal(User, cancellationToken);
+        if (user is null) {
+            return Unauthorized(new Response()
+            {
+                Success = false,
+                Message = "User is Unauthorized!"
+            });
+        }
+        
+        var video = await _videoRepository.GetVideoById(payload.VideoId, false, cancellationToken);
+        if (video is null || video?.CreatorId != user.Id)
         {
+            return NotFound(new Response()
+            {
+                Success = false,
+                Message = "Video not found!"
+            });
+        }
+        
+        await _videoRepository.ChangeVisibility(payload.VideoId, payload.IsUnlisted, cancellationToken);
+        if (!video.NotificationsSent)
+        {
+            await _channel.WriteAsync(new NotificationTask()
+            {
+                VideoId = payload.VideoId,
+                Type = BackgroundTaskType.GenerateUploadNotifications
+            }, cancellationToken);
+        }
+        return Ok(new Response()
+        {
+            Success = true
+        });
+    }
+    
+    [HttpDelete("Delete")]
+    public async Task<IActionResult> DeleteVideo([FromQuery] Guid videoId,
+        CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var user = await _userRepository.GetUserByClaimsPrincipal(User, cancellationToken);
+        if (user is null) {
+            return Unauthorized(new Response()
+            {
+                Success = false,
+                Message = "User is Unauthorized!"
+            });
+        }
+        
+        var video = await _videoRepository.GetVideoById(videoId, false, cancellationToken);
+        if (video is null)
+        {
+            return NotFound(new Response()
+            {
+                Success = false,
+                Message = "Video not found!"
+            });
+        }
+        
+        await _channel.WriteAsync(new VideoTask()
+        {
+            VideoId = Guid.Parse(video.Id),
+            WorkSpaceId = Guid.Parse(video.WorkSpaceId),
+            Type = BackgroundTaskType.DeleteVideo
+        }, cancellationToken);
+        return Ok(new Response()
+        {
+            Success = true
+        });
+    }
+    
+    [HttpPost("PublishVideo")]
+    public async Task<IActionResult> PublishVideo([FromBody] PublishVideoRequest payload, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var user = await _userRepository.GetUserByClaimsPrincipal(User, cancellationToken);
+        if (user is null) {
+            return Unauthorized(new Response()
+            {
+                Success = false,
+                Message = "User is Unauthorized!"
+            });
+        }
+
+        var video = await _videoRepository.GetVideoById(payload.VideoId, false, cancellationToken);
+        if (video is null || video?.CreatorId != user.Id)
+        {
+            return NotFound(new Response()
+            {
+                Success = false,
+                Message = "Video not found!"
+            });
+        }
+        
+        await _channel.WriteAsync(new VideoTask()
+        {
+            VideoId = Guid.Parse(video.Id),
+            WorkSpaceId = Guid.Parse(video.WorkSpaceId),
+            Type = BackgroundTaskType.PublishVideo
+        }, cancellationToken);
+        return Ok(new Response()
+        {
+            Success = true
+        });
+    }
+    
+    [HttpGet("Status")]
+    public async Task<IActionResult> GetVideoStatus([FromQuery] Guid videoId,
+        CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var video = await _videoRepository.GetVideoById(videoId, false, cancellationToken);
+        if (video is null) {
+            return NotFound(new VideoStatusResponse()
+            {
+                VideoId = videoId,
+                Success = false,
+                Message = "Video not found!"
+            });
+        }
+        
+        return Ok(new VideoStatusResponse()
+        {
+            VideoId = videoId,
+            Status = video.Status,
             Success = true,
-            Videos = videos,
-            TotalCount = videoCount,
-            UserId = user.Id
+            Message = string.Empty
         });
     }
 }

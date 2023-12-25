@@ -2,5 +2,5 @@
 
 public class CreateVideoResponse : Response
 {
-    public string VideoId { get; set; }
+    public Guid VideoId { get; set; }
 }

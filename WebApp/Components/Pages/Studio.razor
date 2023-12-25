@@ -29,10 +29,15 @@
         <div class="col ps-md-2 pt-2">
             <div class="d-flex flex-column w-100">
                 <div class="d-flex flex-row w-100">
-                     <a href="#" data-bs-target="#sidebar" data-bs-toggle="collapse" class="border rounded-3 p-1 text-decoration-none text-dark border-dark"><i class="bi bi-list bi-lg py-2 p-1"></i> Menu</a>    
+                    <a href="#" data-bs-target="#sidebar" data-bs-toggle="collapse" class="btn btn-outline-dark">
+                        <i class="bi bi-list bi-lg py-2 p-1"></i> Menu
+                    </a>
+                    
                 </div>
                 <div class="d-flex flex-row w-100">
-                    
+                    <a @onclick="OnOpenUploadModal" class="btn btn-outline-dark ms-auto">
+                        <i class="bi bi-file-earmark-play"></i> Upload video
+                    </a>    
                 </div>
             </div>
             <hr>
@@ -78,7 +83,7 @@
         await base.OnAfterRenderAsync(firstRender);
         if (firstRender)
         {
-            await _videoListView.OpenUploadModal();
+            await _videoListView.OpenUploadModal(true);
         }
     }
 
@@ -91,5 +96,10 @@
     {
         CurrentState = StudioState.PlayListView;
         await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnOpenUploadModal()
+    {
+        await _videoListView.OpenUploadModal(true);
     }
 }

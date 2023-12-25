@@ -1,6 +1,7 @@
 ﻿using Domain.Constants;
 using Domain.Entity;
 using Domain.Model;
+using Domain.Model.Query;
 using Domain.Model.Request;
 using Domain.Model.View;
 using Microsoft.EntityFrameworkCore;
@@ -20,30 +21,37 @@ public class VideoRepository : IVideoRepository
         _logger = logger;
         _userRepository = userRepository;
     }
-
-    public async Task<Guid> CreateVideo(CreateVideoRequest payload, string creatorId, CancellationToken cancellationToken)
+    public async Task<Guid> CreateVideo(CreateVideoRequest payload, Guid creatorId, CancellationToken cancellationToken)
     {
         var id = Guid.NewGuid();
         await _dbContext.Videos.AddAsync(new Video()
         {
             Id = id.ToString(),
-            CreatorId = creatorId,
+            CreatorId = creatorId.ToString(),
             WorkSpaceId = payload.WorkSpaceId.ToString(),
             Title = payload.Title,
             Status = VideoProcessingStatus.CreatedMetadata,
             Description = payload.Description,
             IsUnlisted = payload.IsUnlisted,
-            Created = DateTime.UtcNow
+            Created = DateTime.UtcNow,
+            NotificationsSent = false
         }, cancellationToken);
             
-        await _dbContext.SaveChangesAsync(cancellationToken);    
-
+        await _dbContext.SaveChangesAsync(cancellationToken);
         return id;
+    }
+
+    public Task<List<ContentSource>> GetVideoSourcesById(Guid videoId, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        return _dbContext.Sources
+            .Where(s => s.VideoId == videoId.ToString())
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<bool> EnrichWithSources(Guid videoId, List<WorkFile> sources, CancellationToken cancellationToken = default(CancellationToken))
     {
-        var video = await GetVideoById(videoId, false, cancellationToken);
+        var video = await _dbContext.Videos
+            .FirstOrDefaultAsync(v => v.Id == videoId.ToString(), cancellationToken);
         if (video is null) return false;
         video.Sources = sources
             .Where((wf) => wf.Type != WorkFileType.Original)
@@ -56,103 +64,12 @@ public class VideoRepository : IVideoRepository
     public async Task<bool> UpdateVideoStatus(Guid videoId, VideoProcessingStatus status, CancellationToken cancellationToken = default(CancellationToken))
     {
         _logger.LogInformation("Video {id} changed status to {status}", videoId, status);
-        var video = await GetVideoById(videoId, false, cancellationToken);
+        var video = await _dbContext.Videos
+            .FirstOrDefaultAsync(v => v.Id == videoId.ToString(), cancellationToken);
         if (video is null) return false;
         video.Status = status;
-        await _dbContext.SaveChangesAsync(cancellationToken);    
-        
+        await _dbContext.SaveChangesAsync(cancellationToken);
         return true;
-    }
-
-    public Task<Video?> GetVideoById(Guid id, bool includeSourcesImpressions = false, CancellationToken cancellationToken = default(CancellationToken))
-    {
-        return includeSourcesImpressions
-            ? _dbContext.Videos
-                .Include(v => v.Sources)
-                .Include(v => v.Impressions)
-                .FirstOrDefaultAsync(v => v.Id.ToLower() == id.ToString().ToLower(), cancellationToken)
-            : _dbContext.Videos
-                .FirstOrDefaultAsync(v => v.Id.ToLower() == id.ToString().ToLower(), cancellationToken);
-    }
-    public Task<Video?> GetVideoById(Guid id, string userId, CancellationToken cancellationToken = default(CancellationToken))
-    {
-        return _dbContext.Videos.FirstOrDefaultAsync((v) =>
-            v.CreatorId.ToLower() == userId.ToLower() &&
-            v.Id.ToLower() == id.ToString().ToLower(), cancellationToken);
-    }
-
-    public Task<List<ContentSource>> GetVideoSourcesById(Guid videoId, CancellationToken cancellationToken = default(CancellationToken))
-    {
-        return _dbContext.Sources
-            .Where((s) => s.VideoId.ToLower() == videoId.ToString().ToLower())
-            .ToListAsync(cancellationToken);
-    }
-
-    public async Task<VideoProcessingStatus?> GetVideoStatus(Guid videoId, CancellationToken cancellationToken = default(CancellationToken))
-    {
-        var video = await GetVideoById(videoId, false, cancellationToken);
-        return video?.Status;
-    }
-
-    public Task<List<Video>> QueryVideosByTitle(string searchText, CancellationToken cancellationToken = default(CancellationToken))
-    {
-        return _dbContext.Videos
-            .Where((v) => v.Title.ToLower().Contains(searchText.ToLower()))
-            .OrderBy((v) => v.Created)
-            .Take(10)
-            .ToListAsync(cancellationToken);
-    }
-
-    public async Task<IEnumerable<VideoPlaylistModel>> GetVideoPlaylist(VideoQuery query, CancellationToken cancellationToken = default(CancellationToken))
-    {
-        var queryable = _dbContext.Videos
-            .Include((v) => v.Sources).AsQueryable();
-        
-        if (query.OrderByCreated) 
-            queryable = queryable.OrderBy((v) => v.Created);
-
-        if (query.CreatorId != Guid.Empty) 
-            queryable = queryable.Where(v => v.CreatorId == query.CreatorId.ToString());
-        
-        var videos = await 
-            queryable
-            .Where(v => v.IsUnlisted == query.IncludeUnlisted)
-            .Skip(query.From)
-            .Take(query.Count)
-            .ToListAsync(cancellationToken);
-        var creators = await _userRepository.GetUsersByIds(videos.Select(v => v.CreatorId), cancellationToken);
-        return videos
-            .Select((v) =>
-            {
-                var poster = v.Sources!.First((s) => s.Type == ContentSourceType.Thumbnail);
-                var posterGif = v.Sources!.First((s) => s.Type == ContentSourceType.ThumbnailGif);
-                var creator = creators.FirstOrDefault(c => c.Id == v.CreatorId);
-                if (creator is null) return null;
-                return new VideoPlaylistModel()
-                {
-                    Created = v.Created,
-                    Title = v.Title,
-                    VideoId = v.Id,
-                    CreatorId = creator.Id,
-                    CreatorName = creator.CreatorName,
-                    CreatorIconLink = creator.IconLink,
-                    Poster = new ContentSourceModel()
-                    {
-                        ContentType = poster.ContentType,
-                        Id = poster.Id,
-                        Resolution = poster.Resolution,
-                        Type = poster.Type
-                    },
-                    PosterGif = new ContentSourceModel()
-                    {
-                        ContentType = posterGif.ContentType,
-                        Id = posterGif.Id,
-                        Resolution = posterGif.Resolution,
-                        Type = posterGif.Type
-                    },
-                };
-            })
-            .Where(m => m is not null)!;
     }
 
     private ContentSource ConvertToContentSource(WorkFile file, Video video)
@@ -173,10 +90,10 @@ public class VideoRepository : IVideoRepository
         };
     }
     
-    public async Task SetVideoImpression(string userId, string videoId, ImpressionType impressionType,
+    public async Task SetVideoImpression(Guid userId, Guid videoId, ImpressionType impressionType,
         CancellationToken cancellationToken = default(CancellationToken))
     {
-        var compositeId = $"{userId[0..18]}-{videoId[19..36]}";
+        var compositeId = $"{userId.ToString()[0..18]}-{videoId.ToString()[19..36]}";
         var impression =
             await _dbContext.VideoImpressions.FirstOrDefaultAsync(
                 ci => ci.Id == compositeId, cancellationToken);
@@ -186,13 +103,13 @@ public class VideoRepository : IVideoRepository
         }
         else
         {
-            var video = await _dbContext.Videos.FirstOrDefaultAsync(c => c.Id == videoId, cancellationToken);
+            var video = await _dbContext.Videos.FirstOrDefaultAsync(c => c.Id == videoId.ToString(), cancellationToken);
             if (video is null) return;
             await _dbContext.VideoImpressions.AddAsync(new VideoImpression()
             {
                 Id = compositeId,
                 Impression = impressionType,
-                VideoId = videoId,
+                VideoId = videoId.ToString(),
                 Video = video
             }, cancellationToken);
         }
@@ -200,19 +117,96 @@ public class VideoRepository : IVideoRepository
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<IEnumerable<Video>> GetUserVideos(string userId, int page, int pageSize, CancellationToken cancellationToken = default(CancellationToken))
+    public Task<Video?> GetVideoById(Guid videoId, bool includeAll = false,
+        CancellationToken cancellationToken = default(CancellationToken))
     {
-        var videos = await _dbContext.Videos
-            .Where(v => v.CreatorId == userId)
-            .Skip(Math.Max(0, page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync(cancellationToken);
-        return videos;
+        return
+            includeAll ? 
+            _dbContext.Videos
+                .Include(v => v.Sources)
+                .Include(v => v.Impressions)
+                .Include(v => v.Comments)
+                .FirstOrDefaultAsync(v => v.Id == videoId.ToString(), cancellationToken)
+            : 
+            _dbContext.Videos
+                .FirstOrDefaultAsync(v => v.Id == videoId.ToString(), cancellationToken);
     }
 
-    public Task<int> GetUserVideoCount(string userId, CancellationToken cancellationToken = default(CancellationToken))
+    public async Task DeleteVideo(Guid videoId, CancellationToken cancellationToken = default(CancellationToken))
     {
-        return _dbContext.Videos
-            .CountAsync(v => v.CreatorId == userId, cancellationToken);
+        var video = await _dbContext
+            .Videos
+            .Include(v => v.Impressions)
+            .Include(v => v.Comments)
+            .Include(v => v.Sources)
+            .FirstOrDefaultAsync(v => v.Id == videoId.ToString(), cancellationToken);
+        if (video is null) return;
+        _dbContext.Videos.Remove(video);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<Guid> UpdateVideo(Video video,
+        CancellationToken cancellationToken = default(CancellationToken))
+    {
+        await _dbContext.SaveChangesAsync(cancellationToken);    
+
+        return Guid.Parse(video.Id);
+    }
+
+    public async Task ChangeVisibility(Guid videoId, bool isUnlisted, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var video = await GetVideoById(videoId, false, cancellationToken);
+        if (video is null) return;
+        video.IsUnlisted = isUnlisted;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        var x = await _dbContext.Videos.ToListAsync(cancellationToken);
+    }
+
+    public async Task<VideoMetadataModel?> GetVideoMetadataById(Guid videoId, Guid? userId = null, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var video = await _dbContext.Videos
+            .Include(v => v.Impressions)
+            .Include(v => v.Sources)
+            .FirstOrDefaultAsync(v => v.Id == videoId.ToString(), cancellationToken);
+        if (video is null) return null;
+         
+        var dislikes = video.Impressions
+            .LongCount(i => i.Impression == ImpressionType.Dislike);
+        var likes = video.Impressions
+            .LongCount(i => i.Impression == ImpressionType.Like);
+
+        var userImpression = ImpressionType.None;
+        if (userId.HasValue)
+        {
+            var compositeId = $"{userId.Value.ToString()[0..18]}-{video.Id.ToString()[19..36]}";
+            userImpression = video.Impressions
+                .FirstOrDefault(i => i.Id == compositeId)?.Impression ?? ImpressionType.None;
+        }
+
+        var contentSources = video.Sources?.Select((s) => new ContentSourceModel(s)) ?? new List<ContentSourceModel>();
+        
+        return new VideoMetadataModel()
+        {
+            Description = video.Description,
+            Title = video.Title,
+            VideoId = videoId,
+            CreatorId = Guid.Parse(video.CreatorId),
+            Dislikes = dislikes,
+            Likes = likes,
+            UserImpression = userImpression,
+            ContentSources = contentSources
+        };
+    }
+
+    public Task<List<Video>> QueryAsync(IEntityQuery<Video> query, bool asNonTracking = true, CancellationToken cancellationToken = default(CancellationToken)) =>
+        query
+            .ToQueryable(_dbContext.Videos, asNonTracking)
+            .ToListAsync(cancellationToken);
+
+    public Task<int> QueryCountAsync(IEntityQuery<Video> query, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        return query
+            .ToQueryable(_dbContext.Videos, true)
+            .CountAsync(cancellationToken);
     }
 }

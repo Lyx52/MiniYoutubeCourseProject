@@ -14,6 +14,7 @@ using WebApi.Services.Interfaces;
 using WebApi.Swagger;
 using Domain;
 using Domain.Model.Configuration;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http.Json;
 using WebApi.Services.Models;
 
@@ -35,13 +36,13 @@ public class Startup
         {
             options.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
         });
+        
         services.AddDbContext<UserDbContext>((options) =>
         {
             // TODO: Use proper db.
             options
                 .UseInMemoryDatabase("UserDb")
                 .EnableDetailedErrors(true);
-            //options.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
         });
         services.AddDbContext<ApplicationDbContext>((options) =>
         {
@@ -49,7 +50,6 @@ public class Startup
             options
                 .UseInMemoryDatabase("VideoDb")
                 .EnableDetailedErrors(true);
-            //options.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
         });
 
         services.AddIdentity<User, IdentityRole>(options =>

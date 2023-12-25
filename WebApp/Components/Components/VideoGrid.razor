@@ -3,6 +3,7 @@
 @using Domain.Interfaces
 @using Domain.Model.View
 @using System.Collections
+@using Domain.Model.Query
 @inject PreloadService _preloadService
 @inject IVideoHttpClient _videoHttpClient
 
@@ -44,14 +45,7 @@
     private async Task LoadMoreVideos()
     {
         _preloadService.Show();
-        var response = await _videoHttpClient.GetVideoPlaylist(new VideoQuery()
-        {
-            From = CurrentOffset,
-            Count = 12,
-            IncludeUnlisted = false,
-            OrderByCreated = true,
-            CreatorId = Guid.Empty
-        });
+        var response = await _videoHttpClient.GetVideoPlaylist(CurrentOffset, 12);
         _videos.AddRange(response.Videos);
         await InvokeAsync(StateHasChanged);
         _preloadService.Hide();

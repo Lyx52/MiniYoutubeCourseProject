@@ -1,12 +1,7 @@
-﻿using System.ComponentModel.DataAnnotations;
-using Domain.Constants;
-using Domain.Entity;
+﻿using Domain.Constants;
 using Domain.Model.Response;
-using Domain.Model.View;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Caching.Memory;
 using WebApi.Attributes;
 using WebApi.Services.Interfaces;
@@ -71,7 +66,6 @@ public class ContentController : ControllerBase
         var id = await _contentService.SaveTemporaryFile(memoryStream, videoFile.FileName, cancellationToken);
         if (id.HasValue)
         {
-                
             return Ok(new UploadVideoFileResponse()
             {
                 FileId = id.Value,
@@ -89,26 +83,22 @@ public class ContentController : ControllerBase
 
     [HttpGet("Source")]
     [AllowAnonymous]
-    public async Task<IActionResult> GetContentSource([FromQuery] string videoId, string sourceId, CancellationToken cancellationToken = default(CancellationToken))
+    public async Task<IActionResult> GetContentSource([FromQuery] Guid videoId, [FromQuery] Guid sourceId, CancellationToken cancellationToken = default(CancellationToken))
     {
-        if (Guid.TryParse(videoId, out var vid) && Guid.TryParse(sourceId, out var sid))
+        if (!_cache.TryGetValue<CachedContentSource>($"{videoId}:{sourceId}", out var source))
         {
-            if (!_cache.TryGetValue<CachedContentSource>($"{videoId}:{sourceId}", out var source))
-            {
-                source = await _contentRepository.GetContentSource(vid, sid, cancellationToken);
-                if (source is null) return NotFound();
-                _cache.Set<CachedContentSource>($"{videoId}:{sourceId}", source, CacheOptions[source.Type]);
-            }
-
-            if (source!.Type != ContentSourceType.Video)
-            {
-                Response.Headers["Cache-Control"] = "public, max-age=3600";
-                Response.Headers["Expires"] = DateTime.UtcNow.AddHours(1).ToString("R");
-            }
-            
-            return File(source!.Data, source.ContentType, enableRangeProcessing: true);
+            source = await _contentRepository.GetContentSource(videoId, sourceId, cancellationToken);
+            if (source is null) return NotFound();
+            _cache.Set<CachedContentSource>($"{videoId}:{sourceId}", source, CacheOptions[source.Type]);
         }
 
-        return BadRequest("Invalid video id or source id");
+        var response = File(source!.Data, source.ContentType, enableRangeProcessing: true);
+        
+        if (source!.Type == ContentSourceType.Video) return response;
+        
+        Response.Headers["Cache-Control"] = "public, max-age=3600";
+        Response.Headers["Expires"] = DateTime.UtcNow.AddHours(1).ToString("R");
+
+        return response;
     }
 }

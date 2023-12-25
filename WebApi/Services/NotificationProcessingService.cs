@@ -1,4 +1,5 @@
 ﻿using Domain.Constants;
+using Domain.Model.Query;
 using WebApi.Services.Interfaces;
 using WebApi.Services.Models;
 
@@ -31,12 +32,27 @@ public class NotificationProcessingService : INotificationProcessingService
             _logger.LogWarning("Failed to generate notifications {VideoId} video does not exist", payload.VideoId);
             return;
         }
-        var subscribers = await _subscriberRepository.GetSubscribers(video.CreatorId, cancellationToken);
+
+        if (video.IsUnlisted)
+        {
+            _logger.LogInformation("Video {VideoId} is unlisted, won't generate notifications", payload.VideoId);
+            return;
+        }
+
+        if (video.NotificationsSent) return;
+        var subscribers = await _subscriberRepository
+            .GetSubscribers(Guid.Parse(video.CreatorId), cancellationToken);
         var message = $"New video '{video.Title}'";
         var redirectLink = $"/watch/{Guid.Parse(video.Id).ToEncodedId()}";
+        
         var tasks = subscribers.Select(s =>
-            _notificationRepository.AddNotification(s.SubscriberId, message, redirectLink, cancellationToken)).ToArray();
+            _notificationRepository
+                .AddNotification(Guid.Parse(s.SubscriberId), message, redirectLink, cancellationToken)
+        ).ToArray();
+        
         _logger.LogInformation("Processing {NotificationTaskCount} notifications", tasks.Length);
+        video.NotificationsSent = true;
+        await _videoRepository.UpdateVideo(video, cancellationToken);
         await Task.WhenAll(tasks);
     }
 }

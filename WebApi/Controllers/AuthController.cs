@@ -47,17 +47,25 @@ public class AuthController : ControllerBase
     [Route("Login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest payload)
     {
-        if (!ModelState.IsValid) return BadRequest();
         var user = await _userManager.FindByNameAsync(payload.Username);
-        if (user is null || !await _userManager.CheckPasswordAsync(user, payload.Password)) 
-            return Unauthorized();
+        if (user is null || !await _userManager.CheckPasswordAsync(user, payload.Password))
+        {
+            return Unauthorized(new LoginResponse()
+            {
+                Success = false,
+                Message = "Invalid username or password"
+            });
+        }
 
         if (!await _userManager.IsEmailConfirmedAsync(user))
+        {
             return StatusCode(StatusCodes.Status403Forbidden, new LoginResponse()
             {
                 Success = false,
                 Message = "Email not confirmed!"
             });
+        }
+
         var userRoles = await _userManager.GetRolesAsync(user);
 
         var authClaims = new List<Claim>
@@ -67,8 +75,7 @@ public class AuthController : ControllerBase
             new Claim(JwtRegisteredClaimNames.Sub, user.Id)
         };
             
-        authClaims
-            .AddRange(userRoles.Select(userRole => new Claim(ClaimTypes.Role, userRole)));
+        authClaims.AddRange(userRoles.Select(userRole => new Claim(ClaimTypes.Role, userRole)));
 
         var token = GetToken(authClaims);
         var jwtToken = new JwtSecurityTokenHandler().WriteToken(token);
@@ -110,21 +117,22 @@ public class AuthController : ControllerBase
             SecurityStamp = Guid.NewGuid().ToString(),
             UserName = payload.Username,
             CreatorName = payload.Username,
-            EmailConfirmed = false,
+            EmailConfirmed = true,
         };
         var result = await _userManager.CreateAsync(user, payload.Password);
-        var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-        
-        await _channel.WriteAsync(new SendConfirmationTask()
+        // var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+        //
+        // await _channel.WriteAsync(new SendConfirmationTask()
+        // {
+        //     Email = payload.Email,
+        //     Token = token,
+        //     Type = BackgroundTaskType.SendConfirmationEmail
+        // }, cancellationToken);
+        return Ok(new Response()
         {
-            Email = payload.Email,
-            Token = token,
-            Type = BackgroundTaskType.SendConfirmationEmail
-        }, cancellationToken);
-        return result.Succeeded
-            ? Created()
-            : StatusCode(StatusCodes.Status500InternalServerError,
-                new Response() { Success = false, Message = $"Failed to create user: {string.Join(',', result.Errors.Select(e => e.Code))}" });
+            Success = result.Succeeded,
+            Message = result.Succeeded ? string.Empty : string.Join(',', result.Errors.Select(e => e.Code))
+        });
     }
 
     [HttpGet]
@@ -144,10 +152,15 @@ public class AuthController : ControllerBase
     [Route("Profile")]
     public async Task<IActionResult> Profile(CancellationToken cancellationToken = default(CancellationToken))
     {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim is null) return Unauthorized();
-        var user = await _userRepository.GetUserById(userIdClaim.Value, cancellationToken);
-        if (user is null) return Unauthorized();
+        var user = await _userRepository.GetUserByClaimsPrincipal(User, cancellationToken);
+        if (user is null)
+        {
+            return Unauthorized(new UserProfileResponse()
+            {
+                Success = false,
+                Message = "User is Unauthorized"
+            });
+        }
         return Ok(new UserProfileResponse()
         {
             User = user,

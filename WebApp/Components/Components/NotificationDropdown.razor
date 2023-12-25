@@ -5,20 +5,29 @@
 <div class="flex-shrink-0 dropdown">
     <button type="button" class="nav-link d-block link-body-emphasis text-decoration-none nav-link-color" data-bs-toggle="dropdown" aria-expanded="false">
         <i class="bi bi-bell"></i>
+        @if (Notifications.Any())
+        {
+            <span class="position-absolute top-10 start-90 translate-middle p-1 bg-danger border border-light rounded-circle">
+                <span class="visually-hidden">New notifications</span>
+            </span>
+        }
     </button>
     <ul class="dropdown-menu text-small shadow main-navbar-dropdown notification-dropdown" data-popper-placement="bottom-end">
         @foreach (var notification in Notifications)
         {
-            <li>
-                <div class="d-flex flex-row gap-1">
-                    <a class="dropdown-item" @onclick="(() => OnNotificationClick(notification.RedirectLink))">
-                        @notification.Message
-                    </a>
-                    <button class="btn" @onclick="(() => OnDismissNotification(notification.Id))">
-                        <i class="bi notification-dismiss-button"></i>
-                    </button>
-                </div>
-            </li>
+            @if (Guid.TryParse(notification.Id, out var notificationId))
+            {
+                <li>
+                    <div class="d-flex flex-row gap-1">
+                        <a class="dropdown-item" @onclick="(() => OnNotificationClick(notification.RedirectLink))">
+                            @notification.Message
+                        </a>
+                        <button class="btn" @onclick="(() => OnDismissNotification(notificationId))">
+                            <i class="bi notification-dismiss-button"></i>
+                        </button>
+                    </div>
+                </li>
+            }
         }
     </ul>
 </div>
@@ -51,7 +60,7 @@
         _navigationManager.NavigateTo(link, true, true);
     }
 
-    private async Task OnDismissNotification(string notificationId)
+    private async Task OnDismissNotification(Guid notificationId)
     {
         var response = await _userHttpClient.DismissUserNotifications(notificationId);
         if (response.Success)

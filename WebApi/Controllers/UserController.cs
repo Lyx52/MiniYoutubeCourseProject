@@ -42,12 +42,10 @@ public class UserController : ControllerBase
     [Route("Subscribe")]
     public async Task<IActionResult> Subscribe([FromBody] SubscribeRequest payload, CancellationToken cancellationToken = default(CancellationToken))
     {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim is null) return Unauthorized();
-        var user = await _userRepository.GetUserById(userIdClaim.Value, cancellationToken);
+        var user = await _userRepository.GetUserByClaimsPrincipal(User, cancellationToken);
         if (user is null) return Unauthorized();
         
-        await _subscriberRepository.Subscribe(user.Id, payload.CreatorId, cancellationToken);
+        await _subscriberRepository.Subscribe(Guid.Parse(user.Id), payload.CreatorId, cancellationToken);
         return Ok();
     }
     
@@ -55,12 +53,10 @@ public class UserController : ControllerBase
     [Route("Unsubscribe")]
     public async Task<IActionResult> Unsubscribe([FromBody] UnsubscribeRequest payload, CancellationToken cancellationToken = default(CancellationToken))
     {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim is null) return Unauthorized();
-        var user = await _userRepository.GetUserById(userIdClaim.Value, cancellationToken);
+        var user = await _userRepository.GetUserByClaimsPrincipal(User, cancellationToken);
         if (user is null) return Unauthorized();
         
-        await _subscriberRepository.Unsubscribe(user.Id, payload.CreatorId, cancellationToken);
+        await _subscriberRepository.Unsubscribe(Guid.Parse(user.Id), payload.CreatorId, cancellationToken);
         return Ok();
     }
     
@@ -68,9 +64,7 @@ public class UserController : ControllerBase
     [Route("Profile")]
     public async Task<IActionResult> Profile(CancellationToken cancellationToken = default(CancellationToken))
     {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim is null) return Unauthorized();
-        var user = await _userRepository.GetUserById(userIdClaim.Value, cancellationToken);
+        var user = await _userRepository.GetUserByClaimsPrincipal(User, cancellationToken);
         if (user is null) return Unauthorized();
         return Ok(new UserProfileResponse()
         {
@@ -83,11 +77,9 @@ public class UserController : ControllerBase
     [Route("Notifications")]
     public async Task<IActionResult> Notifications(CancellationToken cancellationToken = default(CancellationToken))
     {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim is null) return Unauthorized();
-        var user = await _userRepository.GetUserById(userIdClaim.Value, cancellationToken);
+        var user = await _userRepository.GetUserByClaimsPrincipal(User, cancellationToken);
         if (user is null) return Unauthorized();
-        var notifications = await _notificationRepository.GetUserNotifications(user.Id, cancellationToken);
+        var notifications = await _notificationRepository.GetUserNotifications(Guid.Parse(user.Id), cancellationToken);
         return Ok(new UserNotificationResponse()
         {
             UserId = user.Id,
@@ -100,12 +92,10 @@ public class UserController : ControllerBase
     [Route("DismissNotification")]
     public async Task<IActionResult> DismissNotification([FromBody] DismissNotificationRequest payload, CancellationToken cancellationToken = default(CancellationToken))
     {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim is null) return Unauthorized();
-        var user = await _userRepository.GetUserById(userIdClaim.Value, cancellationToken);
+        var user = await _userRepository.GetUserByClaimsPrincipal(User, cancellationToken);
         if (user is null) return Unauthorized();
         
-        await _notificationRepository.DismissNotification(user.Id, payload.NotificationId, cancellationToken);
+        await _notificationRepository.DismissNotification(Guid.Parse(user.Id), payload.NotificationId, cancellationToken);
         return Ok();
     }
     
@@ -114,13 +104,7 @@ public class UserController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> CreatorProfile(string creatorId, CancellationToken cancellationToken = default(CancellationToken))
     {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-        UserModel? user = null;
-        if (userIdClaim is not null)
-        {
-            user = await _userRepository.GetUserById(userIdClaim.Value, cancellationToken);
-        }
-        
+        var user = await _userRepository.GetUserByClaimsPrincipal(User, cancellationToken);
         var creator = await _userRepository.GetUserById(creatorId, cancellationToken);
         if (creator is null) return NotFound();
         creator.Email = string.Empty;
@@ -129,10 +113,10 @@ public class UserController : ControllerBase
         bool isSubscribed = false;
         if (user is not null)
         {
-            isSubscribed = await _subscriberRepository.IsSubscribed(user.Id, creator.Id, cancellationToken);
+            isSubscribed = await _subscriberRepository.IsSubscribed(Guid.Parse(user.Id), Guid.Parse(creator.Id), cancellationToken);
         }
 
-        var subscriberCount = await _subscriberRepository.GetSubscriberCount(creator.Id, cancellationToken);
+        var subscriberCount = await _subscriberRepository.GetSubscriberCount(Guid.Parse(creator.Id), cancellationToken);
         return Ok(new CreatorProfileResponse()
         {
             SubscriberCount = subscriberCount,
@@ -141,6 +125,7 @@ public class UserController : ControllerBase
             Success = true
         });
     }
+    
     [HttpGet]
     [Route("PublicProfile")]
     [AllowAnonymous]

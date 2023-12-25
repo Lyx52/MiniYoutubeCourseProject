@@ -3,6 +3,7 @@ using System.Threading.Channels;
 using Domain.Constants;
 using Domain.Model;
 using Domain.Model.Configuration;
+using Domain.Model.Query;
 using FFMpegCore;
 using FFMpegCore.Enums;
 using FFMpegCore.Pipes;
@@ -221,7 +222,37 @@ public class ContentProcessingService : IContentProcessingService
             await _videoRepository.UpdateVideoStatus(payload.VideoId, VideoProcessingStatus.ProcessingFailed, cancellationToken);
         }
     }
-    
+
+    public async Task DeleteVideo(VideoTask payload, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        try
+        {
+            var video = await _videoRepository.GetVideoById(payload.VideoId, false, cancellationToken);
+            if (video is null)
+            {
+                _logger.LogWarning("Failed to delete video {VideoId}, it doesn't exist!", payload.VideoId);
+                return;
+            }
+
+            var workSpaceDirectory = video.Status switch
+            {
+                VideoProcessingStatus.Processing => WorkSpaceDirectory.WorkDir,
+                VideoProcessingStatus.ProcessingFailed => WorkSpaceDirectory.WorkDir,
+                VideoProcessingStatus.ProcessingFinished => WorkSpaceDirectory.WorkDir,
+                VideoProcessingStatus.Published => WorkSpaceDirectory.RepoDir,
+                VideoProcessingStatus.CreatedMetadata => WorkSpaceDirectory.TempDir,
+                _ => throw new ApplicationException($"Unknown video status {video.Status.ToString()}")
+            };
+            await _workFileService.RemoveWorkSpace(workSpaceDirectory, Guid.Parse(video.WorkSpaceId));
+            await _videoRepository.DeleteVideo(payload.VideoId, cancellationToken);    
+        } 
+        catch (Exception e)
+        {
+            _logger.LogError("Exception while processing task {Exception}, {StackTrace}", e.Message, e.StackTrace);
+        }
+        
+    }
+
     public async Task ProcessVideo(VideoTask payload, CancellationToken cancellationToken = default(CancellationToken))
     {
          try

@@ -1,6 +1,7 @@
 ﻿@using Domain.Entity
 @using Domain.Interfaces
 @using Domain.Constants
+@using Domain.Model
 @inject IVideoHttpClient _videoHttpClient
 <div class="row">
     <div class="col-12">
@@ -63,7 +64,7 @@
                     } break;
                 }
             </GridColumn>
-            <GridColumn TItem="Video" HeaderText="Actions" HeaderTextAlignment="Alignment.Center" TextAlignment="Alignment.Start" >
+            <GridColumn TItem="Video" HeaderText="Actions" HeaderTextAlignment="Alignment.Center" TextAlignment="Alignment.Center" >
                 <div class="btn-group" role="group" aria-label="Video action button group">
                     @if (context.Status is VideoProcessingStatus.ProcessingFinished)
                     {
@@ -71,22 +72,30 @@
                             Publish
                         </button>
                     }
-                    <button type="button" class="btn btn-outline-dark" @onclick="() => OnChangeVisibility(context)">
-                        Make @(context.IsUnlisted ? "public" : "private")
-                    </button>
-                    <button type="button" class="btn btn-outline-dark">???</button>
+                    @if (context.Status is VideoProcessingStatus.ProcessingFinished or VideoProcessingStatus.Published)
+                    {
+                        <button type="button" class="btn btn-outline-dark" @onclick="() => OnChangeVisibility(context)">
+                            Make @(context.IsUnlisted ? "public" : "private")
+                        </button>
+                        <button type="button" class="btn btn-outline-dark" @onclick="() => OnEditVideo(context)">Edit</button>
+                    }
+                    <button type="button" class="btn btn-outline-dark" @onclick="() => OnDeleteVideo(context)">Delete</button>
                 </div>
             </GridColumn>
         </Grid>
     </div>
 </div>
 <VideoUpload @ref="_videoUploadModal" />
+<VideoMetadataForm @ref="_videoEditForm" OnFormSubmit="OnVideoUpdated" />
 @code {
     private VideoUpload _videoUploadModal;
+    private VideoMetadataForm _videoEditForm;
+    private VideoMetadataForm _videoEditMetadataForm;
     private Grid<Video> _videoGrid;
     private Timer? _publishTimer { get; set; }
     private AutoResetEvent _timerResetEvent { get; set; }
     private bool IsTimerLoaded { get; set; } = false;
+
     private async Task<GridDataProviderResult<Video>> UserVideoDataProvider(GridDataProviderRequest<Video> request)
     {
         var response = await _videoHttpClient.GetUserVideos(request.PageNumber, request.PageSize);
@@ -107,13 +116,21 @@
         _timerResetEvent = new AutoResetEvent(false);
         _publishTimer = new Timer( async (_) =>
         {
-            await _videoGrid.RefreshDataAsync();
-            await InvokeAsync(StateHasChanged);
+            try
+            {
+                await _videoGrid.RefreshDataAsync();
+                await InvokeAsync(StateHasChanged);
+            }
+            catch (Exception e)
+            {
+                // TODO: Weird random exception
+                Console.WriteLine(e.Message);
+            }
         }, _timerResetEvent, 2500L, 2500L);
     }
-    public async Task OpenUploadModal()
+    public async Task OpenUploadModal(bool reset)
     {
-        await _videoUploadModal.OpenModalAsync();
+        await _videoUploadModal.OpenModalAsync(reset);
     }
     private async Task OnPublishVideo(Video video)
     {
@@ -122,6 +139,34 @@
     }
     private async Task OnChangeVisibility(Video video)
     {
-        
+        await _videoHttpClient.ChangeVideoVisibility(Guid.Parse(video.Id), !video.IsUnlisted);
+        await _videoGrid.RefreshDataAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnDeleteVideo(Video video)
+    {
+        await _videoHttpClient.DeleteVideo(Guid.Parse(video.Id));
+        await _videoGrid.RefreshDataAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnEditVideo(Video video)
+    {
+        await _videoUploadModal.CloseModalAsync();
+        await _videoEditForm.OpenEditModalAsync(new EditVideoMetadataModel()
+        {
+            Description = video.Description,
+            IsUnlisted = video.IsUnlisted,
+            Title = video.Title,
+            WorkSpaceId = Guid.Parse(video.WorkSpaceId),
+            VideoId = video.Id
+        });
+    }
+
+    private async Task OnVideoUpdated(Guid videoId)
+    {
+        await _videoGrid.RefreshDataAsync();
+        await InvokeAsync(StateHasChanged);
     }
 }

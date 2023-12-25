@@ -1,5 +1,7 @@
 ﻿@using Domain.Model
 @using Domain.Interfaces
+@using Domain.Entity
+@using Domain.Model.Response
 @inject IVideoHttpClient _videoHttpClient
 
 <EditForm EditContext="_context" OnValidSubmit="OnValidSubmit">
@@ -47,21 +49,25 @@
     private bool _isLoading { get; set; }
     private ValidationMessageStore _messageStore;
     
-    public CreateVideoModel Model { get; set; }
+    public EditVideoMetadataModel Model { get; set; }
     
     [Parameter]
     public EventCallback<Guid> OnFormSubmit { get; set; }
     
     protected override Task OnInitializedAsync()
     {
-        Model = new CreateVideoModel();
+        Model = new EditVideoMetadataModel();
         _context = new EditContext(Model);
         _messageStore = new ValidationMessageStore(_context);
         _context.OnValidationRequested += (s, e) => _messageStore.Clear();
         return base.OnInitializedAsync();
     }
-
-    public async Task OpenModalAsync(Guid workSpaceId)
+    public async Task OpenEditModalAsync(EditVideoMetadataModel model)
+    {
+        Model = model;
+        await _modal.ShowAsync();
+    }
+    public async Task OpenCreateModalAsync(Guid workSpaceId)
     {
         Model.WorkSpaceId = workSpaceId;
         await _modal.ShowAsync();
@@ -71,13 +77,31 @@
     {
         await _modal.HideAsync();
     }
-    
+
+    public async Task Reset()
+    {
+        Model = new EditVideoMetadataModel();
+        _context = new EditContext(Model);
+        _messageStore = new ValidationMessageStore(_context);
+        _context.OnValidationRequested += (s, e) => _messageStore.Clear();
+        _isLoading = false;
+        await InvokeAsync(StateHasChanged);
+    }
     private async Task OnValidSubmit()
     {
-        var response = await _videoHttpClient.CreateVideo(Model);
+        CreateOrUpdateVideoResponse response;
+        if (Model.VideoId is not null)
+        {
+            response = await _videoHttpClient.UpdateVideo(Model);
+        }
+        else
+        {
+            response = await _videoHttpClient.CreateVideo(Model); 
+        }
+        
         if (response.Success)
         {
-            await OnFormSubmit.InvokeAsync(Guid.Parse(response.VideoId));    
+            await OnFormSubmit.InvokeAsync(response.VideoId);    
         }
         else
         {

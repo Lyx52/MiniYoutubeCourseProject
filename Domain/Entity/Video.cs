@@ -13,5 +13,6 @@ public class Video : IdEntity<string>
     public IEnumerable<VideoImpression> Impressions { get; set; }
     public VideoProcessingStatus Status { get; set; }
     public bool IsUnlisted { get; set; }
+    public bool NotificationsSent { get; set; }
     public DateTime Created { get; set; }
 }

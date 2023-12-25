@@ -2,5 +2,5 @@
 
 public class UnsubscribeRequest
 {
-    public string CreatorId { get; set; }
+    public Guid CreatorId { get; set; }
 }
