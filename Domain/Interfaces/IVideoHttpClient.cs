@@ -16,7 +16,7 @@ public interface IVideoHttpClient
     Task<QueryVideosResponse> GetVideosByTitle(string searchText, int from, int count,
         CancellationToken cancellationToken = default(CancellationToken));
     Task<VideoMetadataResponse> GetVideoMetadata(Guid videoId, CancellationToken cancellationToken = default(CancellationToken));
-    Task<VideoPlaylistResponse> GetVideoPlaylist(int from, int count, Guid? creatorId = null,
+    Task<VideoPlaylistResponse> GetVideoPlaylist(int from, int count, Guid? creatorId = null, bool orderByNewest = false,
         CancellationToken cancellationToken = default(CancellationToken));
     Task<QueryVideosResponse> GetUserVideos(int page, int pageSize, CancellationToken cancellationToken = default(CancellationToken));
     Task<Response> AddVideoImpression(Guid videoId, ImpressionType impressionType,

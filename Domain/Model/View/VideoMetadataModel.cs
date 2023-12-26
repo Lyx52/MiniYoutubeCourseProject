@@ -10,6 +10,7 @@ public class VideoMetadataModel
     public string Description { get; set; }
     public long Likes { get; set; }
     public long Dislikes { get; set; }
+    public long ViewCount { get; set; }
     public ImpressionType UserImpression { get; set; }
     public IEnumerable<ContentSourceModel> ContentSources { get; set; }
 }

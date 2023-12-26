@@ -64,13 +64,14 @@ public class VideoHttpClient(
         }, JwtRequirement.Optional, cancellationToken);
     }
 
-    public Task<VideoPlaylistResponse> GetVideoPlaylist(int from, int count, Guid? creatorId = null, CancellationToken cancellationToken = default(CancellationToken))
+    public Task<VideoPlaylistResponse> GetVideoPlaylist(int from, int count, Guid? creatorId = null, bool orderByNewest = false, CancellationToken cancellationToken = default(CancellationToken))
     {
         return SendPayloadRequest<VideoPlaylistRequest, VideoPlaylistResponse>("api/Video/Playlist", new VideoPlaylistRequest()
         {
             From = from,
             Count = count,
-            CreatorId = creatorId
+            CreatorId = creatorId,
+            OrderByNewest = orderByNewest
         }, JwtRequirement.Optional, cancellationToken);
     }
 

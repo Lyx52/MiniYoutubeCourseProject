@@ -92,7 +92,9 @@ public class VideoController : ControllerBase
             CreatorId = payload.CreatorId,
             From = payload.From,
             Count = payload.Count,
-            AddSources = true
+            AddSources = true,
+            Status = VideoProcessingStatus.Published,
+            OrderByCreated = payload.OrderByNewest
         };
         var videos = await _videoRepository.QueryAsync(query, true, cancellationToken);
         var creators = (await _userRepository.GetUsersByIds(videos.Select(v => v.CreatorId), cancellationToken)).ToLookup(v => v.Id);
@@ -139,6 +141,12 @@ public class VideoController : ControllerBase
                 Message = "Video not found!"
             });
         }
+        await _channel.WriteAsync(new VideoTask()
+        {
+            VideoId = videoId,
+            WorkSpaceId = Guid.Empty,
+            Type = BackgroundTaskType.IncrementVideoViewCount
+        }, cancellationToken);
         return Ok(new VideoMetadataResponse()
         {
             Metadata = videoMetadata,

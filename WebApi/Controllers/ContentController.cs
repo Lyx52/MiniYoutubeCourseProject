@@ -58,25 +58,25 @@ public class ContentController : ControllerBase
 
     [HttpPost("UploadVideoFile")]
     [FileExtensionValidation(MP4, MP4, WEBM)]
-    [RequestSizeLimit(1024*1024*1024)]
+    [RequestSizeLimit(int.MaxValue - 1)]
     public async Task<IActionResult> UploadVideoFile([FromForm] IFormFile videoFile, CancellationToken cancellationToken = default(CancellationToken))
     {
         MemoryStream memoryStream = new MemoryStream();
         await videoFile.OpenReadStream().CopyToAsync(memoryStream, cancellationToken);
-        var id = await _contentService.SaveTemporaryFile(memoryStream, videoFile.FileName, cancellationToken);
-        if (id.HasValue)
+        var result = await _contentService.SaveTemporaryFile(memoryStream, videoFile.FileName, cancellationToken);
+        if (result.Success)
         {
             return Ok(new UploadVideoFileResponse()
             {
-                FileId = id.Value,
-                FileName = $"{id}{Path.GetExtension(videoFile.FileName)}",
+                FileId = result.WorkSpaceId!.Value,
+                FileName = $"{result.WorkSpaceId!}{Path.GetExtension(videoFile.FileName)}",
                 Success = true,
             });
         }
-
+        
         return StatusCode(StatusCodes.Status500InternalServerError, new Response()
         {
-            Message = "Failed to save video file as temporary file",
+            Message = result.Reason,
             Success = false
         });
     }

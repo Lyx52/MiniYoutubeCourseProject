@@ -2,6 +2,7 @@
 @using Domain.Interfaces
 @using Domain.Constants
 @using Domain.Model
+@using System.Collections.Concurrent
 @inject IVideoHttpClient _videoHttpClient
 <div class="row">
     <div class="col-12">
@@ -16,6 +17,9 @@
             </GridColumn>
             <GridColumn TItem="Video" HeaderText="Created" PropertyName="Created" HeaderTextAlignment="Alignment.Center" TextAlignment="Alignment.Center" >
                 @context.Created.ToString("dd.MM.yyyy")
+            </GridColumn>
+            <GridColumn TItem="Video" HeaderText="Views" PropertyName="ViewCount" HeaderTextAlignment="Alignment.Center" TextAlignment="Alignment.Center" >
+                @context.ViewCount views
             </GridColumn>
             <GridColumn TItem="Video" HeaderText="Status" PropertyName="Status" HeaderTextAlignment="Alignment.Center" TextAlignment="Alignment.Center" >
                 @switch (context.Status)
@@ -75,40 +79,53 @@
             </GridColumn>
             <GridColumn TItem="Video" HeaderText="Actions" HeaderTextAlignment="Alignment.Center" TextAlignment="Alignment.Center" >
                 <div class="btn-group" role="group" aria-label="Video action button group">
-                    @if (context.Status is VideoProcessingStatus.ProcessingFinished)
+                    @if (ProcessingActions[context.Id])
                     {
-                        <button type="button" class="btn btn-outline-dark" @onclick="() => OnPublishVideo(context)">
-                            Publish
-                        </button>
+                        <div class="spinner-border spinner-border-sm me-2" role="status">
+                            <span class="visually-hidden">Processing...</span>
+                        </div>
                     }
-                    @if (context.Status is VideoProcessingStatus.ProcessingFinished or VideoProcessingStatus.Published)
+                    else
                     {
-                        <button type="button" class="btn btn-outline-dark" @onclick="() => OnChangeVisibility(context)">
-                            Make @(context.IsUnlisted ? "public" : "private")
-                        </button>
-                        <button type="button" class="btn btn-outline-dark" @onclick="() => OnEditVideo(context)">Edit</button>
+                        @if (context.Status is VideoProcessingStatus.ProcessingFinished)
+                        {
+                            <button type="button" class="btn btn-outline-dark" @onclick="() => OnPublishVideo(context)">
+                                Publish
+                            </button>
+                        }
+
+                        @if (context.Status is VideoProcessingStatus.ProcessingFinished or VideoProcessingStatus.Published)
+                        {
+                            <button type="button" class="btn btn-outline-dark" @onclick="() => OnChangeVisibility(context)">
+                                Make @(context.IsUnlisted ? "public" : "private")
+                            </button>
+                            <button type="button" class="btn btn-outline-dark" @onclick="() => OnEditVideo(context)">Edit</button>
+                            <button type="button" class="btn btn-outline-dark" @onclick="() => OnDeleteVideo(context)">Delete</button>
+                        }
                     }
-                    <button type="button" class="btn btn-outline-dark" @onclick="() => OnDeleteVideo(context)">Delete</button>
                 </div>
             </GridColumn>
         </Grid>
     </div>
 </div>
-<VideoUpload @ref="_videoUploadModal" />
+<VideoUpload @ref="_videoUploadModal" OnWorkflowComplete="OnVideoPublished" />
 <VideoMetadataForm @ref="_videoEditForm" OnFormSubmit="OnVideoUpdated" />
 @code {
     private VideoUpload _videoUploadModal;
     private VideoMetadataForm _videoEditForm;
-    private VideoMetadataForm _videoEditMetadataForm;
     private Grid<Video> _videoGrid;
     private Timer? _publishTimer { get; set; }
     private AutoResetEvent _timerResetEvent { get; set; }
     private bool IsTimerLoaded { get; set; } = false;
-
+    private ConcurrentDictionary<string, bool> ProcessingActions { get; set; } = new ConcurrentDictionary<string, bool>();
     private async Task<GridDataProviderResult<Video>> UserVideoDataProvider(GridDataProviderRequest<Video> request)
     {
         var response = await _videoHttpClient.GetUserVideos(request.PageNumber, request.PageSize);
         if (!response.Success) return new GridDataProviderResult<Video>();
+        response.Videos.ToList().ForEach(v =>
+        {
+            ProcessingActions.TryAdd(v.Id, false);
+        });
         if (!IsTimerLoaded)
         {
             InitVideoStateTimer();
@@ -148,13 +165,17 @@
     }
     private async Task OnChangeVisibility(Video video)
     {
+        ProcessingActions[video.Id] = true;
         await _videoHttpClient.ChangeVideoVisibility(Guid.Parse(video.Id), !video.IsUnlisted);
         await _videoGrid.RefreshDataAsync();
         await InvokeAsync(StateHasChanged);
+        ProcessingActions[video.Id] = false;
     }
 
     private async Task OnDeleteVideo(Video video)
     {
+        ProcessingActions[video.Id] = true;
+        video.Status = VideoProcessingStatus.Deleting;
         await _videoHttpClient.DeleteVideo(Guid.Parse(video.Id));
         await _videoGrid.RefreshDataAsync();
         await InvokeAsync(StateHasChanged);
@@ -162,20 +183,17 @@
 
     private async Task OnEditVideo(Video video)
     {
-        await _videoUploadModal.CloseModalAsync();
-        await _videoEditForm.OpenEditModalAsync(new EditVideoMetadataModel()
-        {
-            Description = video.Description,
-            IsUnlisted = video.IsUnlisted,
-            Title = video.Title,
-            WorkSpaceId = Guid.Parse(video.WorkSpaceId),
-            VideoId = Guid.Parse(video.Id)
-        });
+        await _videoEditForm.OpenEditModalAsync(video);
     }
 
     private async Task OnVideoUpdated(Guid videoId)
     {
+        await _videoEditForm.CloseModalAsync();
         await _videoGrid.RefreshDataAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+    private async Task OnVideoPublished(Guid videoId)
+    {
         await InvokeAsync(StateHasChanged);
     }
 }

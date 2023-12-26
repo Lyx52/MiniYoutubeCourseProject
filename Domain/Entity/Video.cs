@@ -15,4 +15,5 @@ public class Video : IdEntity<string>
     public bool IsUnlisted { get; set; }
     public bool NotificationsSent { get; set; }
     public DateTime Created { get; set; }
+    public long ViewCount { get; set; }
 }

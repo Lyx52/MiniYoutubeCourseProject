@@ -19,7 +19,7 @@
             </div>
             </CascadingValue>
             <div class="col-12 col-md-3 video-playlist-block">
-                <VideoPlaylist/>
+                <VideoPlaylist VideoCount="10"/>
             </div>
             <div class="col-12 col-md-6">
                 <CommentSection @ref="_commentSection"/>
@@ -39,45 +39,45 @@
     private WatchView _watchView;
     private bool IsSubscribed { get; set; }
     private long SubscriberCount { get; set; }
-    protected override async Task OnInitializedAsync()
+    private bool IsMetadataLoaded { get; set; }
+    
+    private async Task LoadMetadata()
     {
-        try
+        if (IsMetadataLoaded) return;
+        var id = EncodedVideoId.FromEncodedId();
+        if (EncodedVideoId is null || id == Guid.Empty)
         {
-            var id = EncodedVideoId.FromEncodedId();
-            if (EncodedVideoId is null || id == Guid.Empty)
-            {
-                _navigationManager.NavigateTo("/", true);
-                await base.OnInitializedAsync();
-                return;
-            }
-            var response = await _videoHttpClient.GetVideoMetadata(id);
-            if (!response.Success)
-            {
-                _navigationManager.NavigateTo("/", true);
-                await base.OnInitializedAsync();
-                return;
-            }
-            Metadata = response.Metadata;
-            Sources = response.Metadata.ContentSources.ToList();
-            var creatorResponse = await _userHttpClient.GetCreatorProfile(Metadata.CreatorId);
-            if (!creatorResponse.Success)
-            {
-                _navigationManager.NavigateTo("/", true);
-                await base.OnInitializedAsync();
-                return;
-            }
-            Creator = creatorResponse.Creator;
-            IsSubscribed = creatorResponse.IsSubscribed;
-            SubscriberCount = creatorResponse.SubscriberCount;
+            _navigationManager.NavigateTo("/", true);
+            await base.OnInitializedAsync();
+            return;
         }
-        catch (NavigationException _) { } // Another js related exception we can ignore
-        await base.OnInitializedAsync();
+        var response = await _videoHttpClient.GetVideoMetadata(id);
+        if (!response.Success)
+        {
+            _navigationManager.NavigateTo("/", true);
+            await base.OnInitializedAsync();
+            return;
+        }
+        Metadata = response.Metadata;
+        Sources = response.Metadata.ContentSources.ToList();
+        var creatorResponse = await _userHttpClient.GetCreatorProfile(Metadata.CreatorId);
+        if (!creatorResponse.Success)
+        {
+            _navigationManager.NavigateTo("/", true);
+            await base.OnInitializedAsync();
+            return;
+        }
+        Creator = creatorResponse.Creator;
+        IsSubscribed = creatorResponse.IsSubscribed;
+        SubscriberCount = creatorResponse.SubscriberCount;
+        IsMetadataLoaded = true;
+        await InvokeAsync(StateHasChanged);
     }
-
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender)
+        if (firstRender)
         {
+            await LoadMetadata();
             await _watchView.InitVideoPlayer(Sources
                 .Where((cs) => cs.Type == ContentSourceType.Video)
                 .Select((cs, i) =>

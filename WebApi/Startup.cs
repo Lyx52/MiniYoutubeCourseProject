@@ -15,6 +15,7 @@ using WebApi.Swagger;
 using Domain;
 using Domain.Model.Configuration;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Http.Json;
 using WebApi.Services.Models;
 
@@ -36,7 +37,10 @@ public class Startup
         {
             options.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
         });
-        
+        services.Configure<FormOptions>(x =>
+        {
+            x.MultipartBodyLengthLimit = int.MaxValue - 1;
+        });
         services.AddDbContext<UserDbContext>((options) =>
         {
             // TODO: Use proper db.
@@ -110,7 +114,10 @@ public class Startup
         services.AddTransient<IContentProcessingService, ContentProcessingService>();
         services.AddTransient<INotificationProcessingService, NotificationProcessingService>();
         services.AddTransient<IEmailProcessingService, EmailProcessingService>();
+        services.AddSingleton<IViewProcessingService, ViewProcessingService>();
+        
         services.AddTransient<IContentService, ContentService>();
+        
         services.AddTransient<IVideoRepository, VideoRepository>();
         services.AddTransient<IContentRepository, ContentRepository>();
         services.AddTransient<ICommentRepository, CommentRepository>();

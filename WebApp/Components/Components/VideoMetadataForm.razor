@@ -36,7 +36,7 @@
                 }
                 else
                 {
-                    <span>Create</span>
+                    <span>@(Model.VideoId is null ? "Create" : "Update")</span>
                 }
             </Button>
         </FooterTemplate>
@@ -62,9 +62,13 @@
         _context.OnValidationRequested += (s, e) => _messageStore.Clear();
         return base.OnInitializedAsync();
     }
-    public async Task OpenEditModalAsync(EditVideoMetadataModel model)
+    public async Task OpenEditModalAsync(Video video)
     {
-        Model = model;
+        Model.WorkSpaceId = Guid.Parse(video.WorkSpaceId);
+        Model.VideoId = Guid.Parse(video.Id);
+        Model.Description = video.Description;
+        Model.Title = video.Title;
+        Model.IsUnlisted = video.IsUnlisted;
         await _modal.ShowAsync();
     }
     public async Task OpenCreateModalAsync(Guid workSpaceId)
@@ -87,6 +91,7 @@
         _isLoading = false;
         await InvokeAsync(StateHasChanged);
     }
+    
     private async Task OnValidSubmit()
     {
         CreateOrUpdateVideoResponse response;
@@ -107,6 +112,5 @@
         {
             _messageStore.Add(_context.Field(string.Empty), response.Message ?? "Server error, try again later!");
         }
-        
     }
 }

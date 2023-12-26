@@ -15,6 +15,7 @@ public interface IVideoRepository : IEntityRepository<Video, VideoModel, string>
     Task<List<ContentSource>> GetVideoSourcesById(Guid videoId, CancellationToken cancellationToken = default(CancellationToken));
     Task SetVideoImpression(Guid userId, Guid videoId, ImpressionType impressionType, CancellationToken cancellationToken = default(CancellationToken));
     Task<Video?> GetVideoById(Guid videoId, bool includeAll = false, CancellationToken cancellationToken = default(CancellationToken));
+    Task UpdateVideoViewCount(Guid videoId, long incrementBy, CancellationToken cancellationToken = default(CancellationToken));
     Task DeleteVideo(Guid videoId, CancellationToken cancellationToken = default(CancellationToken));
     Task<Guid> UpdateVideo(Video video, CancellationToken cancellationToken = default(CancellationToken));
     Task ChangeVisibility(Guid videoId, bool isUnlisted, CancellationToken cancellationToken = default(CancellationToken));

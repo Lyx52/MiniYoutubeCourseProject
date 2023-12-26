@@ -132,6 +132,15 @@ public class VideoRepository : IVideoRepository
                 .FirstOrDefaultAsync(v => v.Id == videoId.ToString(), cancellationToken);
     }
 
+    public async Task UpdateVideoViewCount(Guid videoId, long incrementBy,
+        CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var video = await GetVideoById(videoId, false, cancellationToken);
+        if (video is null) return;
+        video.ViewCount += incrementBy;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task DeleteVideo(Guid videoId, CancellationToken cancellationToken = default(CancellationToken))
     {
         var video = await _dbContext
@@ -193,7 +202,8 @@ public class VideoRepository : IVideoRepository
             Dislikes = dislikes,
             Likes = likes,
             UserImpression = userImpression,
-            ContentSources = contentSources
+            ContentSources = contentSources,
+            ViewCount = video.ViewCount
         };
     }
 

@@ -14,15 +14,17 @@ public class VideoPlaylistModel
     public string CreatorIconLink { get; set; }
     public ContentSourceModel? Poster { get; set; } = null;
     public ContentSourceModel? PosterGif { get; set; } = null;
+    public long ViewCount { get; set; }
     
     [JsonConstructor]
-    public VideoPlaylistModel(string videoId, string title, string creatorId, string creatorName, string creatorIconLink)
+    public VideoPlaylistModel(string videoId, string title, string creatorId, string creatorName, string creatorIconLink, long viewCount)
     {
         VideoId = videoId;
         Title = title;
         CreatorId = creatorId;
         CreatorName = creatorName;
         CreatorIconLink = creatorIconLink;
+        ViewCount = viewCount;
     }
     public VideoPlaylistModel(Video video, UserModel creator)
     {
@@ -41,5 +43,6 @@ public class VideoPlaylistModel
         CreatorId = creator.Id;
         CreatorName = creator.CreatorName;
         CreatorIconLink = creator.IconLink;
+        ViewCount = video.ViewCount;
     }
 }

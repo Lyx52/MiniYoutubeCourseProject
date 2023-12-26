@@ -66,7 +66,7 @@ public class ContentProcessingService : IContentProcessingService
         if (analysis.PrimaryVideoStream.Width < 640 && analysis.PrimaryVideoStream.Height < 360) return false;
         
         // Maximum resolution 1920x1080
-        if (analysis.PrimaryVideoStream.Width > 1920 && analysis.PrimaryVideoStream.Height > 1080) return false;
+        if (analysis.PrimaryVideoStream.Width > 3840 && analysis.PrimaryVideoStream.Height > 2160) return false;
 
         if (analysis.PrimaryVideoStream.AvgFrameRate is < 15 or > 60) return false;
         

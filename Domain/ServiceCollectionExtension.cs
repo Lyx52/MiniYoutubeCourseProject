@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.Resources;
 using System.Threading.Channels;
 using Domain.Interfaces;
 using Domain.Model.Configuration;
@@ -32,6 +33,8 @@ public static class ServiceCollectionExtension
         services.AddHttpClient<IContentHttpClient, ContentHttpClient>(nameof(ContentHttpClient), client =>
             {
                 client.BaseAddress = new Uri(configuration.ApiEndpoint);
+                client.Timeout = TimeSpan.FromHours(1);
+                client.MaxResponseContentBufferSize = int.MaxValue;
             })
             .AddPolicyHandler(Policy<HttpResponseMessage>
                 .Handle<HttpRequestException>()

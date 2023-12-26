@@ -4,44 +4,71 @@
 @using Domain.Constants
 @inject NavigationManager _navigationManager
 @inject IUserHttpClient _userHttpClient
-<div class="container-fluid">
-    <div class="row">
-        <div class="d-flex">
-            <div class="w-25">
-                <img src="https://bootdey.com/img/Content/avatar/avatar7.png" alt="Admin" class="rounded-circle">
-            </div>
-            <div>
-                <h2>@Model.CreatorName</h2>
-                <span class="small">123 subscribers</span>
-                <button class="btn btn-outline-dark">Subscribe</button>
+@if (CreatorModel is not null)
+{
+    <div class="container-fluid">
+        <div class="row mb-3">
+            <div class="d-flex">
+                <div>
+                    <img src="https://bootdey.com/img/Content/avatar/avatar7.png" alt="Admin" class="rounded-circle creator-icon-lg">
+                </div>
+                <div>
+                    <h2>@CreatorModel.CreatorName</h2>
+                    <span class="small">@SubscriberCount subscribers</span>
+                    <AuthorizeView>
+                        <Authorized>
+                            <button class="btn my-auto btn-subscribe @(IsSubscribed ? "btn-dark" : "btn-outline-dark")" @onclick="OnSubscribeCreator">
+                                @(IsSubscribed ? "Subscribed" : "Subscribe")
+                            </button>    
+                        </Authorized>
+                    </AuthorizeView>
+                </div>
             </div>
         </div>
+        <div class="row">
+            <ul class="nav nav-tabs">
+                <li class="nav-item">
+                    <a class="nav-link cursor-pointer @(CurrentState == CreatorPageState.Home ? "active" : string.Empty)" @onclick="() => OnChangePage(CreatorPageState.Home)">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link cursor-pointer @(CurrentState == CreatorPageState.Videos ? "active" : string.Empty)" @onclick="() => OnChangePage(CreatorPageState.Videos)">Videos</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link cursor-pointer @(CurrentState == CreatorPageState.Playlists ? "active" : string.Empty) disabled" @onclick="() => OnChangePage(CreatorPageState.Playlists)">Playlists</a>
+                </li>
+            </ul>
+        </div>
+        <div class="row pt-3 row-cols-1">
+            @switch (CurrentState)
+            {
+                case CreatorPageState.Home:
+                {
+                    <div class="col-12 row">
+                        <VideoPlaylist PlaylistName="Newest videos" CreatorId="CreatorId" HorizontalPlaylist="@true" ShowCreatorInfo="@false" VideoCount="5" />
+                    </div>    
+                    <div class="col-12 row">
+                        <VideoPlaylist PlaylistName="Pinned videos" CreatorId="CreatorId" HorizontalPlaylist="@true" ShowCreatorInfo="@false" VideoCount="5" />
+                    </div>  
+                } break;
+                case CreatorPageState.Videos:
+                {
+                    <VideoGrid CreatorId="CreatorId" ShowCreatorInfo="@false" />    
+                } break;
+            }
+        </div>
     </div>
-    <div class="row">
-        <ul class="nav nav-tabs">
-            <li class="nav-item">
-                <a class="nav-link active" aria-current="page" href="#">Home</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="#">Videos</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="#">Playlists</a>
-            </li>
-        </ul>        
-    </div>
-    <div class="row">
-         
-    </div>
-</div>
+}
+
 @code {
-    [Parameter]
-    public string? EncodedUserId { get; set; }
-    
-    private Guid UserId { get; set; }
-    private UserModel Model { get; set; }
+    [Parameter] public string? EncodedUserId { get; set; }
+
+    private Guid CreatorId { get; set; }
+    private UserModel? CreatorModel { get; set; }
+    private bool IsSubscribed { get; set; }
+    private long SubscriberCount { get; set; }
     private bool IsLoaded { get; set; }
-    
+    private CreatorPageState CurrentState { get; set; } = CreatorPageState.Home;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -53,21 +80,50 @@
 
     private async Task LoadContent()
     {
-        
+
         if (IsLoaded) return;
-        UserId = EncodedUserId.FromEncodedId();
-        if (EncodedUserId is null || UserId == Guid.Empty)
+        CreatorId = EncodedUserId.FromEncodedId();
+        if (EncodedUserId is null || CreatorId == Guid.Empty)
         {
             _navigationManager.NavigateTo("/", true);
             return;
         }
-        var response = await _userHttpClient.GetPublicUserProfile(UserId);
+
+        var response = await _userHttpClient.GetCreatorProfile(CreatorId);
         if (!response.Success)
         {
             _navigationManager.NavigateTo("/", true);
             return;
         }
-        Model = response.User;
+
+        CreatorModel = response.Creator;
+        SubscriberCount = response.SubscriberCount;
+        IsSubscribed = response.IsSubscribed;
         IsLoaded = true;
+    }
+
+    private async Task OnSubscribeCreator()
+    {
+        if (CreatorModel is null) return;
+        if (IsSubscribed)
+        {
+            await _userHttpClient.Unsubscribe(Guid.Parse(CreatorModel!.Id));
+            SubscriberCount--;
+            IsSubscribed = false;
+        }
+        else
+        {
+            await _userHttpClient.Subscribe(Guid.Parse(CreatorModel!.Id));
+            SubscriberCount++;
+            IsSubscribed = true;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnChangePage(CreatorPageState state)
+    {
+        CurrentState = state;
+        await InvokeAsync(StateHasChanged);
     }
 }

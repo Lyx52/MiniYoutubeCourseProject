@@ -49,6 +49,12 @@ public class BackgroundProcessingService : BackgroundService
                 if (task is not VideoTask payload) return;
                 await processingService!.DeleteVideo(payload, cancellationToken); 
             } break;
+            case BackgroundTaskType.IncrementVideoViewCount:
+            {
+                var processingService = scope.ServiceProvider.GetRequiredService<IViewProcessingService>();
+                if (task is not VideoTask payload) return;
+                await processingService!.IncrementVideoViewCount(payload.VideoId, cancellationToken); 
+            } break;
             case BackgroundTaskType.GenerateUploadNotifications:
             {
                 var processingService = scope.ServiceProvider.GetRequiredService<INotificationProcessingService>();

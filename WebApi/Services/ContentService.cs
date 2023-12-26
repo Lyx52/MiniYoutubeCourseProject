@@ -23,7 +23,7 @@ public class ContentService : IContentService
         _workFileService = workFileService;
     }
 
-    public async Task<Guid?> SaveTemporaryFile(MemoryStream readStream, string fileName, CancellationToken cancellationToken = default(CancellationToken))
+    public async Task<SaveTemporaryFileResult> SaveTemporaryFile(MemoryStream readStream, string fileName, CancellationToken cancellationToken = default(CancellationToken))
     {
         readStream.Seek(0, SeekOrigin.Begin);
         if (await _processingService.IsValidVideoFileAsync(readStream, cancellationToken))
@@ -41,14 +41,27 @@ public class ContentService : IContentService
                 fileStream.Close();
                 workSpace.Files.Add(workFile);
                 await _workFileService.SaveWorkSpaceAsync(workSpace);
-                return workSpace.Id;
+                return new SaveTemporaryFileResult()
+                {
+                    Success = true,
+                    WorkSpaceId = workSpace.Id
+                };
             }
             catch (IOException e)
             {
                 _logger.LogError("Failed to save temporary file: {ExceptionMessage}", e.Message);
+                return new SaveTemporaryFileResult()
+                {
+                    Success = false,
+                    Reason = "Processing failed"
+                };
             }
         }
 
-        return null;
+        return new SaveTemporaryFileResult()
+        {
+            Success = false,
+            Reason = "Invalid video file"
+        };
     }
 }

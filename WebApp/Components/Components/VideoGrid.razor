@@ -11,7 +11,7 @@
     <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
         @foreach (var video in _videos)
         {
-            <VideoCard Video="@video"/>    
+            <VideoCard Video="@video" ShowCreatorInfo="ShowCreatorInfo"/>    
         }
     </div>
     <div class="row mt-5">
@@ -24,6 +24,8 @@
 </div>
 <Preload Class="preload-block" />
 @code {
+    [Parameter] public bool ShowCreatorInfo { get; set; } = true;
+    [Parameter] public Guid? CreatorId { get; set; }
     private List<VideoPlaylistModel> _videos = new List<VideoPlaylistModel>();
     public int CurrentOffset { get; set; } = 0;
     private bool IsLoaded { get; set; }
@@ -45,10 +47,10 @@
     private async Task LoadMoreVideos()
     {
         _preloadService.Show();
-        var response = await _videoHttpClient.GetVideoPlaylist(CurrentOffset, 12);
+        var response = await _videoHttpClient.GetVideoPlaylist(CurrentOffset, 12, CreatorId);
         _videos.AddRange(response.Videos);
         await InvokeAsync(StateHasChanged);
         _preloadService.Hide();
-        //CurrentOffset += response.Videos.Count();
+        CurrentOffset += response.Videos.Count();
     }
 }
