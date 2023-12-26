@@ -58,13 +58,14 @@ public class CommentRepository : ICommentRepository
                 Dislikes = totalDislikes,
                 Likes = totalLikes,
                 UserId = comment.CommenterId,
+                VideoId = comment.VideoId,
                 Id = comment.Id,
-                Impression = ImpressionType.None
+                UserImpression = ImpressionType.None
             };
             comments.Add(model);
             if (!userId.HasValue) continue;
             var compositeId = $"{userId.Value.ToString()[0..18]}-{comment.Id[19..36]}";
-            model.Impression = comment.Impressions.FirstOrDefault(i => i.Id == compositeId)?.Impression ?? ImpressionType.None;
+            model.UserImpression = comment.Impressions.FirstOrDefault(i => i.Id == compositeId)?.Impression ?? ImpressionType.None;
         }
         
         return comments;

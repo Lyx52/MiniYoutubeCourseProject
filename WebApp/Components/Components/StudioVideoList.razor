@@ -35,6 +35,15 @@
                             <span>Processing...</span>
                         </div>
                     } break;
+                    case VideoProcessingStatus.Deleting:
+                    {
+                        <div class="d-flex flex-row align-items-center justify-content-center">
+                            <div class="spinner-border spinner-border-sm me-2" role="status">
+                                <span class="visually-hidden">Deleting...</span>
+                            </div>
+                            <span>Deleting...</span>
+                        </div>
+                    } break;
                     case VideoProcessingStatus.ProcessingFailed:
                     {
                         <div class="d-flex flex-row align-items-center justify-content-center">
@@ -160,7 +169,7 @@
             IsUnlisted = video.IsUnlisted,
             Title = video.Title,
             WorkSpaceId = Guid.Parse(video.WorkSpaceId),
-            VideoId = video.Id
+            VideoId = Guid.Parse(video.Id)
         });
     }
 

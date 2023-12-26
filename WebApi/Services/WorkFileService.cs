@@ -52,6 +52,12 @@ public class WorkFileService : IWorkFileService
         await fs.FlushAsync();
     }
 
+    public bool WorkSpaceExists(WorkSpaceDirectory directory, Guid id)
+    {
+        var workSpaceDirectory = GetWorkDirectory(directory);
+        var metadataFile = Path.Join(workSpaceDirectory, id.ToString(), "metadata.json");
+        return File.Exists(metadataFile);
+    }
     public async Task<WorkSpace> LoadWorkSpace(WorkSpaceDirectory directory, Guid id)
     {
         var workSpaceDirectory = GetWorkDirectory(directory);

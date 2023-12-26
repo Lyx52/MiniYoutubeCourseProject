@@ -43,10 +43,20 @@ public class UserController : ControllerBase
     public async Task<IActionResult> Subscribe([FromBody] SubscribeRequest payload, CancellationToken cancellationToken = default(CancellationToken))
     {
         var user = await _userRepository.GetUserByClaimsPrincipal(User, cancellationToken);
-        if (user is null) return Unauthorized();
+        if (user is null)
+        {
+            return Unauthorized(new Response()
+            {
+                Success = false,
+                Message = "User is Unauthorized!"
+            });
+        }
         
         await _subscriberRepository.Subscribe(Guid.Parse(user.Id), payload.CreatorId, cancellationToken);
-        return Ok();
+        return Ok(new Response()
+        {
+            Success = true
+        });
     }
     
     [HttpPost]
@@ -54,10 +64,20 @@ public class UserController : ControllerBase
     public async Task<IActionResult> Unsubscribe([FromBody] UnsubscribeRequest payload, CancellationToken cancellationToken = default(CancellationToken))
     {
         var user = await _userRepository.GetUserByClaimsPrincipal(User, cancellationToken);
-        if (user is null) return Unauthorized();
+        if (user is null)
+        {
+            return Unauthorized(new Response()
+            {
+                Success = false,
+                Message = "User is Unauthorized!"
+            });
+        }
         
         await _subscriberRepository.Unsubscribe(Guid.Parse(user.Id), payload.CreatorId, cancellationToken);
-        return Ok();
+        return Ok(new Response()
+        {
+            Success = true
+        });
     }
     
     [HttpGet]
@@ -65,7 +85,14 @@ public class UserController : ControllerBase
     public async Task<IActionResult> Profile(CancellationToken cancellationToken = default(CancellationToken))
     {
         var user = await _userRepository.GetUserByClaimsPrincipal(User, cancellationToken);
-        if (user is null) return Unauthorized();
+        if (user is null)
+        {
+            return Unauthorized(new Response()
+            {
+                Success = false,
+                Message = "User is Unauthorized!"
+            });
+        }
         return Ok(new UserProfileResponse()
         {
             User = user,
@@ -78,7 +105,14 @@ public class UserController : ControllerBase
     public async Task<IActionResult> Notifications(CancellationToken cancellationToken = default(CancellationToken))
     {
         var user = await _userRepository.GetUserByClaimsPrincipal(User, cancellationToken);
-        if (user is null) return Unauthorized();
+        if (user is null)
+        {
+            return Unauthorized(new Response()
+            {
+                Success = false,
+                Message = "User is Unauthorized!"
+            });
+        }
         var notifications = await _notificationRepository.GetUserNotifications(Guid.Parse(user.Id), cancellationToken);
         return Ok(new UserNotificationResponse()
         {
@@ -93,10 +127,20 @@ public class UserController : ControllerBase
     public async Task<IActionResult> DismissNotification([FromBody] DismissNotificationRequest payload, CancellationToken cancellationToken = default(CancellationToken))
     {
         var user = await _userRepository.GetUserByClaimsPrincipal(User, cancellationToken);
-        if (user is null) return Unauthorized();
+        if (user is null)
+        {
+            return Unauthorized(new Response()
+            {
+                Success = false,
+                Message = "User is Unauthorized!"
+            });
+        }
         
         await _notificationRepository.DismissNotification(Guid.Parse(user.Id), payload.NotificationId, cancellationToken);
-        return Ok();
+        return Ok(new Response()
+        {
+            Success = true
+        });
     }
     
     [HttpGet]
@@ -106,7 +150,14 @@ public class UserController : ControllerBase
     {
         var user = await _userRepository.GetUserByClaimsPrincipal(User, cancellationToken);
         var creator = await _userRepository.GetUserById(creatorId, cancellationToken);
-        if (creator is null) return NotFound();
+        if (creator is null)
+        {
+            return NotFound(new Response()
+            {
+                Success = false,
+                Message = "Creator not found!"
+            });
+        }
         creator.Email = string.Empty;
         creator.Username = string.Empty;
         
@@ -132,7 +183,14 @@ public class UserController : ControllerBase
     public async Task<IActionResult> PublicProfile(string userId, CancellationToken cancellationToken = default(CancellationToken))
     {
         var user = await _userRepository.GetUserById(userId, cancellationToken);
-        if (user is null) return NotFound();
+        if (user is null)
+        {
+            return NotFound(new Response()
+            {
+                Success = false,
+                Message = "User not found!"
+            });
+        }
         user.Email = string.Empty;
         user.Username = string.Empty;
         return Ok(new UserProfileResponse()

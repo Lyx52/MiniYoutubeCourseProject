@@ -103,7 +103,9 @@ public class VideoController : ControllerBase
         
         var totalCount = await _videoRepository.QueryCountAsync(new VideoQuery()
         {
-            CreatorId = payload.CreatorId
+            CreatorId = payload.CreatorId,
+            From = 0,
+            Count = 99999
         }, cancellationToken);
         return Ok(new VideoPlaylistResponse()
         {
@@ -111,8 +113,7 @@ public class VideoController : ControllerBase
             From = query.From,
             Count = query.Count,
             TotalCount = totalCount,
-            Success = true,
-            Message = string.Empty
+            Success = true
         });
     }
     
@@ -141,6 +142,40 @@ public class VideoController : ControllerBase
         return Ok(new VideoMetadataResponse()
         {
             Metadata = videoMetadata,
+            Success = true
+        });
+    }
+    
+    [HttpPost("UpdateVideo")]
+    public async Task<IActionResult> UpdateVideo([FromBody] UpdateVideoRequest payload, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var user = await _userRepository.GetUserByClaimsPrincipal(User, cancellationToken);
+        if (user is null) {
+            return Unauthorized(new Response()
+            {
+                Success = false,
+                Message = "User is Unauthorized!"
+            });
+        }
+        
+        var video = await _videoRepository.GetVideoById(payload.VideoId, false, cancellationToken);
+        if (video is null || video?.CreatorId != user.Id)
+        {
+            return NotFound(new Response()
+            {
+                Success = false,
+                Message = "Video not found!"
+            });
+        }
+
+        video.Title = payload.Title;
+        video.Description = payload.Description;
+        video.IsUnlisted = payload.IsUnlisted;
+        var videoId = await _videoRepository.UpdateVideo(video, cancellationToken);
+        return Ok(new CreateOrUpdateVideoResponse()
+        {
+            VideoId = videoId,
+            Message = string.Empty,
             Success = true
         });
     }
@@ -260,7 +295,8 @@ public class VideoController : ControllerBase
                 Message = "Video not found!"
             });
         }
-        
+
+        await _videoRepository.UpdateVideoStatus(videoId, VideoProcessingStatus.Deleting, cancellationToken);
         await _channel.WriteAsync(new VideoTask()
         {
             VideoId = Guid.Parse(video.Id),

@@ -35,10 +35,10 @@
                     <AuthorizeView>
                         <Authorized>
                             <button class="btn btn-comment-action" @onclick="OnLikeClick">
-                                <i class="bi @(Comment.Impression is ImpressionType.Like ? "bi-hand-thumbs-up-fill" : "comment-like-button")"></i>@Comment.Likes
+                                <i class="bi @(Comment.UserImpression is ImpressionType.Like ? "bi-hand-thumbs-up-fill" : "comment-like-button")"></i>@Comment.Likes
                             </button>
                             <button class="btn btn-comment-action" @onclick="OnDislikeClick">
-                                <i class="bi @(Comment.Impression is ImpressionType.Dislike ? "bi-hand-thumbs-down-fill" : "comment-dislike-button")"></i>@Comment.Dislikes
+                                <i class="bi @(Comment.UserImpression is ImpressionType.Dislike ? "bi-hand-thumbs-down-fill" : "comment-dislike-button")"></i>@Comment.Dislikes
                             </button>    
                         </Authorized>
                         <NotAuthorized>
@@ -109,11 +109,11 @@
     private async Task OnImpressionClick(ImpressionType impression)
     {
         if (DateTime.UtcNow - LastUpdated <= TimeSpan.FromSeconds(1)) return;
-        ImpressionType impressionType = Comment.Impression == impression ? ImpressionType.None : impression;
+        ImpressionType impressionType = Comment.UserImpression == impression ? ImpressionType.None : impression;
         await _commentHttpClient.AddCommentImpression(Guid.Parse(Comment.Id), impressionType);
-        if (Comment.Impression == ImpressionType.Dislike) Comment.Dislikes--;
-        if (Comment.Impression == ImpressionType.Like) Comment.Likes--;
-        Comment.Impression = impressionType;
+        if (Comment.UserImpression == ImpressionType.Dislike) Comment.Dislikes--;
+        if (Comment.UserImpression == ImpressionType.Like) Comment.Likes--;
+        Comment.UserImpression = impressionType;
         if (impressionType == ImpressionType.Dislike) Comment.Dislikes++;
         if (impressionType == ImpressionType.Like) Comment.Likes++;
         LastUpdated = DateTime.UtcNow;

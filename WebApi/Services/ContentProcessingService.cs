@@ -20,6 +20,13 @@ public class ContentProcessingService : IContentProcessingService
     private readonly IVideoRepository _videoRepository;
     private readonly ApiConfiguration _configuration;
     private readonly ChannelWriter<BackgroundTask> _channel;
+
+    private readonly WorkSpaceDirectory[] WorkSpaceDirectories = new[]
+    {
+        WorkSpaceDirectory.TempDir,
+        WorkSpaceDirectory.WorkDir,
+        WorkSpaceDirectory.RepoDir
+    };
     public ContentProcessingService(
         ILogger<ContentProcessingService> logger, 
         IWorkFileService workFileService,
@@ -234,15 +241,21 @@ public class ContentProcessingService : IContentProcessingService
                 return;
             }
 
-            var workSpaceDirectory = video.Status switch
+            var workSpaceDirectory = WorkSpaceDirectory.TempDir;
+            var workSpaceFound = false;
+            foreach (var directory in WorkSpaceDirectories)
             {
-                VideoProcessingStatus.Processing => WorkSpaceDirectory.WorkDir,
-                VideoProcessingStatus.ProcessingFailed => WorkSpaceDirectory.WorkDir,
-                VideoProcessingStatus.ProcessingFinished => WorkSpaceDirectory.WorkDir,
-                VideoProcessingStatus.Published => WorkSpaceDirectory.RepoDir,
-                VideoProcessingStatus.CreatedMetadata => WorkSpaceDirectory.TempDir,
-                _ => throw new ApplicationException($"Unknown video status {video.Status.ToString()}")
-            };
+                if (!_workFileService.WorkSpaceExists(directory, Guid.Parse(video.WorkSpaceId))) continue;
+                workSpaceDirectory = directory;
+                workSpaceFound = true;
+                break;
+            }
+
+            if (!workSpaceFound)
+            {
+                throw new ApplicationException($"Cannot find video {video.Id} WorkSpace {video.WorkSpaceId} in any directory");
+            }
+
             await _workFileService.RemoveWorkSpace(workSpaceDirectory, Guid.Parse(video.WorkSpaceId));
             await _videoRepository.DeleteVideo(payload.VideoId, cancellationToken);    
         } 

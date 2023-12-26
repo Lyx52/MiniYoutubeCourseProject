@@ -4,6 +4,7 @@ using System.Text.Json;
 using Domain.Constants;
 using Domain.Interfaces;
 using Domain.Model.Response;
+using Domain.Model.View;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
@@ -129,7 +130,7 @@ public class BaseHttpClient(
                 }
             };   
         }
-        catch (JsonException e)
+        catch (Exception e)
         {
             logger.LogError("Response parsing failed with exception {ExceptionMessage}", e.Message);
             return new TResponse()

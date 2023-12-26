@@ -8,7 +8,7 @@ using Xunit.Abstractions;
 namespace Domain.Tests.Services;
 
 [Collection("Auth Tests")]
-public class ContentHttpClientTests
+public class BContentHttpClientTests
 {
     private readonly ITestOutputHelper _testOutputHelper;
     private readonly ILogger<ContentHttpClient> _logger;
@@ -16,7 +16,7 @@ public class ContentHttpClientTests
     private readonly Mock<ILoginManager> _mockLoginManager;
     private readonly ContentHttpClient _contentHttpClient;
     private readonly SharedAuthState _sharedState;
-    public ContentHttpClientTests(ITestOutputHelper testOutputHelper, SharedAuthState sharedState)
+    public BContentHttpClientTests(ITestOutputHelper testOutputHelper, SharedAuthState sharedState)
     {
         _sharedState = sharedState;
         _testOutputHelper = testOutputHelper;

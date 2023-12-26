@@ -43,9 +43,19 @@ public class CommentController : ControllerBase
     {
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
         var user = await _userRepository.GetUserById(userId, cancellationToken);
-        if (user is null) return Unauthorized();
+        if (user is null)
+        {
+            return Unauthorized(new Response()
+            {
+                Success = false,
+                Message = "User is Unauthorized!"
+            });
+        }
         await _commentRepository.SetCommentImpression(Guid.Parse(user.Id), payload.CommentId, payload.Impression, cancellationToken);
-        return Ok();
+        return  Ok(new Response()
+        {
+            Success = true,
+        });
     }
 
         
@@ -53,13 +63,37 @@ public class CommentController : ControllerBase
     public async Task<IActionResult> CreateComment([FromBody] CreateCommentRequest payload,
         CancellationToken cancellationToken = default(CancellationToken))
     {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
-        var user = await _userRepository.GetUserById(userId, cancellationToken);
-        if (user is null) return Unauthorized();
+        var user = await _userRepository.GetUserByClaimsPrincipal(User, cancellationToken);
+        if (user is null)
+        {
+            return Unauthorized(new Response()
+            {
+                Success = false,
+                Message = "User is Unauthorized!"
+            });
+        }
         var video = await _videoRepository.GetVideoById(payload.VideoId, false, cancellationToken);
-        if (video is null) return NotFound();
+        if (video is null)
+        {
+            return NotFound(new Response()
+            {
+                Success = false,
+                Message = "Video not found!"
+            }); 
+        }
         var commentId = await _commentRepository.CreateComment(Guid.Parse(user.Id), payload.VideoId, payload.Message, cancellationToken);
-        return string.IsNullOrEmpty(commentId) ? StatusCode(StatusCodes.Status500InternalServerError) : Ok();
+        if (string.IsNullOrEmpty(commentId))
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new Response()
+            {
+                Message = "Failed to create comment",
+                Success = false,
+            });
+        }
+        return  Ok(new Response()
+        {
+            Success = true,
+        });
     }
 
     [HttpGet("Query")]

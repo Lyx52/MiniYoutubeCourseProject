@@ -6,18 +6,22 @@ using Domain.Model.View;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit.Abstractions;
+using Xunit.Priority;
 
 namespace Domain.Tests.Services;
 
 [Collection("Auth Tests")]
-public class AuthHttpClientTests
+[TestCaseOrderer(PriorityOrderer.Name, PriorityOrderer.Assembly)]
+public class AAuthHttpClientTests
 {
     private readonly ITestOutputHelper _testOutputHelper;
     private readonly ILogger<AuthHttpClient> _logger;
     private readonly Mock<IHttpClientFactory> _mockHttpClientFactory;
     private readonly AuthHttpClient _authHttpClient;
+    private readonly UserHttpClient _userHttpClient;
     private readonly SharedAuthState _sharedState;
-    public AuthHttpClientTests(ITestOutputHelper testOutputHelper, SharedAuthState sharedState)
+    private readonly Mock<ILoginManager> _mockLoginManager;
+    public AAuthHttpClientTests(ITestOutputHelper testOutputHelper, SharedAuthState sharedState)
     {
         _sharedState = sharedState;
         _testOutputHelper = testOutputHelper;
@@ -34,10 +38,15 @@ public class AuthHttpClientTests
             return client;
         });
         _authHttpClient = new AuthHttpClient(_logger, _mockHttpClientFactory.Object);
-
+        
+        _mockLoginManager = new Mock<ILoginManager>();
+        _mockLoginManager.Setup((x) => x.GetJwtToken(CancellationToken.None)).Returns(() => 
+            Task.FromResult(_sharedState.Token)!);
+        _userHttpClient = new UserHttpClient(LoggerFactory.Create(b => {}).CreateLogger<UserHttpClient>(), 
+            _mockHttpClientFactory.Object, _mockLoginManager.Object);
     }
     
-    [Fact]
+    [Fact, Priority(0)]
     public async Task RegisterTest()
     {
         var registerModel = new RegisterModel { Username = "lyx52", Password = "Parole123$", Email = "e@e.c"};
@@ -55,7 +64,7 @@ public class AuthHttpClientTests
         Assert.Equivalent(response.Message, "User with this email already exists!");
     }
     
-    [Fact]
+    [Fact, Priority(10)]
     public async Task LoginTest()
     {
         var loginModel = new LoginModel { Username = "lyx52", Password = "Parole123$"};
@@ -71,5 +80,10 @@ public class AuthHttpClientTests
         var userId = securityToken.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Sub)?.Value;
         Assert.False(string.IsNullOrEmpty(userId), "userId is empty");
         _sharedState.UserId = userId;
+        
+        // Subscribe for notification test later on...
+        var subscribeResponse = await _userHttpClient.Subscribe(Guid.Parse(_sharedState.UserId));
+        Assert.True(subscribeResponse.Success, $"Test failed {subscribeResponse.Message}");
     }
+    
 }

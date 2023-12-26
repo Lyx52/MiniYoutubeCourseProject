@@ -6,5 +6,6 @@ public enum VideoProcessingStatus
     Processing,
     ProcessingFinished,
     ProcessingFailed,
-    Published
+    Published,
+    Deleting
 }

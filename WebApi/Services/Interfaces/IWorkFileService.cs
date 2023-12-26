@@ -5,6 +5,7 @@ namespace WebApi.Services.Interfaces;
 
 public interface IWorkFileService
 {
+    bool WorkSpaceExists(WorkSpaceDirectory directory, Guid id);
     string GetWorkFileLocation(WorkSpace workSpace, WorkFile file);
     List<string> GetWorkFiles(WorkSpace workSpace, WorkFileType type);
     WorkSpace CreateWorkSpace(WorkSpaceDirectory directory);

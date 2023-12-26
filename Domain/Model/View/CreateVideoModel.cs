@@ -4,7 +4,7 @@ namespace Domain.Model;
 
 public class EditVideoMetadataModel
 {
-    public string? VideoId { get; set; }
+    public Guid? VideoId { get; set; }
     [Required]
     [MinLength(10)]
     public string Title { get; set; }

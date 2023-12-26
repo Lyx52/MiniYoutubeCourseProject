@@ -88,7 +88,7 @@ public class VideoHttpClient(
     public Task<VideoMetadataResponse> GetVideoMetadata(Guid videoId, CancellationToken cancellationToken = default(CancellationToken))
     {
         var qb = new QueryBuilder { { "videoId", videoId.ToString() } };
-        return SendQueryRequest<VideoMetadataResponse>(HttpMethod.Get, "api/Video/Metadata", 
+        return SendQueryRequest<VideoMetadataResponse>(HttpMethod.Get, "api/Video/Metadata", qb.ToQueryString(),
             JwtRequirement.Optional, cancellationToken);
     }
     
@@ -115,7 +115,7 @@ public class VideoHttpClient(
     {
         return SendPayloadRequest<UpdateVideoRequest, CreateOrUpdateVideoResponse>("api/Video/UpdateVideo", new UpdateVideoRequest()
         {
-            VideoId = model.VideoId!,
+            VideoId = model.VideoId!.Value,
             Description = model.Description,
             Title = model.Title,
             IsUnlisted = model.IsUnlisted
