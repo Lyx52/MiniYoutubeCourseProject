@@ -64,17 +64,19 @@ public class VideoHttpClient(
         }, JwtRequirement.Optional, cancellationToken);
     }
 
-    public Task<VideoPlaylistResponse> GetVideoPlaylist(int from, int count, Guid? creatorId = null, bool orderByNewest = false, CancellationToken cancellationToken = default(CancellationToken))
+    public Task<VideoPlaylistResponse> GetVideoPlaylist(GetVideoPlaylistModel model, CancellationToken cancellationToken = default(CancellationToken))
     {
         return SendPayloadRequest<VideoPlaylistRequest, VideoPlaylistResponse>("api/Video/Playlist", new VideoPlaylistRequest()
         {
-            From = from,
-            Count = count,
-            CreatorId = creatorId,
-            OrderByNewest = orderByNewest
+            From = model.From,
+            Count = model.Count,
+            CreatorId = model.CreatorId,
+            OrderByNewest = model.OrderByNewest,
+            PlaylistId = model.PlaylistId
         }, JwtRequirement.Optional, cancellationToken);
     }
 
+    
     public Task<QueryVideosResponse> GetUserVideos(int from, int count, CancellationToken cancellationToken = default(CancellationToken))
     {
         return SendPayloadRequest<QueryVideosRequest, QueryVideosResponse>("api/Video/Query", new QueryVideosRequest()
@@ -86,6 +88,26 @@ public class VideoHttpClient(
         }, JwtRequirement.Mandatory, cancellationToken);
     }
 
+    public Task<Response> AddVideosToPlaylist(IEnumerable<Guid> videos, Guid playlistId, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        return SendPayloadRequest<AddOrRemovePlaylistRequest, Response>("api/Video/AddOrRemovePlaylist", new AddOrRemovePlaylistRequest()
+        {
+            PlaylistId = playlistId,
+            Videos = videos,
+            AddVideo = true
+        }, JwtRequirement.Mandatory, cancellationToken);
+    }
+    
+    public Task<Response> RemoveVideosFromPlaylist(IEnumerable<Guid> videos, Guid playlistId, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        return SendPayloadRequest<AddOrRemovePlaylistRequest, Response>("api/Video/AddOrRemovePlaylist", new AddOrRemovePlaylistRequest()
+        {
+            PlaylistId = playlistId,
+            Videos = videos,
+            AddVideo = false
+        }, JwtRequirement.Mandatory, cancellationToken);
+    }
+    
     public Task<VideoMetadataResponse> GetVideoMetadata(Guid videoId, CancellationToken cancellationToken = default(CancellationToken))
     {
         var qb = new QueryBuilder { { "videoId", videoId.ToString() } };
@@ -121,5 +143,20 @@ public class VideoHttpClient(
             Title = model.Title,
             IsUnlisted = model.IsUnlisted
         }, JwtRequirement.Mandatory, cancellationToken);
+    }
+    
+    public Task<CreatePlaylistResponse> CreatePlaylist(CreatePlaylistModel model, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        return SendPayloadRequest<CreatePlaylistRequest, CreatePlaylistResponse>("api/Video/CreatePlaylist", new CreatePlaylistRequest()
+        {
+            Title = model.Title,
+            Videos = model.Videos
+        }, JwtRequirement.Mandatory, cancellationToken);
+    }
+    public Task<CreatorPlaylistsResponse> GetCreatorPlaylists(Guid creatorId, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var qb = new QueryBuilder { { "creatorId", creatorId.ToString() } };
+        return SendQueryRequest<CreatorPlaylistsResponse>(HttpMethod.Get, "api/Video/CreatorPlaylists", qb.ToQueryString(),
+            JwtRequirement.Optional, cancellationToken);
     }
 }

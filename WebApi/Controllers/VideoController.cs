@@ -21,16 +21,19 @@ public class VideoController : ControllerBase
     private readonly ILogger<VideoController> _logger;
     private readonly ChannelWriter<BackgroundTask> _channel;
     private readonly IVideoRepository _videoRepository;
+    private readonly IPlaylistRepository _playlistRepository;
     private readonly IUserRepository _userRepository;
     public VideoController(ILogger<VideoController> logger, 
         ChannelWriter<BackgroundTask> channel, 
         IUserRepository userRepository,
-        IVideoRepository videoRepository)
+        IVideoRepository videoRepository,
+        IPlaylistRepository playlistRepository)
     {
         _logger = logger;
         _channel = channel;
         _userRepository = userRepository;
         _videoRepository = videoRepository;
+        _playlistRepository = playlistRepository;
     }
 
     [HttpPost("Query")]
@@ -94,7 +97,8 @@ public class VideoController : ControllerBase
             Count = payload.Count,
             AddSources = true,
             Status = VideoProcessingStatus.Published,
-            OrderByCreated = payload.OrderByNewest
+            OrderByCreated = payload.OrderByNewest,
+            PlaylistId = payload.PlaylistId
         };
         var videos = await _videoRepository.QueryAsync(query, true, cancellationToken);
         var creators = (await _userRepository.GetUsersByIds(videos.Select(v => v.CreatorId), cancellationToken)).ToLookup(v => v.Id);
@@ -371,6 +375,94 @@ public class VideoController : ControllerBase
             Status = video.Status,
             Success = true,
             Message = string.Empty
+        });
+    }
+
+    [HttpGet("CreatorPlaylists")]
+    [AllowAnonymous]
+    public async Task<IActionResult> CreatorPlaylists([FromQuery] Guid creatorId,
+        CancellationToken cancellationToken = default(CancellationToken))
+    {
+        if (creatorId == Guid.Empty)
+        {
+            return NotFound(new Response()
+            {
+                Success = false,
+                Message = "Creator playlists not found!"
+            });
+        }
+        var playlists = await _playlistRepository.GetPlaylists(creatorId, cancellationToken);
+        return Ok(new CreatorPlaylistsResponse()
+        {
+            Success = true,
+            CreatorId = creatorId,
+            Playlists = playlists.Select(p => new PlaylistModel()
+            {
+                CreatorId = Guid.Parse(p.CreatorId),
+                PlaylistId = Guid.Parse(p.Id),
+                Title = p.Title
+            })
+        });
+    }
+
+    [HttpPost("AddOrRemovePlaylist")]
+    public async Task<IActionResult> AddOrRemovePlaylist([FromBody] AddOrRemovePlaylistRequest payload,
+        CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var user = await _userRepository.GetUserByClaimsPrincipal(User, cancellationToken);
+        if (user is null) {
+            return Unauthorized(new Response()
+            {
+                Success = false,
+                Message = "User is Unauthorized!"
+            });
+        }
+
+        if (payload.AddVideo)
+        {
+            await _playlistRepository.AddVideosToPlaylist(Guid.Parse(user.Id), payload.Videos, payload.PlaylistId, cancellationToken);
+        }
+        else
+        {
+            await _playlistRepository.RemoveVideosFromPlaylist(Guid.Parse(user.Id), payload.Videos, payload.PlaylistId, cancellationToken);    
+        }
+        return Ok(new Response()
+        {
+            Success = true
+        });
+    }
+    
+    [HttpPost("CreatePlaylist")]
+    public async Task<IActionResult> CreatePlaylist([FromBody] CreatePlaylistRequest payload,
+        CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var user = await _userRepository.GetUserByClaimsPrincipal(User, cancellationToken);
+        if (user is null) {
+            return Unauthorized(new Response()
+            {
+                Success = false,
+                Message = "User is Unauthorized!"
+            });
+        }
+        var playlistId = await _playlistRepository.CreatePlaylist(Guid.Parse(user.Id), payload.Title, cancellationToken);
+        if (playlistId == Guid.Empty)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new Response()
+            {
+                Success = false,
+                Message = "Failed to create playlist, please try again later"
+            });
+        }
+
+        if (payload.Videos.Count > 0)
+        {
+            await _playlistRepository.AddVideosToPlaylist(Guid.Parse(user.Id), payload.Videos, playlistId, cancellationToken);
+        }
+
+        return Ok(new CreatePlaylistResponse()
+        {
+            Success = true,
+            PlaylistId = playlistId
         });
     }
 }

@@ -16,6 +16,7 @@ public class VideoQuery : IEntityQuery<Video>
     public string? Title { get; set; }
     public Guid? VideoId { get; set; }
     public Guid? CreatorId { get; set; }
+    public Guid? PlaylistId { get; set; }
     public bool IncludeUnlisted { get; set; }
     public VideoProcessingStatus? Status { get; set; } = null;
     public int From { get; set; }
@@ -36,7 +37,8 @@ public class VideoQuery : IEntityQuery<Video>
                 (!VideoId.HasValue || v.Id == VideoId.Value.ToString()) &&
                 (IncludeUnlisted || v.IsUnlisted == false) &&
                 (!Status.HasValue || v.Status == Status.Value) &&
-                (!CreatorId.HasValue || v.CreatorId == CreatorId.Value.ToString());
+                (!CreatorId.HasValue || v.CreatorId == CreatorId.Value.ToString()) &&
+                (!PlaylistId.HasValue || v.PlaylistsVideos.Any(pv => pv.PlaylistId == PlaylistId.ToString()));
         }
     }
 

@@ -206,7 +206,7 @@ public class VideoRepository : IVideoRepository
             ViewCount = video.ViewCount
         };
     }
-
+    
     public Task<List<Video>> QueryAsync(IEntityQuery<Video> query, bool asNonTracking = true, CancellationToken cancellationToken = default(CancellationToken)) =>
         query
             .ToQueryable(_dbContext.Videos, asNonTracking)

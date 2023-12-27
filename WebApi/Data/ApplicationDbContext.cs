@@ -13,6 +13,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<VideoImpression> VideoImpressions { get; set; }
     public DbSet<Subscriber> Subscribers { get; set; }
     public DbSet<UserNotification> Notifications { get; set; }
+    public DbSet<Playlist> Playlists { get; set; }
+    public DbSet<PlaylistVideo> PlaylistVideos { get; set; }
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
     {
     }
@@ -57,6 +59,22 @@ public class ApplicationDbContext : DbContext
             .HasMany<VideoImpression>(c => c.Impressions)
             .WithOne(c => c.Video)
             .HasForeignKey(c => c.VideoId);
+
+        builder.Entity<Playlist>()
+            .HasMany<Video>(p => p.Videos)
+            .WithMany(v => v.Playlists)
+            .UsingEntity<PlaylistVideo>(
+            r => r.HasOne(pv => pv.Video).WithMany(v => v.PlaylistsVideos),
+            l => l.HasOne(pv => pv.Playlist).WithMany(v => v.PlaylistsVideos)
+            );
+
+        builder.Entity<Video>()
+            .HasMany<Playlist>(p => p.Playlists)
+            .WithMany(v => v.Videos)
+            .UsingEntity<PlaylistVideo>(
+                r => r.HasOne(pv => pv.Playlist).WithMany(v => v.PlaylistsVideos),
+                l => l.HasOne(pv => pv.Video).WithMany(v => v.PlaylistsVideos)
+            );
         
         base.OnModelCreating(builder);
     }

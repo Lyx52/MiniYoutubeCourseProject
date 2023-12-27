@@ -86,7 +86,13 @@ else
     private async Task LoadMoreVideos(int offset)
     {
         _preloadService.Show();
-        var response = await _videoHttpClient.GetVideoPlaylist(offset * VideoCount, VideoCount, CreatorId, true);
+        var response = await _videoHttpClient.GetVideoPlaylist(new GetVideoPlaylistModel()
+        {
+            From = CurrentOffset,
+            Count = 12,
+            CreatorId = CreatorId,
+            OrderByNewest = true
+        });
         if (response.Videos.Any())
         {
             CurrentOffset = offset;

@@ -47,7 +47,13 @@
     private async Task LoadMoreVideos()
     {
         _preloadService.Show();
-        var response = await _videoHttpClient.GetVideoPlaylist(CurrentOffset, 12, CreatorId);
+        var response = await _videoHttpClient.GetVideoPlaylist(new GetVideoPlaylistModel()
+        {
+            From = CurrentOffset,
+            Count = 12,
+            CreatorId = CreatorId,
+            OrderByNewest = true
+        });
         _videos.AddRange(response.Videos);
         await InvokeAsync(StateHasChanged);
         _preloadService.Hide();

@@ -124,6 +124,7 @@ public class Startup
         services.AddTransient<IUserRepository, UserRepository>();
         services.AddTransient<ISubscriberRepository, SubscriberRepository>();
         services.AddTransient<INotificationRepository, NotificationRepository>();
+        services.AddTransient<IPlaylistRepository, PlaylistRepository>();
         services.AddMemoryCache();
         
         // Processing channel

@@ -3,6 +3,8 @@ using Domain.Constants;
 using Domain.Entity;
 using Domain.Interfaces;
 using Domain.Model;
+using Domain.Model.Request;
+using Domain.Model.Response;
 using Domain.Model.View;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -144,7 +146,11 @@ public class CVideoHttpClientTests
     [Fact, Priority(50)]
     public async Task GetVideoPlaylistTest()
     {
-        var response = await _videoHttpClient.GetVideoPlaylist(0, 1);
+        var response = await _videoHttpClient.GetVideoPlaylist(new GetVideoPlaylistModel()
+        {
+            From = 0,
+            Count = 1
+        });
         Assert.True(response.Success, $"Test failed {response.Message}");
         var video = response.Videos.FirstOrDefault();
         Assert.NotNull(video);
@@ -247,7 +253,80 @@ public class CVideoHttpClientTests
         Assert.NotNull(video);
     }
     
-    [Fact, Priority(90)]
+    [Fact, Priority(80)]
+    public async Task CreatePlaylistTest()
+    {
+        var response = await _videoHttpClient.CreatePlaylist(new CreatePlaylistModel()
+        {
+            Title = "LongPlaylistTitle",
+            Videos = [_sharedState.VideoId, _sharedState.VideoId, _sharedState.VideoId]
+        });
+        Assert.True(response.Success, $"Test failed {response.Message}");
+        var playlistResponse = await _videoHttpClient.GetCreatorPlaylists(Guid.Parse(_sharedState.UserId));
+        Assert.True(playlistResponse.Success, $"Test failed {playlistResponse.Message}");
+        Assert.NotEmpty(playlistResponse.Playlists);
+        Assert.Equivalent(playlistResponse.CreatorId.ToString(), _sharedState.UserId);
+        var playlist = playlistResponse.Playlists.FirstOrDefault();
+        Assert.NotNull(playlist);
+        Assert.Equivalent(playlist.Title, "LongPlaylistTitle");
+        Assert.Equivalent(playlist.CreatorId.ToString(), _sharedState.UserId);
+        _sharedState.PlaylistId = playlist.PlaylistId;
+    }
+
+    [Fact, Priority(1000)]
+    public async Task GetPlaylistVideosTest()
+    {
+        // Must be in playlist
+        var response = await _videoHttpClient.GetVideoPlaylist(new GetVideoPlaylistModel()
+        {
+            From = 0,
+            Count = 1,
+            PlaylistId = _sharedState.PlaylistId
+        });
+        Assert.True(response.Success, $"Test failed {response.Message}");
+        Assert.NotEmpty(response.Videos);
+        var video = response.Videos.FirstOrDefault();
+        Assert.NotNull(video);
+        Assert.Equivalent(video.VideoId, _sharedState.VideoId.ToString());
+        Assert.Equivalent(video.CreatorId, _sharedState.UserId);
+        Assert.NotNull(video.Poster);
+        Assert.NotNull(video.PosterGif);
+        
+        // Remove from playlist
+        var removeResponse = await _videoHttpClient.RemoveVideosFromPlaylist(new List<Guid>() { _sharedState.VideoId }, _sharedState.PlaylistId);
+        Assert.True(removeResponse.Success, $"Test failed {removeResponse.Message}");
+        
+        // Must not be in playlist
+        response = await _videoHttpClient.GetVideoPlaylist(new GetVideoPlaylistModel()
+        {
+            From = 0,
+            Count = 1,
+            PlaylistId = _sharedState.PlaylistId
+        });
+        Assert.True(response.Success, $"Test failed {response.Message}");
+        Assert.Empty(response.Videos);
+        
+        // Add to playlist
+        var addResponse = await _videoHttpClient.AddVideosToPlaylist(new List<Guid>() { _sharedState.VideoId }, _sharedState.PlaylistId);
+        Assert.True(addResponse.Success, $"Test failed {addResponse.Message}");
+        
+        // Must be in playlist
+        response = await _videoHttpClient.GetVideoPlaylist(new GetVideoPlaylistModel()
+        {
+            From = 0,
+            Count = 1,
+            PlaylistId = _sharedState.PlaylistId
+        });
+        Assert.True(response.Success, $"Test failed {response.Message}");
+        Assert.NotEmpty(response.Videos);
+        video = response.Videos.FirstOrDefault();
+        Assert.NotNull(video);
+        Assert.Equivalent(video.VideoId, _sharedState.VideoId.ToString());
+        Assert.Equivalent(video.CreatorId, _sharedState.UserId);
+        Assert.NotNull(video.Poster);
+        Assert.NotNull(video.PosterGif);
+    }
+    [Fact, Priority(1000)]
     public async Task DeleteUserVideosTest()
     {
         

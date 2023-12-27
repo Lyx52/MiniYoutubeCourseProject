@@ -2,6 +2,7 @@
 using Domain.Entity;
 using Domain.Model;
 using Domain.Model.Query;
+using Domain.Model.Request;
 using Domain.Model.Response;
 using Domain.Model.View;
 
@@ -16,8 +17,7 @@ public interface IVideoHttpClient
     Task<QueryVideosResponse> GetVideosByTitle(string searchText, int from, int count,
         CancellationToken cancellationToken = default(CancellationToken));
     Task<VideoMetadataResponse> GetVideoMetadata(Guid videoId, CancellationToken cancellationToken = default(CancellationToken));
-    Task<VideoPlaylistResponse> GetVideoPlaylist(int from, int count, Guid? creatorId = null, bool orderByNewest = false,
-        CancellationToken cancellationToken = default(CancellationToken));
+    Task<VideoPlaylistResponse> GetVideoPlaylist(GetVideoPlaylistModel model, CancellationToken cancellationToken = default(CancellationToken));
     Task<QueryVideosResponse> GetUserVideos(int page, int pageSize, CancellationToken cancellationToken = default(CancellationToken));
     Task<Response> AddVideoImpression(Guid videoId, ImpressionType impressionType,
         CancellationToken cancellationToken = default(CancellationToken));
@@ -25,5 +25,13 @@ public interface IVideoHttpClient
         CancellationToken cancellationToken = default(CancellationToken));
     Task<Response> DeleteVideo(Guid videoId, CancellationToken cancellationToken = default(CancellationToken));
     Task<CreateOrUpdateVideoResponse> UpdateVideo(EditVideoMetadataModel model,
+        CancellationToken cancellationToken = default(CancellationToken));
+    Task<CreatePlaylistResponse> CreatePlaylist(CreatePlaylistModel model,
+        CancellationToken cancellationToken = default(CancellationToken));
+    Task<CreatorPlaylistsResponse> GetCreatorPlaylists(Guid creatorId,
+        CancellationToken cancellationToken = default(CancellationToken));
+    Task<Response> AddVideosToPlaylist(IEnumerable<Guid> videos, Guid playlistId,
+        CancellationToken cancellationToken = default(CancellationToken));
+    Task<Response> RemoveVideosFromPlaylist(IEnumerable<Guid> videos, Guid playlistId,
         CancellationToken cancellationToken = default(CancellationToken));
 }
