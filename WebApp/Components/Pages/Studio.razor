@@ -38,6 +38,9 @@
                     <a @onclick="OnOpenUploadModal" class="btn btn-outline-dark ms-auto">
                         <i class="bi bi-file-earmark-play"></i> Upload video
                     </a>    
+                    <a @onclick="OnOpenCreatePlaylistModal" class="btn btn-outline-dark ms-3">
+                        <i class="bi bi-view-list"></i> Create playlist
+                    </a>
                 </div>
             </div>
             <hr>
@@ -50,9 +53,8 @@
                     break;
                 case StudioState.PlayListView:
                 {
-                    <StudioPlaylistList/>
-                }
-                    break;
+                    <StudioPlaylistList @ref="_playListView"/>
+                } break;
             }
         </div>
     </div>
@@ -61,6 +63,7 @@
     
     private StudioState CurrentState { get; set; }
     private StudioVideoList _videoListView;
+    private StudioPlaylistList _playListView;
     protected override async Task OnInitializedAsync()
     {
         var userId = string.Empty;
@@ -101,5 +104,10 @@
     private async Task OnOpenUploadModal()
     {
         await _videoListView.OpenUploadModal(true);
+    }
+
+    private async Task OnOpenCreatePlaylistModal()
+    {
+        await _playListView.OpenCreatePlaylistModal(true);
     }
 }

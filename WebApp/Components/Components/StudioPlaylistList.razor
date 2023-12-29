@@ -1,8 +1,73 @@
-﻿<div class="row">
+﻿@using Domain.Entity
+@using Domain.Interfaces
+@using Domain.Model.View
+@inject IVideoHttpClient _videoHttpClient
+<div class="row">
     <div class="col-12">
-        <h1>playlist list</h1>
+        <Grid @ref="_playlistGrid" TItem="PlaylistModel"
+              Class="table table-hover table-bordered table-striped"
+              DataProvider="UserPlaylistDataProvider"
+              AllowPaging="true"
+              Responsive="true">
+            <GridColumn TItem="PlaylistModel" HeaderText="Title" PropertyName="Title" HeaderTextAlignment="Alignment.Center" TextAlignment="Alignment.Center">
+                @context.Title
+            </GridColumn>
+            <GridColumn TItem="PlaylistModel" HeaderText="Videos" PropertyName="Videos" HeaderTextAlignment="Alignment.Center" TextAlignment="Alignment.Center">
+                @context.Videos.Count() videos
+            </GridColumn>
+            <GridColumn TItem="PlaylistModel" HeaderText="Actions" HeaderTextAlignment="Alignment.Center" TextAlignment="Alignment.Center">
+                <div class="btn-group" role="group" aria-label="Video action button group">
+                    <button type="button" class="btn btn-outline-dark" @onclick="() => OnDeletePlaylist(context)">
+                        Edit
+                    </button>
+                    <button type="button" class="btn btn-outline-dark" @onclick="() => OnEditPlaylist(context)">
+                        Delete
+                    </button>
+                </div>
+            </GridColumn>
+        </Grid>
     </div>
 </div>
+<EditPlaylistForm @ref="_editPlaylistForm" />
 @code {
+    private Grid<PlaylistModel> _playlistGrid;
+    private List<PlaylistModel>? _playlists;
+    private EditPlaylistForm _editPlaylistForm;
+    private async Task<GridDataProviderResult<PlaylistModel>> UserPlaylistDataProvider(GridDataProviderRequest<PlaylistModel> request)
+    {
+        if (_playlists is not null)
+            return new GridDataProviderResult<PlaylistModel>()
+            {
+                Data = _playlists.Skip(Math.Max(0, (request.PageNumber - 1) * request.PageSize)).Take(request.PageSize),
+                TotalCount = _playlists.Count
+            };
+        var response = await _videoHttpClient.GetUserPlaylists();
+        if (!response.Success) return new GridDataProviderResult<PlaylistModel>();
+        _playlists = response.Playlists.ToList();
+        return new GridDataProviderResult<PlaylistModel>()
+        {
+            Data = _playlists.Skip(Math.Max(0, (request.PageNumber - 1) * request.PageSize)).Take(request.PageSize),
+            TotalCount = _playlists.Count
+        };
+    }
+
+    private Task OnEditPlaylist(PlaylistModel playlist)
+    {
+        return _editPlaylistForm.OpenEditModal(new EditPlaylistModel()
+        {
+            Title = playlist.Title,
+            Videos    = playlist.Videos.ToList(),
+            PlaylistId = playlist.PlaylistId.ToString()
+        });           
+    }
     
+    private async Task OnDeletePlaylist(PlaylistModel playlist)
+    {
+        
+    }
+
+    public Task OpenCreatePlaylistModal(bool reset)
+    {
+        return _editPlaylistForm.OpenModal(reset);
+    }
 }

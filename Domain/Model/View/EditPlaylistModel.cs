@@ -1,9 +1,10 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Domain.Model.Request;
+namespace Domain.Model.View;
 
-public class CreatePlaylistModel
+public class EditPlaylistModel
 {
+    public string? PlaylistId { get; set; }
     [Required]
     [MinLength(8)]
     public string Title { get; set; }

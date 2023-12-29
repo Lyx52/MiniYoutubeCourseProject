@@ -103,6 +103,22 @@ public class PlaylistRepository : IPlaylistRepository
             .Where(p => userId.HasValue || p.CreatorId == userId.ToString())
             .ToListAsync(cancellationToken);
     }
+
+    public Task<List<PlaylistModel>> GetPlaylistModels(Guid? userId = null, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        return _dbContext.Playlists
+            .Include(p => p.Videos)
+            .Where(p => userId.HasValue || p.CreatorId == userId.ToString())
+            .Select(p => new PlaylistModel()
+            {
+                Title = p.Title,
+                CreatorId = Guid.Parse(p.CreatorId),
+                PlaylistId = Guid.Parse(p.Id),
+                Videos = p.Videos.Select(v => Guid.Parse(v.Id))
+            })
+            .ToListAsync(cancellationToken);
+    }
+
     public Task<Playlist?> GetPlaylistById(Guid playlistId, CancellationToken cancellationToken = default(CancellationToken))
     {
         return _dbContext.Playlists

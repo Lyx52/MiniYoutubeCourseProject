@@ -26,7 +26,7 @@ public interface IVideoHttpClient
     Task<Response> DeleteVideo(Guid videoId, CancellationToken cancellationToken = default(CancellationToken));
     Task<CreateOrUpdateVideoResponse> UpdateVideo(EditVideoMetadataModel model,
         CancellationToken cancellationToken = default(CancellationToken));
-    Task<CreatePlaylistResponse> CreatePlaylist(CreatePlaylistModel model,
+    Task<CreatePlaylistResponse> CreatePlaylist(EditPlaylistModel model,
         CancellationToken cancellationToken = default(CancellationToken));
     Task<CreatorPlaylistsResponse> GetCreatorPlaylists(Guid creatorId,
         CancellationToken cancellationToken = default(CancellationToken));
@@ -34,4 +34,5 @@ public interface IVideoHttpClient
         CancellationToken cancellationToken = default(CancellationToken));
     Task<Response> RemoveVideosFromPlaylist(IEnumerable<Guid> videos, Guid playlistId,
         CancellationToken cancellationToken = default(CancellationToken));
+    Task<CreatorPlaylistsResponse> GetUserPlaylists(CancellationToken cancellationToken = default(CancellationToken));
 }

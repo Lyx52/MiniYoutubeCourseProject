@@ -1,4 +1,5 @@
 ﻿using Domain.Entity;
+using Domain.Model.View;
 
 namespace WebApi.Services.Interfaces;
 
@@ -16,5 +17,7 @@ public interface IPlaylistRepository
     Task<IEnumerable<Video>> GetPlaylistVideos(Guid playlistId,
         CancellationToken cancellationToken = default(CancellationToken));
     Task<List<Playlist>> GetPlaylists(Guid? userId = null,
+        CancellationToken cancellationToken = default(CancellationToken));
+    Task<List<PlaylistModel>> GetPlaylistModels(Guid? userId = null,
         CancellationToken cancellationToken = default(CancellationToken));
 }

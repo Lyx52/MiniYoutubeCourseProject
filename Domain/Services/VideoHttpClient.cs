@@ -10,6 +10,7 @@ using Domain.Model.Query;
 using Domain.Model.Request;
 using Domain.Model.Response;
 using Domain.Model.View;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.Extensions.Logging;
 
@@ -145,7 +146,7 @@ public class VideoHttpClient(
         }, JwtRequirement.Mandatory, cancellationToken);
     }
     
-    public Task<CreatePlaylistResponse> CreatePlaylist(CreatePlaylistModel model, CancellationToken cancellationToken = default(CancellationToken))
+    public Task<CreatePlaylistResponse> CreatePlaylist(EditPlaylistModel model, CancellationToken cancellationToken = default(CancellationToken))
     {
         return SendPayloadRequest<CreatePlaylistRequest, CreatePlaylistResponse>("api/Video/CreatePlaylist", new CreatePlaylistRequest()
         {
@@ -158,5 +159,10 @@ public class VideoHttpClient(
         var qb = new QueryBuilder { { "creatorId", creatorId.ToString() } };
         return SendQueryRequest<CreatorPlaylistsResponse>(HttpMethod.Get, "api/Video/CreatorPlaylists", qb.ToQueryString(),
             JwtRequirement.Optional, cancellationToken);
+    }
+    public Task<CreatorPlaylistsResponse> GetUserPlaylists(CancellationToken cancellationToken = default(CancellationToken))
+    {
+        return SendQueryRequest<CreatorPlaylistsResponse>(HttpMethod.Get, "api/Video/UserPlaylists", QueryString.Empty,
+            JwtRequirement.Mandatory, cancellationToken);
     }
 }

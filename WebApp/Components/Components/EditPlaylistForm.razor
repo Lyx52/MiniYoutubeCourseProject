@@ -1,0 +1,90 @@
+﻿@using Domain.Model.Request
+@using Domain.Model.View
+@using Domain.Interfaces
+@inject IVideoHttpClient _videoHttpClient
+<EditForm EditContext="_context" OnValidSubmit="OnValidSubmit">
+    <Modal @ref="_modal">
+        <BodyTemplate>
+            <div class="w-100 h-100">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-danger" Model="Model"/>
+                <div class="mb-3">
+                    <label for="titleInput" class="form-label">Video title</label>
+                    <InputText id="titleInput" class="form-control" @bind-Value="Model.Title"/>
+                    <ValidationMessage class="text-danger" For="@(() => Model.Title)"/>
+                </div>
+                <div class="mb-3">
+                
+                </div>
+            </div>
+        </BodyTemplate>
+        <FooterTemplate>
+            <Button Color="ButtonColor.Primary" Type="@ButtonType.Submit" Disabled="@_isLoading">
+                @if (_isLoading)
+                {
+                    <span class="spinner-grow spinner-grow-sm" aria-hidden="true"></span>
+                }
+                else
+                {
+                    <span>@(Model.PlaylistId is null ? "Create" : "Update")</span>
+                }
+            </Button>
+        </FooterTemplate>
+    </Modal>
+</EditForm>
+@code {
+    [Parameter]
+    public EventCallback<Guid> OnFormSubmit { get; set; }
+    
+    private Modal _modal;
+    private EditContext _context;
+    private ValidationMessageStore _messageStore;
+    private EditPlaylistModel Model { get; set; }
+    private bool _isLoading = false;
+    
+    protected override Task OnInitializedAsync()
+    {
+        Model = new EditPlaylistModel();
+        _context = new EditContext(Model);
+        _messageStore = new ValidationMessageStore(_context);
+        _context.OnValidationRequested += (s, e) => _messageStore.Clear();
+        return base.OnInitializedAsync();
+    }
+
+    public async Task OpenEditModal(EditPlaylistModel model)
+    {
+        Model = model;
+        _context = new EditContext(Model);
+        _messageStore = new ValidationMessageStore(_context);
+        _context.OnValidationRequested += (s, e) => _messageStore.Clear();
+        await _modal.ShowAsync();
+    }
+    
+    public async Task OpenModal(bool reset)
+    {
+        await _modal.ShowAsync();
+    }
+    
+    public async Task CloseModal()
+    {
+        await _modal.HideAsync();
+    }
+
+    private async Task OnValidSubmit()
+    {
+        _isLoading = true;
+        
+        var response = await _videoHttpClient.CreatePlaylist(Model);
+        if (!response.Success)
+        {
+            _messageStore.Add(_context.Field(string.Empty), response.Message ?? "Server error, try again later!");
+            _isLoading = false;
+            return;
+        }
+        _isLoading = false;
+        if (OnFormSubmit.HasDelegate)
+        {
+            await OnFormSubmit.InvokeAsync(response.PlaylistId);
+        }
+    }
+}

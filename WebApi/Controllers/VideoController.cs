@@ -391,20 +391,37 @@ public class VideoController : ControllerBase
                 Message = "Creator playlists not found!"
             });
         }
-        var playlists = await _playlistRepository.GetPlaylists(creatorId, cancellationToken);
+        var playlists = await _playlistRepository.GetPlaylistModels(creatorId, cancellationToken);
         return Ok(new CreatorPlaylistsResponse()
         {
             Success = true,
             CreatorId = creatorId,
-            Playlists = playlists.Select(p => new PlaylistModel()
-            {
-                CreatorId = Guid.Parse(p.CreatorId),
-                PlaylistId = Guid.Parse(p.Id),
-                Title = p.Title
-            })
+            Playlists = playlists
         });
     }
 
+    [HttpGet("UserPlaylists")]
+    public async Task<IActionResult> UserPlaylists(CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var user = await _userRepository.GetUserByClaimsPrincipal(User, cancellationToken);
+        if (user is null) {
+            return Unauthorized(new Response()
+            {
+                Success = false,
+                Message = "User is Unauthorized!"
+            });
+        }
+
+        var creatorId = Guid.Parse(user.Id);
+        var playlists = await _playlistRepository.GetPlaylistModels(creatorId, cancellationToken);
+        return Ok(new CreatorPlaylistsResponse()
+        {
+            Success = true,
+            CreatorId = creatorId,
+            Playlists = playlists
+        });
+    }
+    
     [HttpPost("AddOrRemovePlaylist")]
     public async Task<IActionResult> AddOrRemovePlaylist([FromBody] AddOrRemovePlaylistRequest payload,
         CancellationToken cancellationToken = default(CancellationToken))

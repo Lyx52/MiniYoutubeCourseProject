@@ -256,7 +256,7 @@ public class CVideoHttpClientTests
     [Fact, Priority(80)]
     public async Task CreatePlaylistTest()
     {
-        var response = await _videoHttpClient.CreatePlaylist(new CreatePlaylistModel()
+        var response = await _videoHttpClient.CreatePlaylist(new EditPlaylistModel()
         {
             Title = "LongPlaylistTitle",
             Videos = [_sharedState.VideoId, _sharedState.VideoId, _sharedState.VideoId]
@@ -271,6 +271,15 @@ public class CVideoHttpClientTests
         Assert.Equivalent(playlist.Title, "LongPlaylistTitle");
         Assert.Equivalent(playlist.CreatorId.ToString(), _sharedState.UserId);
         _sharedState.PlaylistId = playlist.PlaylistId;
+        
+        var userPlaylistResponse = await _videoHttpClient.GetUserPlaylists();
+        Assert.True(userPlaylistResponse.Success, $"Test failed {userPlaylistResponse.Message}");
+        Assert.NotEmpty(userPlaylistResponse.Playlists);
+        Assert.Equivalent(userPlaylistResponse.CreatorId.ToString(), _sharedState.UserId);
+        playlist = userPlaylistResponse.Playlists.FirstOrDefault();
+        Assert.NotNull(playlist);
+        Assert.Equivalent(playlist.Title, "LongPlaylistTitle");
+        Assert.Equivalent(playlist.CreatorId.ToString(), _sharedState.UserId);
     }
 
     [Fact, Priority(1000)]
