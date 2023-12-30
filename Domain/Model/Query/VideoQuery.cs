@@ -18,10 +18,12 @@ public class VideoQuery : IEntityQuery<Video>
     public Guid? CreatorId { get; set; }
     public Guid? PlaylistId { get; set; }
     public bool IncludeUnlisted { get; set; }
+    public bool UsePaging { get; set; } = true;
     public VideoProcessingStatus? Status { get; set; } = null;
     public int From { get; set; }
     public int Count { get; set; }
     public bool OrderByCreated { get; set; }
+    public bool OrderByPopularity { get; set; }
     
     public bool AddSources { get; set; }
     public bool AddComments { get; set; }
@@ -55,6 +57,12 @@ public class VideoQuery : IEntityQuery<Video>
         
         if (AddImpressions)
             queryable = queryable!.Include(v => v.Impressions);
+
+        if (OrderByCreated)
+            queryable = queryable!.OrderBy(v => v.Created);
+
+        if (OrderByPopularity)
+            queryable = queryable!.OrderBy(v => v.ViewCount);
         
         return queryable!
             .Where(AsExpression)

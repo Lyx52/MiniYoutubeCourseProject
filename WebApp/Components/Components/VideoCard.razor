@@ -15,11 +15,11 @@
         @{
           var videoId = @Guid.Parse(Video.VideoId).ToEncodedId();
           <NavLink href="@($"/watch/{videoId}")" Match="NavLinkMatch.All" @onclick="OnVideoClicked" @onmouseover="OnMouseOver" @onmouseleave="OnMouseLeave" class="text-decoration-none user-select-none cursor-pointer">
-            @if (IsMouseOver)
+            @if (IsMouseOver && Video.PosterGif is not null)
             {
               <img src="@GetSourceLink(Video.PosterGif!.Id)" class="figure-img img-fluid rounded mb-1 w-100" alt="poster gif">
             }
-            else
+            else if (Video.Poster is not null)
             {
               <img src="@GetSourceLink(Video.Poster!.Id)" class="figure-img img-fluid rounded mb-1" alt="poster image">
             }

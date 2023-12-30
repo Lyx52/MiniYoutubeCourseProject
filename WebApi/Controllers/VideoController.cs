@@ -72,7 +72,7 @@ public class VideoController : ControllerBase
         
         var totalCount =  await _videoRepository.QueryCountAsync(query, cancellationToken);
         query.Count = Math.Max(0, payload.Count);
-        query.From = Math.Max(0, (payload.From - 1) * query.Count);
+        query.From = Math.Max(0, payload.From);
         var videos = await _videoRepository.QueryAsync(query, false, cancellationToken);
         return Ok(new QueryVideosResponse()
         {
@@ -98,6 +98,7 @@ public class VideoController : ControllerBase
             AddSources = true,
             Status = VideoProcessingStatus.Published,
             OrderByCreated = payload.OrderByNewest,
+            OrderByPopularity = payload.OrderByPopularity,
             PlaylistId = payload.PlaylistId
         };
         var videos = await _videoRepository.QueryAsync(query, true, cancellationToken);
@@ -449,6 +450,44 @@ public class VideoController : ControllerBase
         });
     }
     
+    [HttpPost("UpdatePlaylist")]
+    public async Task<IActionResult> UpdatePlaylist([FromBody] UpdatePlaylistRequest payload,
+        CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var user = await _userRepository.GetUserByClaimsPrincipal(User, cancellationToken);
+        if (user is null) {
+            return Unauthorized(new Response()
+            {
+                Success = false,
+                Message = "User is Unauthorized!"
+            });
+        }
+        
+        await _playlistRepository.UpdatePlaylist(Guid.Parse(user.Id),  payload.PlaylistId, payload.Title, payload.Videos, cancellationToken);
+        return Ok(new CreateOrUpdatePlaylistResponse()
+        {
+            Success = true
+        });
+    }
+    [HttpDelete("DeletePlaylist")]
+    public async Task<IActionResult> DeletePlaylist([FromQuery] Guid playlistId,
+        CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var user = await _userRepository.GetUserByClaimsPrincipal(User, cancellationToken);
+        if (user is null) {
+            return Unauthorized(new Response()
+            {
+                Success = false,
+                Message = "User is Unauthorized!"
+            });
+        }
+        
+        await _playlistRepository.DeletePlaylist(Guid.Parse(user.Id), playlistId, cancellationToken);
+        return Ok(new Response()
+        {
+            Success = true
+        });
+    }
     [HttpPost("CreatePlaylist")]
     public async Task<IActionResult> CreatePlaylist([FromBody] CreatePlaylistRequest payload,
         CancellationToken cancellationToken = default(CancellationToken))
@@ -476,7 +515,7 @@ public class VideoController : ControllerBase
             await _playlistRepository.AddVideosToPlaylist(Guid.Parse(user.Id), payload.Videos, playlistId, cancellationToken);
         }
 
-        return Ok(new CreatePlaylistResponse()
+        return Ok(new CreateOrUpdatePlaylistResponse()
         {
             Success = true,
             PlaylistId = playlistId

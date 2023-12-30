@@ -4,6 +4,7 @@
 @using Domain.Model
 @using System.Collections.Concurrent
 @inject IVideoHttpClient _videoHttpClient
+@implements IAsyncDisposable
 <div class="row">
     <div class="col-12">
         <Grid @ref="_videoGrid" TItem="Video"
@@ -120,7 +121,7 @@
     private ConcurrentDictionary<string, bool> ProcessingActions { get; set; } = new ConcurrentDictionary<string, bool>();
     private async Task<GridDataProviderResult<Video>> UserVideoDataProvider(GridDataProviderRequest<Video> request)
     {
-        var response = await _videoHttpClient.GetUserVideos(request.PageNumber, request.PageSize);
+        var response = await _videoHttpClient.GetUserVideos((request.PageNumber - 1) * request.PageSize, request.PageSize);
         if (!response.Success) return new GridDataProviderResult<Video>();
         response.Videos.ToList().ForEach(v =>
         {
@@ -196,4 +197,13 @@
     {
         await InvokeAsync(StateHasChanged);
     }
+
+    public async ValueTask DisposeAsync()
+    {
+        await _videoGrid.DisposeAsync();
+        if (_publishTimer != null) 
+            await _publishTimer.DisposeAsync();
+        _timerResetEvent.Dispose();
+    }
+
 }

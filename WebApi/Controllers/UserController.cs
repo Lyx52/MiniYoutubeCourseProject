@@ -143,6 +143,27 @@ public class UserController : ControllerBase
         });
     }
     
+    [HttpPost]
+    [Route("UpdateProfile")]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdateUserProfileRequest payload, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var user = await _userRepository.GetUserByClaimsPrincipal(User, cancellationToken);
+        if (user is null)
+        {
+            return Unauthorized(new Response()
+            {
+                Success = false,
+                Message = "User is Unauthorized!"
+            });
+        }
+
+        await _userRepository.UpdateProfile(user.Id, payload, cancellationToken);
+        return Ok(new Response()
+        {
+            Success = true
+        });
+    }
+    
     [HttpGet]
     [Route("CreatorProfile")]
     [AllowAnonymous]

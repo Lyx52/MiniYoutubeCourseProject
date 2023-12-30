@@ -46,19 +46,25 @@
 
 @code {
     private Modal _modal;
-    private bool _isPublishing { get; set; }
+    private bool _isPublishing { get; set; } = true;
     private Timer? _publishTimer { get; set; }
     private AutoResetEvent _timerResetEvent { get; set; }
     public bool IsLoading => _isPublishing || CurrentStatus == VideoProcessingStatus.Processing;
     
     public Guid VideoId { get; set; }
-    public VideoProcessingStatus CurrentStatus { get; set; }
+    public VideoProcessingStatus CurrentStatus { get; set; } = VideoProcessingStatus.Processing;
     
     [Parameter]
     public EventCallback OnFormSubmit { get; set; }
     
     public async Task OpenModalAsync(Guid videoId)
     {
+        var response = await _videoHttpClient.GetProcessingStatus(VideoId);
+        if (response.Success)
+        {
+            _isPublishing = response.Status == VideoProcessingStatus.Processing;
+            CurrentStatus = response.Status;
+        }
         VideoId = videoId;
         await _modal.ShowAsync();
         await InitVideoStateTimer();

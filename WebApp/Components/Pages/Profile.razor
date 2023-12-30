@@ -2,8 +2,11 @@
 @using Domain.Model.Response
 @using Domain.Model.View
 @using Domain.Interfaces
+@using Domain.Constants
 @inject IUserHttpClient _userHttpClient
 @inject ILoginManager _loginManager
+@inject NavigationManager _navigationManager
+@inject IVideoHttpClient _videoHttpClient
 <div class="container">
   <div class="main-body">
 
@@ -18,87 +21,103 @@
         
         @if (Model is not null)
         {
-          <div class="row gutters-sm">
-            <div class="col-md-4 mb-3">
-              <div class="card">
-                <div class="card-body">
-                  <div class="d-flex flex-column align-items-center text-center">
-                    <img src="https://bootdey.com/img/Content/avatar/avatar7.png" alt="Admin" class="rounded-circle" width="150">
-                    <div class="mt-3">
-                      <h4>John Doe</h4>
-                      <p class="text-secondary mb-1">Full Stack Developer</p>
-                      <button class="btn btn-primary">Subscribe</button>
+            <EditForm EditContext="_profileContext" OnValidSubmit="OnEditSubmit">
+                <div class="row gutters-sm">
+                    <div class="col-md-4 mb-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="d-flex flex-column align-items-center text-center">
+                                    <img src="https://bootdey.com/img/Content/avatar/avatar7.png" alt="Admin" class="rounded-circle" width="150">
+                                    <div class="mt-3">
+                                        <h4>@Model.CreatorName</h4>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                  </div>
+                    <div class="col-md-8">
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-sm-3">
+                                        <h6 class="mb-0">Creator Name</h6>
+                                    </div>
+                                    <div class="col-sm-9 text-secondary">
+                                        @if (IsEditMode)
+                                        {
+                                            <div class="mb-1">
+                                                <InputText id="titleInput" class="form-control" @bind-Value="Model.CreatorName"/>
+                                                <ValidationMessage class="text-danger" For="@(() => Model.CreatorName)"/>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            @Model.CreatorName    
+                                        }
+                                    </div>
+                                </div>
+                                <hr>
+                                <div class="row">
+                                    <div class="col-sm-3">
+                                        <h6 class="mb-0">Username</h6>
+                                    </div>
+                                    <div class="col-sm-9 text-secondary">
+                                        @Model.Username
+                                    </div>
+                                </div>
+                                <hr>
+                                <div class="row">
+                                    <div class="col-sm-3">
+                                        <h6 class="mb-0">Email</h6>
+                                    </div>
+                                    <div class="col-sm-9 text-secondary">
+                                        @Model.Email
+                                    </div>
+                                </div>
+                                <hr>
+                                <hr>
+                                @if (_latestVideo is not null)
+                                {
+                                    <div class="row">
+                                        <div class="col-sm-3">
+                                            <h6 class="mb-0">Last upload</h6>
+                                        </div>
+                                        <div class="col-sm-9 text-secondary">
+                                            @{
+                                                var videoLink = $"/watch/{Guid.Parse(_latestVideo.VideoId).ToEncodedId()}";
+                                            }
+                                            <NavLink class="link-underline-opacity-0 link-underline-opacity-75-hover text-dark-emphasis" href="@videoLink">@_latestVideo.Title</NavLink>
+                                        </div>
+                                    </div>
+                                }
+                                <hr>
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <a class="btn btn-outline-dark" @onclick="OnProfileEdit">Edit</a>
+                                        @if (IsSaveRequired)
+                                        {
+                                            <button class="ms-3 btn btn-outline-dark" type="submit">Save</button>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-              </div>
-            </div>
-            <div class="col-md-8">
-              <div class="card mb-3">
-                <div class="card-body">
-                  <div class="row">
-                    <div class="col-sm-3">
-                      <h6 class="mb-0">Creator Name</h6>
-                    </div>
-                    <div class="col-sm-9 text-secondary">
-                      @Model.CreatorName
-                    </div>
-                  </div>
-                  <hr>
-                  <div class="row">
-                    <div class="col-sm-3">
-                      <h6 class="mb-0">Username</h6>
-                    </div>
-                    <div class="col-sm-9 text-secondary">
-                      @Model.Username
-                    </div>
-                  </div>
-                  <hr>
-                  <div class="row">
-                    <div class="col-sm-3">
-                      <h6 class="mb-0">Email</h6>
-                    </div>
-                    <div class="col-sm-9 text-secondary">
-                      @Model.Email
-                    </div>
-                  </div>
-                  <hr>
-                  <div class="row">
-                    <div class="col-sm-3">
-                      <h6 class="mb-0">Pinned video</h6>
-                    </div>
-                    <div class="col-sm-9 text-secondary">
-                      <NavLink href="/"></NavLink>
-                    </div>
-                  </div>
-                  <hr>
-                  <div class="row">
-                    <div class="col-sm-3">
-                      <h6 class="mb-0">Last upload</h6>
-                    </div>
-                    <div class="col-sm-9 text-secondary">
-                      <NavLink href="/"></NavLink>
-                    </div>
-                  </div>
-                  <hr>
-                  <div class="row">
-                    <div class="col-sm-12">
-                      <a class="btn btn-info " target="__blank" href="https://www.bootdey.com/snippets/view/profile-edit-data-and-skills">Edit</a>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+            </EditForm>
         }
       </div>
   </div>
 @code {
-    private UserModel Model { get; set; }
+    private UserModel? Model { get; set; }
     private bool IsLoaded { get; set; }
-
+    private bool IsEditMode { get; set; } = false;
+    private EditContext _profileContext { get; set; } = new EditContext(new UserModel());
+    private VideoPlaylistModel? _latestVideo;
+    private bool IsSaveRequired { get; set; } = false;
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        
         if (firstRender)
         {
             await LoadContent();
@@ -113,9 +132,41 @@
         if (!response.Success)
         {
             await _loginManager.LogoutAsync();
+            _navigationManager.NavigateTo("/", true, true);
             return;
         }
         Model = response.User;
+        _profileContext = new EditContext(Model);
+        _profileContext.OnFieldChanged += (s, a) => IsSaveRequired = true;
+        var videoResponse = await _videoHttpClient.GetVideoPlaylist(new GetVideoPlaylistModel()
+        {
+            From = 0,
+            Count = 1,
+            OrderByNewest = true,
+            CreatorId = Guid.Parse(Model.Id)
+        });
+        if (videoResponse.Success)
+        {
+            _latestVideo = videoResponse.Videos.FirstOrDefault();
+        }
         IsLoaded = true;
+    }
+
+    private async Task OnProfileEdit()
+    {
+        IsEditMode = !IsEditMode;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnEditSubmit()
+    {
+        if (Model is null) return;
+        var response = await _userHttpClient.UpdateUserProfile(Model);
+        if (response.Success)
+        {
+            IsSaveRequired = false;
+            IsEditMode = false;
+            await InvokeAsync(StateHasChanged);
+        }
     }
 }

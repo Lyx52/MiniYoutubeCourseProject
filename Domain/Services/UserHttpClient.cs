@@ -32,6 +32,15 @@ public class UserHttpClient(
         return SendQueryRequest<CreatorProfileResponse>(HttpMethod.Get, "api/User/CreatorProfile", qb.ToQueryString(), JwtRequirement.Optional, cancellationToken);
     }
 
+    public Task<Response> UpdateUserProfile(UserModel userModel, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        return SendPayloadRequest<UpdateUserProfileRequest, Response>("api/User/UpdateProfile", new UpdateUserProfileRequest()
+        {
+            CreatorName = userModel.CreatorName,
+            IconLink = userModel.IconLink
+        }, JwtRequirement.Mandatory, cancellationToken);
+    }
+
     public Task<UserProfileResponse> GetUserProfile(CancellationToken cancellationToken = default(CancellationToken))
     {
         return SendQueryRequest<UserProfileResponse>(HttpMethod.Get, "api/User/Profile", QueryString.Empty, JwtRequirement.Mandatory, cancellationToken);

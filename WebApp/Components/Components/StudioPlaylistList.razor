@@ -17,10 +17,10 @@
             </GridColumn>
             <GridColumn TItem="PlaylistModel" HeaderText="Actions" HeaderTextAlignment="Alignment.Center" TextAlignment="Alignment.Center">
                 <div class="btn-group" role="group" aria-label="Video action button group">
-                    <button type="button" class="btn btn-outline-dark" @onclick="() => OnDeletePlaylist(context)">
+                    <button type="button" class="btn btn-outline-dark" @onclick="() => OnEditPlaylist(context)">
                         Edit
                     </button>
-                    <button type="button" class="btn btn-outline-dark" @onclick="() => OnEditPlaylist(context)">
+                    <button type="button" class="btn btn-outline-dark" @onclick="() => OnDeletePlaylist(context)">
                         Delete
                     </button>
                 </div>
@@ -28,14 +28,15 @@
         </Grid>
     </div>
 </div>
-<EditPlaylistForm @ref="_editPlaylistForm" />
+<EditPlaylistForm @ref="_editPlaylistForm" OnFormSubmit="OnModalSubmit" />
 @code {
     private Grid<PlaylistModel> _playlistGrid;
-    private List<PlaylistModel>? _playlists;
+    private List<PlaylistModel> _playlists = new List<PlaylistModel>();
     private EditPlaylistForm _editPlaylistForm;
+    private bool IsLoaded { get; set; }
     private async Task<GridDataProviderResult<PlaylistModel>> UserPlaylistDataProvider(GridDataProviderRequest<PlaylistModel> request)
     {
-        if (_playlists is not null)
+        if (IsLoaded)
             return new GridDataProviderResult<PlaylistModel>()
             {
                 Data = _playlists.Skip(Math.Max(0, (request.PageNumber - 1) * request.PageSize)).Take(request.PageSize),
@@ -44,6 +45,7 @@
         var response = await _videoHttpClient.GetUserPlaylists();
         if (!response.Success) return new GridDataProviderResult<PlaylistModel>();
         _playlists = response.Playlists.ToList();
+        IsLoaded = true;
         return new GridDataProviderResult<PlaylistModel>()
         {
             Data = _playlists.Skip(Math.Max(0, (request.PageNumber - 1) * request.PageSize)).Take(request.PageSize),
@@ -57,17 +59,28 @@
         {
             Title = playlist.Title,
             Videos    = playlist.Videos.ToList(),
-            PlaylistId = playlist.PlaylistId.ToString()
+            PlaylistId = playlist.PlaylistId
         });           
     }
     
     private async Task OnDeletePlaylist(PlaylistModel playlist)
     {
-        
+        await _videoHttpClient.DeletePlaylist(playlist.PlaylistId);
+        IsLoaded = false;
+        await _playlistGrid.RefreshDataAsync();
+        await InvokeAsync(StateHasChanged);
     }
 
     public Task OpenCreatePlaylistModal(bool reset)
     {
         return _editPlaylistForm.OpenModal(reset);
+    }
+
+    public async Task OnModalSubmit(Guid playlistId)
+    {
+        await _editPlaylistForm.CloseModal();
+        IsLoaded = false;
+        await _playlistGrid.RefreshDataAsync();
+        await InvokeAsync(StateHasChanged);
     }
 }

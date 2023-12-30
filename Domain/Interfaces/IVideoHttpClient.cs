@@ -18,7 +18,7 @@ public interface IVideoHttpClient
         CancellationToken cancellationToken = default(CancellationToken));
     Task<VideoMetadataResponse> GetVideoMetadata(Guid videoId, CancellationToken cancellationToken = default(CancellationToken));
     Task<VideoPlaylistResponse> GetVideoPlaylist(GetVideoPlaylistModel model, CancellationToken cancellationToken = default(CancellationToken));
-    Task<QueryVideosResponse> GetUserVideos(int page, int pageSize, CancellationToken cancellationToken = default(CancellationToken));
+    Task<QueryVideosResponse> GetUserVideos(int from, int count, CancellationToken cancellationToken = default(CancellationToken));
     Task<Response> AddVideoImpression(Guid videoId, ImpressionType impressionType,
         CancellationToken cancellationToken = default(CancellationToken));
     Task<Response> ChangeVideoVisibility(Guid videoId, bool isPrivate,
@@ -26,9 +26,13 @@ public interface IVideoHttpClient
     Task<Response> DeleteVideo(Guid videoId, CancellationToken cancellationToken = default(CancellationToken));
     Task<CreateOrUpdateVideoResponse> UpdateVideo(EditVideoMetadataModel model,
         CancellationToken cancellationToken = default(CancellationToken));
-    Task<CreatePlaylistResponse> CreatePlaylist(EditPlaylistModel model,
+    Task<CreateOrUpdatePlaylistResponse> CreatePlaylist(EditPlaylistModel model,
+        CancellationToken cancellationToken = default(CancellationToken));
+    Task<CreateOrUpdatePlaylistResponse> UpdatePlaylist(EditPlaylistModel model,
         CancellationToken cancellationToken = default(CancellationToken));
     Task<CreatorPlaylistsResponse> GetCreatorPlaylists(Guid creatorId,
+        CancellationToken cancellationToken = default(CancellationToken));
+    Task<Response> DeletePlaylist(Guid playlistId,
         CancellationToken cancellationToken = default(CancellationToken));
     Task<Response> AddVideosToPlaylist(IEnumerable<Guid> videos, Guid playlistId,
         CancellationToken cancellationToken = default(CancellationToken));

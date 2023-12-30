@@ -7,4 +7,5 @@ public class GetVideoPlaylistModel
     public Guid? CreatorId { get; set; } = null;
     public Guid? PlaylistId { get; set; } = null;
     public bool OrderByNewest { get; set; } = false;
+    public bool OrderByPopularity { get; set; } = false;
 }

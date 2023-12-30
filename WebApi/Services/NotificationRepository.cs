@@ -42,6 +42,7 @@ public class NotificationRepository : INotificationRepository
         var notification = await _dbContext.Notifications
             .FirstOrDefaultAsync(n => n.Id == notificationId.ToString() && n.UserId == userId.ToString(), cancellationToken);
         if (notification is null) return;
+        _dbContext.Remove(notification);
         _dbContext.Notifications.Remove(notification);
         await _dbContext.SaveChangesAsync(cancellationToken);
     }

@@ -1,0 +1,31 @@
+﻿@using Domain.Model.View
+@using Domain.Interfaces
+@inject IVideoHttpClient _videoHttpClient
+
+@foreach (var playlist in _playlists)
+{
+    <div class="col-12 row">
+        <VideoPlaylist 
+            PlaylistName="@playlist.Title" 
+            CreatorId="playlist.CreatorId" 
+            PlaylistId="playlist.PlaylistId"
+            HorizontalPlaylist="@true" 
+            ShowCreatorInfo="@false" 
+            OrderByNewest="@true"
+            VideoCount="5" />
+    </div>   
+}
+@code {
+    [Parameter]
+    public Guid CreatorId { get; set; }
+
+    private List<PlaylistModel> _playlists = new List<PlaylistModel>();
+    protected override async Task OnInitializedAsync()
+    {
+        var response = await _videoHttpClient.GetCreatorPlaylists(CreatorId);
+        if (response.Success)
+        {
+            _playlists = response.Playlists.ToList();
+        }
+    }
+}

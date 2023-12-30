@@ -122,6 +122,7 @@ public class EUserHttpClientTests
         Assert.Equivalent(notification.UserId, _sharedState.UserId);
         
         // Dismiss
+        await Task.Delay(5000); // TODO: Stupid fix
         var dismissResponse = await _userHttpClient.DismissUserNotifications(Guid.Parse(notification.Id));
         Assert.True(dismissResponse.Success, $"Test failed {dismissResponse.Message}");
         

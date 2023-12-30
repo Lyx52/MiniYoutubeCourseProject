@@ -73,7 +73,8 @@ public class VideoHttpClient(
             Count = model.Count,
             CreatorId = model.CreatorId,
             OrderByNewest = model.OrderByNewest,
-            PlaylistId = model.PlaylistId
+            PlaylistId = model.PlaylistId,
+            OrderByPopularity = model.OrderByPopularity
         }, JwtRequirement.Optional, cancellationToken);
     }
 
@@ -87,6 +88,13 @@ public class VideoHttpClient(
             Count = count,
             Status = null
         }, JwtRequirement.Mandatory, cancellationToken);
+    }
+
+    public Task<Response> DeletePlaylist(Guid playlistId, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var qb = new QueryBuilder { { "playlistId", playlistId.ToString() } };
+        return SendQueryRequest<Response>(HttpMethod.Delete, "api/Video/DeletePlaylist", qb.ToQueryString(), 
+            JwtRequirement.Mandatory, cancellationToken);
     }
 
     public Task<Response> AddVideosToPlaylist(IEnumerable<Guid> videos, Guid playlistId, CancellationToken cancellationToken = default(CancellationToken))
@@ -146,14 +154,25 @@ public class VideoHttpClient(
         }, JwtRequirement.Mandatory, cancellationToken);
     }
     
-    public Task<CreatePlaylistResponse> CreatePlaylist(EditPlaylistModel model, CancellationToken cancellationToken = default(CancellationToken))
+    public Task<CreateOrUpdatePlaylistResponse> CreatePlaylist(EditPlaylistModel model, CancellationToken cancellationToken = default(CancellationToken))
     {
-        return SendPayloadRequest<CreatePlaylistRequest, CreatePlaylistResponse>("api/Video/CreatePlaylist", new CreatePlaylistRequest()
+        return SendPayloadRequest<CreatePlaylistRequest, CreateOrUpdatePlaylistResponse>("api/Video/CreatePlaylist", new CreatePlaylistRequest()
         {
             Title = model.Title,
             Videos = model.Videos
         }, JwtRequirement.Mandatory, cancellationToken);
     }
+
+    public Task<CreateOrUpdatePlaylistResponse> UpdatePlaylist(EditPlaylistModel model, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        return SendPayloadRequest<UpdatePlaylistRequest, CreateOrUpdatePlaylistResponse>("api/Video/UpdatePlaylist", new UpdatePlaylistRequest()
+        {
+            PlaylistId = model.PlaylistId!.Value,
+            Title = model.Title,
+            Videos = model.Videos
+        }, JwtRequirement.Mandatory, cancellationToken);
+    }
+
     public Task<CreatorPlaylistsResponse> GetCreatorPlaylists(Guid creatorId, CancellationToken cancellationToken = default(CancellationToken))
     {
         var qb = new QueryBuilder { { "creatorId", creatorId.ToString() } };

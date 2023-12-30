@@ -69,7 +69,12 @@ else
     [Parameter]
     public int VideoCount { get; set; }
 
+    [Parameter]
+    public Guid? PlaylistId { get; set; }
+    
     [Parameter] public string PlaylistName { get; set; } = string.Empty;
+    [Parameter] public bool OrderByPopularity { get; set; } = false;
+    [Parameter] public bool OrderByNewest { get; set; } = false;
     
     private List<VideoPlaylistModel> _videos = new List<VideoPlaylistModel>();
     public int CurrentOffset { get; set; } = 0;
@@ -91,7 +96,9 @@ else
             From = CurrentOffset,
             Count = 12,
             CreatorId = CreatorId,
-            OrderByNewest = true
+            PlaylistId = PlaylistId,
+            OrderByNewest = OrderByNewest,
+            OrderByPopularity = OrderByPopularity,
         });
         if (response.Videos.Any())
         {

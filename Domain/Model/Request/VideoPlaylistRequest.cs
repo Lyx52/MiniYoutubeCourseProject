@@ -10,4 +10,5 @@ public class VideoPlaylistRequest
     public int From { get; set; }
     public int Count { get; set; }
     public bool OrderByNewest { get; set; }
+    public bool OrderByPopularity { get; set; }
 }

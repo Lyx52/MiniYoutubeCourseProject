@@ -34,7 +34,7 @@
                     <a class="nav-link cursor-pointer @(CurrentState == CreatorPageState.Videos ? "active" : string.Empty)" @onclick="() => OnChangePage(CreatorPageState.Videos)">Videos</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link cursor-pointer @(CurrentState == CreatorPageState.Playlists ? "active" : string.Empty) disabled" @onclick="() => OnChangePage(CreatorPageState.Playlists)">Playlists</a>
+                    <a class="nav-link cursor-pointer @(CurrentState == CreatorPageState.Playlists ? "active" : string.Empty)" @onclick="() => OnChangePage(CreatorPageState.Playlists)">Playlists</a>
                 </li>
             </ul>
         </div>
@@ -44,15 +44,19 @@
                 case CreatorPageState.Home:
                 {
                     <div class="col-12 row">
-                        <VideoPlaylist PlaylistName="Newest videos" CreatorId="CreatorId" HorizontalPlaylist="@true" ShowCreatorInfo="@false" VideoCount="5" />
+                        <VideoPlaylist OrderByNewest="@true" PlaylistName="Newest videos" CreatorId="CreatorId" HorizontalPlaylist="@true" ShowCreatorInfo="@false" VideoCount="5" />
                     </div>    
                     <div class="col-12 row">
-                        <VideoPlaylist PlaylistName="Pinned videos" CreatorId="CreatorId" HorizontalPlaylist="@true" ShowCreatorInfo="@false" VideoCount="5" />
+                        <VideoPlaylist OrderByPopularity="@true" PlaylistName="Most popular" CreatorId="CreatorId" HorizontalPlaylist="@true" ShowCreatorInfo="@false" VideoCount="5" />
                     </div>  
                 } break;
                 case CreatorPageState.Videos:
                 {
                     <VideoGrid CreatorId="CreatorId" ShowCreatorInfo="@false" />    
+                } break;
+                case CreatorPageState.Playlists:
+                {
+                    <CreatorPlaylists CreatorId="CreatorId" />
                 } break;
             }
         </div>

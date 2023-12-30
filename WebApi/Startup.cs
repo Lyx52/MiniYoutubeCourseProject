@@ -41,18 +41,19 @@ public class Startup
         {
             x.MultipartBodyLengthLimit = int.MaxValue - 1;
         });
+        AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
         services.AddDbContext<UserDbContext>((options) =>
         {
-            // TODO: Use proper db.
-            options
-                .UseInMemoryDatabase("UserDb")
+            options.UseNpgsql(
+                    $"Host={settings.Database.Hostname};Username={(settings.Database.Username)};Password={(settings.Database.Password)};Database={(settings.Database.DatabaseName)}",
+                    opt => opt.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
                 .EnableDetailedErrors(true);
         });
         services.AddDbContext<ApplicationDbContext>((options) =>
         {
-            // TODO: Use proper db.
-            options
-                .UseInMemoryDatabase("VideoDb")
+            options.UseNpgsql(
+                    $"Host={settings.Database.Hostname};Username={(settings.Database.Username)};Password={(settings.Database.Password)};Database={(settings.Database.DatabaseName)}",
+                    opt => opt.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
                 .EnableDetailedErrors(true);
         });
 
@@ -137,8 +138,13 @@ public class Startup
     }
     
 
-    public void Configure(IApplicationBuilder app, IHostEnvironment env)
+    public void Configure(IApplicationBuilder app, IHostEnvironment env, ApplicationDbContext appDbContext, UserDbContext userDbContext)
     {
+        Task.WhenAll(
+                appDbContext.Database.EnsureCreatedAsync(), 
+                userDbContext.Database.EnsureCreatedAsync())
+            .GetAwaiter()
+            .GetResult();
         app.UseSwagger(options =>
         {
         });

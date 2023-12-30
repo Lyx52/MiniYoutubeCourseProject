@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
 using Domain.Entity;
+using Domain.Model.Request;
 using Domain.Model.View;
 
 namespace WebApi.Services.Interfaces;
@@ -11,4 +12,5 @@ public interface IUserRepository
 
     Task<UserModel?> GetUserById(string userId, CancellationToken cancellationToken = default(CancellationToken));
     Task<UserModel?> GetUserByClaimsPrincipal(ClaimsPrincipal user, CancellationToken cancellationToken = default(CancellationToken));
+    Task UpdateProfile(string userId, UpdateUserProfileRequest payload, CancellationToken cancellationToken = default(CancellationToken));
 }

@@ -185,3 +185,10 @@
 .playlist-button {
     width: 50%;
 }
+.playlist-select-checkbox {
+    height: 38px !important;
+}
+.playlist-select-videos {
+    height: 200px !important;
+    overflow-y: auto !important;
+}

@@ -6,4 +6,5 @@ public class ApiConfiguration
     public VideoProcessingConfiguration Processing { get; set; }
     public SmtpConfiguration Email { get; set; }
     public EndpointConfig[] Endpoints { get; set; }
+    public DatabaseConfiguration Database { get; set; }
 }

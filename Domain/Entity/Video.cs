@@ -11,7 +11,6 @@ public class Video : IdEntity<string>
     public IEnumerable<ContentSource>? Sources { get; set; }
     public IEnumerable<Comment> Comments { get; set; } = new List<Comment>();
     public IEnumerable<VideoImpression> Impressions { get; set; } = new List<VideoImpression>();
-    public IEnumerable<Playlist> Playlists { get; set; } = new List<Playlist>();
     public IEnumerable<PlaylistVideo> PlaylistsVideos { get; set; } = new List<PlaylistVideo>();
     public VideoProcessingStatus Status { get; set; }
     public bool IsUnlisted { get; set; }

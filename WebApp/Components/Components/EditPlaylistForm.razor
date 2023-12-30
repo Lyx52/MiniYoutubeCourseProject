@@ -1,6 +1,12 @@
 ﻿@using Domain.Model.Request
 @using Domain.Model.View
 @using Domain.Interfaces
+@using Domain.Entity
+@using System.Collections.Immutable
+@using Domain.Model.Response
+@using Microsoft.AspNetCore.Mvc.Rendering
+@using Microsoft.EntityFrameworkCore.Metadata.Internal
+@using ValidationSummary = Microsoft.AspNetCore.Components.Forms.ValidationSummary
 @inject IVideoHttpClient _videoHttpClient
 <EditForm EditContext="_context" OnValidSubmit="OnValidSubmit">
     <Modal @ref="_modal">
@@ -13,8 +19,13 @@
                     <InputText id="titleInput" class="form-control" @bind-Value="Model.Title"/>
                     <ValidationMessage class="text-danger" For="@(() => Model.Title)"/>
                 </div>
-                <div class="mb-3">
-                
+                <div class="mb-3 playlist-select-videos">
+                    <Virtualize Context="video" ItemsProvider="@LoadVideos" ItemSize="38" OverscanCount="1">
+                        <div class="playlist-select-checkbox">
+                            <input type="checkbox" class="btn-check" @bind="SelectedVideos[video.Id]" id="@video.Id" autocomplete="off">
+                            <label class="btn btn-outline-dark w-100 text-start" for="@video.Id">@video.Title</label>
+                        </div>
+                    </Virtualize>
                 </div>
             </div>
         </BodyTemplate>
@@ -35,12 +46,23 @@
 @code {
     [Parameter]
     public EventCallback<Guid> OnFormSubmit { get; set; }
-    
     private Modal _modal;
     private EditContext _context;
     private ValidationMessageStore _messageStore;
     private EditPlaylistModel Model { get; set; }
     private bool _isLoading = false;
+    private Dictionary<string, bool> SelectedVideos { get; set; } = new Dictionary<string, bool>();
+
+    private async ValueTask<ItemsProviderResult<Video>> LoadVideos(ItemsProviderRequest request)
+    {
+        var response = await _videoHttpClient.GetUserVideos(request.StartIndex, request.Count);
+        if (!response.Success) return new ItemsProviderResult<Video>();
+        foreach (var video in response.Videos)
+        {
+            SelectedVideos.TryAdd(video.Id, false);
+        }
+        return new ItemsProviderResult<Video>(response.Videos, response.TotalCount);
+    }
     
     protected override Task OnInitializedAsync()
     {
@@ -53,15 +75,24 @@
 
     public async Task OpenEditModal(EditPlaylistModel model)
     {
-        Model = model;
-        _context = new EditContext(Model);
-        _messageStore = new ValidationMessageStore(_context);
-        _context.OnValidationRequested += (s, e) => _messageStore.Clear();
+        SelectedVideos = new Dictionary<string, bool>();
+        Model.Title = model.Title;
+        Model.PlaylistId = model.PlaylistId;
+        Model.Videos = model.Videos;
+        foreach (var videoId in model.Videos)
+        {
+            SelectedVideos.TryAdd(videoId.ToString(), true);
+        }
         await _modal.ShowAsync();
     }
-    
+
     public async Task OpenModal(bool reset)
     {
+        if (reset)
+        {
+            SelectedVideos = new Dictionary<string, bool>();
+            _isLoading = false;
+        }
         await _modal.ShowAsync();
     }
     
@@ -73,8 +104,26 @@
     private async Task OnValidSubmit()
     {
         _isLoading = true;
+        CreateOrUpdatePlaylistResponse response;
+        Model.Videos = SelectedVideos
+            .Where((kv) => kv.Value)
+            .Select((kv) => Guid.Parse(kv.Key))
+            .ToList();
+        if (Model.Videos.Count <= 0)
+        {
+            _messageStore.Add(_context.Field(string.Empty), "Must select at least one video");
+            _isLoading = false;
+            return;
+        }
+        if (Model.PlaylistId is null)
+        {
+            response = await _videoHttpClient.CreatePlaylist(Model);    
+        }
+        else
+        {
+            response = await _videoHttpClient.UpdatePlaylist(Model);    
+        }
         
-        var response = await _videoHttpClient.CreatePlaylist(Model);
         if (!response.Success)
         {
             _messageStore.Add(_context.Field(string.Empty), response.Message ?? "Server error, try again later!");

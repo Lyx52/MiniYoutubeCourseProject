@@ -49,6 +49,7 @@ public class ApplicationDbContext : DbContext
             .HasMany<CommentImpression>(c => c.Impressions)
             .WithOne(c => c.Comment)
             .HasForeignKey(c => c.CommentId);
+       
         
         builder.Entity<VideoImpression>()
             .HasOne<Video>(c => c.Video)
@@ -60,22 +61,18 @@ public class ApplicationDbContext : DbContext
             .WithOne(c => c.Video)
             .HasForeignKey(c => c.VideoId);
 
-        builder.Entity<Playlist>()
-            .HasMany<Video>(p => p.Videos)
-            .WithMany(v => v.Playlists)
-            .UsingEntity<PlaylistVideo>(
-            r => r.HasOne(pv => pv.Video).WithMany(v => v.PlaylistsVideos),
-            l => l.HasOne(pv => pv.Playlist).WithMany(v => v.PlaylistsVideos)
-            );
+        builder.Entity<PlaylistVideo>()
+            .HasKey(pv =>  new { pv.PlaylistId, pv.VideoId });
 
-        builder.Entity<Video>()
-            .HasMany<Playlist>(p => p.Playlists)
-            .WithMany(v => v.Videos)
-            .UsingEntity<PlaylistVideo>(
-                r => r.HasOne(pv => pv.Playlist).WithMany(v => v.PlaylistsVideos),
-                l => l.HasOne(pv => pv.Video).WithMany(v => v.PlaylistsVideos)
-            );
+        builder.Entity<PlaylistVideo>()
+            .HasOne<Video>(pv => pv.Video)
+            .WithMany(v => v.PlaylistsVideos)
+            .HasForeignKey(pv => pv.VideoId);
         
+        builder.Entity<PlaylistVideo>()
+            .HasOne<Playlist>(pv => pv.Playlist)
+            .WithMany(v => v.PlaylistsVideos)
+            .HasForeignKey(pv => pv.PlaylistId);
         base.OnModelCreating(builder);
     }
 }

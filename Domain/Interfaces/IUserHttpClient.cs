@@ -1,9 +1,11 @@
 ﻿using Domain.Model.Response;
+using Domain.Model.View;
 
 namespace Domain.Interfaces;
 
 public interface IUserHttpClient
 {
+    Task<Response> UpdateUserProfile(UserModel userModel, CancellationToken cancellationToken = default(CancellationToken));
     Task<UserProfileResponse> GetUserProfile(CancellationToken cancellationToken = default(CancellationToken));
     Task<UserProfileResponse> GetPublicUserProfile(Guid userId,
         CancellationToken cancellationToken = default(CancellationToken));

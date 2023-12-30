@@ -1,6 +1,7 @@
 ﻿using System.Security.Claims;
 using Domain.Constants;
 using Domain.Entity;
+using Domain.Model.Request;
 using Domain.Model.Response;
 using Domain.Model.View;
 using Microsoft.AspNetCore.Identity;
@@ -38,6 +39,15 @@ public class UserRepository : IUserRepository
     {
         var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         return userId is null ? Task.FromResult(default(UserModel)) : GetUserById(userId, cancellationToken);
+    }
+
+    public async Task UpdateProfile(string userId, UpdateUserProfileRequest payload, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user is null) return;
+        user.CreatorName = payload.CreatorName;
+        user.Icon = payload.IconLink;
+        await _userManager.UpdateAsync(user);
     }
 
     private static UserModel? AsPublicUser(User? user)

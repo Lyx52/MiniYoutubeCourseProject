@@ -35,12 +35,21 @@
                     
                 </div>
                 <div class="d-flex flex-row w-100">
-                    <a @onclick="OnOpenUploadModal" class="btn btn-outline-dark ms-auto">
-                        <i class="bi bi-file-earmark-play"></i> Upload video
-                    </a>    
-                    <a @onclick="OnOpenCreatePlaylistModal" class="btn btn-outline-dark ms-3">
-                        <i class="bi bi-view-list"></i> Create playlist
-                    </a>
+                    @switch (CurrentState)
+                    {
+                        case StudioState.VideoListView:
+                        {
+                            <a @onclick="OnOpenUploadModal" class="btn btn-outline-dark ms-auto">
+                                <i class="bi bi-file-earmark-play"></i> Upload video
+                            </a>   
+                        } break;
+                        case StudioState.PlayListView:
+                        {
+                            <a @onclick="OnOpenCreatePlaylistModal" class="btn btn-outline-dark ms-auto">
+                                <i class="bi bi-view-list"></i> Create playlist
+                            </a>
+                        } break;
+                    }
                 </div>
             </div>
             <hr>

@@ -1,0 +1,20 @@
+version: "3.9"
+   
+services:
+  db:
+    container_name: 'pgdb'
+    image: postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      - "POSTGRES_DB=MiniTubeDb"
+      - "POSTGRES_PASSWORD=Admin123$"
+      - "POSTGRES_USER=admin"
+    networks:
+      - app-intranet
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+networks:
+  app-intranet:
+    driver: bridge
