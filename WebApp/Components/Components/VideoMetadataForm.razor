@@ -4,7 +4,7 @@
 @using Domain.Model.Response
 @inject IVideoHttpClient _videoHttpClient
 
-<EditForm EditContext="_context" OnValidSubmit="OnValidSubmit">
+<EditForm EditContext="_context" @formname="video-metadata-form" OnValidSubmit="OnValidSubmit">
     <Modal @ref="_modal">
         <BodyTemplate>
             <div class="w-100 h-100">

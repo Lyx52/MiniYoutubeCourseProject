@@ -5,7 +5,7 @@
 @inject PreloadService _preloadService
 @inject NavigationManager _navigationManager
 <div class="row justify-content-center">
-    <EditForm EditContext="@_loginContext" class="card col-12 col-md-8 col-lg-4 px-4 py-4 mt-5 border-0" OnValidSubmit="OnLogin">
+    <EditForm EditContext="@_loginContext" @formname="login-form" class="card col-12 col-md-8 col-lg-4 px-4 py-4 mt-5 border-0" OnValidSubmit="OnLogin">
         <Preload/>
         <h1 class="fs-3 fw-bold text-center user-select-none">Log in</h1>
         <hr/>

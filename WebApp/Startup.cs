@@ -1,8 +1,7 @@
 ﻿using Domain;
 using Domain.Model.Configuration;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using WebApp.Client.Pages;
 using WebApp.Components;
 using WebApp.Services;
 
@@ -29,7 +28,8 @@ public class Startup
         services.AddCommentClient(settings);
         services.AddUserClient(settings);
         services.AddRazorComponents()
-            .AddInteractiveServerComponents();
+            .AddInteractiveServerComponents()
+    		.AddInteractiveWebAssemblyComponents();
         services.AddBlazorBootstrap();
         services.AddScoped<AuthenticationStateProvider, JwtAuthStateProvider>();
         
@@ -40,8 +40,10 @@ public class Startup
 
     public void Configure(IApplicationBuilder app, IHostEnvironment env)
     {
-        if (!env.IsDevelopment())
+        if (env.IsDevelopment())
         {
+            app.UseWebAssemblyDebugging();
+        } else {
             app.UseExceptionHandler("/Error", createScopeForErrors: true);
             // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
             app.UseHsts();
@@ -54,7 +56,9 @@ public class Startup
         app.UseEndpoints((config) =>
         {
             config.MapRazorComponents<App>()
-                .AddInteractiveServerRenderMode();
+                .AddInteractiveServerRenderMode()
+    			.AddInteractiveWebAssemblyRenderMode()
+    			.AddAdditionalAssemblies(typeof(Counter).Assembly);
         });
     }
 }

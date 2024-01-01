@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿#define USE_INMEMORY
+using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using Domain.Constants;
@@ -44,17 +45,25 @@ public class Startup
         AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
         services.AddDbContext<UserDbContext>((options) =>
         {
+            #if USE_INMEMORY
+            options.UseInMemoryDatabase("UserDb");
+            #else 
             options.UseNpgsql(
                     $"Host={settings.Database.Hostname};Username={(settings.Database.Username)};Password={(settings.Database.Password)};Database={(settings.Database.DatabaseName)}",
                     opt => opt.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
                 .EnableDetailedErrors(true);
+            #endif
         });
         services.AddDbContext<ApplicationDbContext>((options) =>
         {
+            #if USE_INMEMORY
+            options.UseInMemoryDatabase("AppDb");
+            #else 
             options.UseNpgsql(
                     $"Host={settings.Database.Hostname};Username={(settings.Database.Username)};Password={(settings.Database.Password)};Database={(settings.Database.DatabaseName)}",
                     opt => opt.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
                 .EnableDetailedErrors(true);
+            #endif
         });
 
         services.AddIdentity<User, IdentityRole>(options =>

@@ -21,7 +21,7 @@
         
         @if (Model is not null)
         {
-            <EditForm EditContext="_profileContext" OnValidSubmit="OnEditSubmit">
+            <EditForm EditContext="_profileContext" @formname="profile-edit-form" OnValidSubmit="OnEditSubmit">
                 <div class="row gutters-sm">
                     <div class="col-md-4 mb-3">
                         <div class="card">
