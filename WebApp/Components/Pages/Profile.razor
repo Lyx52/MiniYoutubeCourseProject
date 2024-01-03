@@ -13,7 +13,7 @@
         <!-- Breadcrumb -->
         <nav aria-label="breadcrumb" class="main-breadcrumb">
           <ol class="breadcrumb">
-            <li class="breadcrumb-item"><NavLink href="/" Match=NavLinkMatch.All>Home</NavLink></li>
+            <li class="breadcrumb-item"><NavLink class="text-dark text-decoration-none" href="/" Match=NavLinkMatch.All>Home</NavLink></li>
             <li class="breadcrumb-item active" aria-current="page">Profile</li>
           </ol>
         </nav>
@@ -132,7 +132,7 @@
         if (!response.Success)
         {
             await _loginManager.LogoutAsync();
-            _navigationManager.NavigateTo("/", true, true);
+            _navigationManager.NavigateTo("/", false, true);
             return;
         }
         Model = response.User;

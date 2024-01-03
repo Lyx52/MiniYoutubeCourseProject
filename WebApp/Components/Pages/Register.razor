@@ -7,7 +7,7 @@
 @inject IAuthHttpClient _authHttpClient
 @inject PreloadService _preloadService
 @inject NavigationManager _navigationManager
-<div class="row justify-content-center">
+<div class="m-0 row justify-content-center">
     <EditForm EditContext="@_registerContext" class="card col-12 col-md-8 col-lg-4 px-4 py-4 mt-5 border-0" OnValidSubmit="OnRegister">
         <Preload/>
         <h1 class="fs-3 fw-bold text-center user-select-none">Register</h1>
@@ -59,7 +59,7 @@
         _responseModel = await _authHttpClient.RegisterAsync(_model);
         if (_responseModel.Success)
         {
-            _navigationManager.NavigateTo("/login", true, true);
+            _navigationManager.NavigateTo("/login", false, true);
         }
         _preloadService.Hide();
         StateHasChanged();

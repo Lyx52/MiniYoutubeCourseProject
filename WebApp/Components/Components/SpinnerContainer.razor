@@ -1,0 +1,32 @@
+﻿@if (IsSpinning)
+{
+    <div class="d-flex w-100 @CssClasses">
+        <div class="spinner-grow m-auto" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+<span class="@(IsSpinning ? "d-none" : string.Empty)">
+    @SpinnerBody
+</span>
+@code {
+    [Parameter]
+    public bool IsSpinning { get; set; }
+    
+    [Parameter]
+    public string CssClasses { get; set; }
+
+    [Parameter]
+    public RenderFragment SpinnerBody { get; set; }
+    
+    public async Task StartSpinning(bool refresh = false)
+    {
+        IsSpinning = true;
+        if (refresh) await InvokeAsync(StateHasChanged);
+    }
+    public async Task StopSpinning(bool refresh = false)
+    {
+        IsSpinning = false;
+        if (refresh) await InvokeAsync(StateHasChanged);
+    }
+}

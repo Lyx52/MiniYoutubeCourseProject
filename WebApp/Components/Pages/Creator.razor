@@ -89,14 +89,14 @@
         CreatorId = EncodedUserId.FromEncodedId();
         if (EncodedUserId is null || CreatorId == Guid.Empty)
         {
-            _navigationManager.NavigateTo("/", true);
+            _navigationManager.NavigateTo("/", false, true);
             return;
         }
 
         var response = await _userHttpClient.GetCreatorProfile(CreatorId);
         if (!response.Success)
         {
-            _navigationManager.NavigateTo("/", true);
+            _navigationManager.NavigateTo("/", false, true);
             return;
         }
 

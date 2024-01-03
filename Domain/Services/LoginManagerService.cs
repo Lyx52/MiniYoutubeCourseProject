@@ -39,7 +39,7 @@ public class LoginManagerService : ILoginManager
     public async Task LogoutAsync(CancellationToken cancellationToken = default(CancellationToken))
     {
         await _localStorage.DeleteAsync(AccessToken);
-        _navigation.NavigateTo("/", true);
+        _navigation.NavigateTo("/", true, true);
     }
 
     public async Task<LoginResponseModel> LoginAsync(LoginModel model, CancellationToken cancellationToken = default(CancellationToken))

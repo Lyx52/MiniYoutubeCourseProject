@@ -2,8 +2,8 @@
 @using System.ComponentModel.DataAnnotations
 @using Domain.Constants
 @using Domain.Model.View
-@rendermode InteractiveServer
 @inject ICommentHttpClient _commentHttpClient
+
 <div class="col d-inline-flex user-comment">
     <div class="creator-icon">
         <img src="@UserIconLink" alt="UserIconLink">
@@ -62,7 +62,6 @@
         }
     </div>
 </div>
-
 @code {
     [CascadingParameter(Name = "Metadata")]
     public VideoMetadataModel Model { get; set; }
@@ -83,7 +82,7 @@
     private string UserIconLink = "/favicon.png";
     private string CommentText { get; set; } = string.Empty;
     private DateTime LastUpdated { get; set; } = DateTime.UtcNow;
-
+    
     private void OnClickCancel()
     {
         NewCommentInFocus = false;

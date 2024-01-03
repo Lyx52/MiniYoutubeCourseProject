@@ -192,3 +192,52 @@
     height: 200px !important;
     overflow-y: auto !important;
 }
+
+/** VIDEO PLAYER **/
+.video-player {
+    width: 95% !important;
+    height: auto !important;
+    z-index: 0 !important;
+}
+.video-spinner {
+    height: 50vh !important;
+}
+@media only screen and (max-width: 768px) {
+    .video-player {
+        width: 100% !important;
+    }
+}
+
+/** VIDEO UPLOAD **/
+.video-upload-modal {
+    min-height: 80vh !important;
+}
+.video-upload-modal .modal-header {
+    justify-content: flex-end!important;
+}
+.file-input-icon {
+    min-height: 160px;
+}
+.file-input-icon div {
+    height: fit-content !important;
+}
+.file-input-icon i {
+    font-size: 64px !important;
+}
+.file-input-wrapper input[type="file"] {
+    width: 100% !important;
+    height: 100%;
+    appearance: none;
+    opacity: 0;
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+/** Profile dropdown **/
+.profile-dropdown {
+    position: absolute;
+    inset: 0px 0px auto auto;
+    margin: 0px;
+    transform: translate(10px, 50px);
+}

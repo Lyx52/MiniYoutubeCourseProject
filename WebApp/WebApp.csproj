@@ -373,7 +373,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Blazor.Bootstrap" Version="1.10.4" />
+    <PackageReference Include="Blazor.Bootstrap" Version="1.10.5" />
     <PackageReference Include="BootstrapBlazor.Markdown" Version="8.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="8.0.0" />
@@ -383,7 +383,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="wwwroot\css\components\VideoPlayer.css" />
     <None Include="wwwroot\elephants2.mp4" />
   </ItemGroup>
 

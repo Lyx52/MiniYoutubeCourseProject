@@ -57,7 +57,7 @@
 
     private void OnNotificationClick(string link)
     {
-        _navigationManager.NavigateTo(link, true, true);
+        _navigationManager.NavigateTo(link, false, true);
     }
 
     private async Task OnDismissNotification(Guid notificationId)

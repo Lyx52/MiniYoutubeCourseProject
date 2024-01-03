@@ -11,7 +11,6 @@
 @inject ILoginManager _loginManager
 @inject IVideoHttpClient _videoHttpClient
 @inject NavigationManager _navigationManager
-@rendermode InteractiveServer
 <div class="container-fluid">
     <div class="row flex-nowrap">
         <div class="col-auto px-0">
@@ -82,7 +81,7 @@
             var userIdClaim = authState.User.FindFirst(JwtRegisteredClaimNames.Sub);
             if (userIdClaim is null)
             {
-                _navigationManager.NavigateTo("/login", true, true);
+                _navigationManager.NavigateTo("/login", false, true);
                 return;
             }
             userId = userIdClaim!.Value;

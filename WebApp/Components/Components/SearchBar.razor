@@ -3,7 +3,6 @@
 @using Domain.Constants
 @inject IVideoHttpClient _videoHttpClient
 @inject NavigationManager _navigationManager
-@implements IAsyncDisposable
 <div class="input-group search-bar">
     <AutoComplete @ref="_autocomplete"
         @bind-Value="_videoTitle"
@@ -38,25 +37,14 @@
         });
     }
 
-    private async Task OnVideoSelected(Video video)
+    private async Task OnVideoSelected(Video? video)
     {
+        if (video is null) return;
         if (Guid.TryParse(video.Id, out var videoId))
         {
-            _navigationManager.NavigateTo($"/watch/{videoId.ToEncodedId()}", true, true);    
+            _navigationManager.NavigateTo($"/watch/{videoId.ToEncodedId()}", false, true);    
         }
         await _autocomplete.ResetAsync();
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        try
-        {
-            await _autocomplete.DisposeAsync();
-        }
-        catch (Exception _)
-        {
-            // ignored
-        }
     }
 
 }

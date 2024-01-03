@@ -1,5 +1,4 @@
 ﻿@using Domain.Interfaces
-@rendermode InteractiveServer
 @inject ILoginManager _loginManager
 @inject NavigationManager _navigationManager
 <div class="flex-shrink-0 dropdown">
@@ -11,9 +10,6 @@
         <li><a class="dropdown-item" @onclick="OnLogOut">Log out</a></li>
     </ul>
 </div>
-<HeadContent>
-	<link rel="stylesheet" href="css/components/ProfileDropdown.css" />
-</HeadContent>
 @code {
 
     public async Task OnLogOut()

@@ -1,31 +1,41 @@
 ﻿@using Domain.Model
-@rendermode InteractiveServer
 @inject IJSRuntime JSRuntime
 @implements IAsyncDisposable
-<div class="video-player">
-	<video id="main-video-player" @ref="_player" 
-	       class="video-js" 
-	       controls 
-	       preload="auto">
-	</video>
-</div>
-<HeadContent>
-	<link rel="stylesheet" href="css/components/VideoPlayer.css" />
-</HeadContent>
+<SpinnerContainer CssClasses="video-spinner" @ref="_spinner" IsSpinning="@true">
+	<SpinnerBody>
+		<div class="video-player">
+        	<video id="main-video-player" @ref="_player"
+        	       class="video-js"
+        	       controls
+        	       preload="auto">
+        	</video>
+        </div>	
+	</SpinnerBody>
+</SpinnerContainer>
 @code {
 	public event Action<string> VideoPlayerReady;
-	private ElementReference _player;
-	private bool IsInitialized { get; set; }
+	private ElementReference? _player;
+	private SpinnerContainer _spinner;
+	private bool IsInitialized { get; set; } = false;
+	private bool IsLoading { get; set; } = false;
 	public async Task InitializeVideoPlayer(List<VideoSourceModel> sources)
 	{
-		if (IsInitialized) return;
-		await JSRuntime.InvokeVoidAsync("loadPlayer", _player, new
+		if (IsLoading) return;
+		await _spinner.StartSpinning(true);
+		IsLoading = true;
+		if (IsInitialized)
 		{
-			autoplay = false,
-			fluid = true,
-			aspectRatio = "16:9"
-		}, sources, DotNetObjectReference.Create(this));
-		IsInitialized = true;
+			await JSRuntime.InvokeVoidAsync("loadPlayerSources", sources, DotNetObjectReference.Create(this));
+		}
+		else
+		{
+			await JSRuntime.InvokeVoidAsync("loadPlayer", _player, new
+			{
+				autoplay = false,
+				fluid = true,
+				aspectRatio = "16:9"
+			}, sources, DotNetObjectReference.Create(this));
+		}
 	}
 
 	private async Task DestroyVideoPlayer()
@@ -34,10 +44,11 @@
 		await JSRuntime.InvokeVoidAsync("destroyPlayer", _player, DotNetObjectReference.Create(this));
 	}
 	[JSInvokable]
-	public void OnVideoPlayerReady(string message)
+	public async Task OnVideoPlayerReady(string message)
 	{
 		IsInitialized = true;
-		Console.WriteLine(message);
+		IsLoading = false;
+		await _spinner.StopSpinning(true);
 	}
 
 	public async ValueTask DisposeAsync()
@@ -46,9 +57,9 @@
 		{
 			await DestroyVideoPlayer();
 		}
-		catch (InvalidOperationException _)
+		catch (Exception _)
 		{
-			// When reloading page ignore generated error, player will be reloaded anyway
+			// NOTE: Suppress JS Disconnected exception when reloading page
 		}
 		GC.SuppressFinalize(this);
 	}

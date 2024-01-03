@@ -5,7 +5,6 @@
 @using System.Text.Json
 @using Domain.Interfaces
 @inject AppConfiguration _configuration
-@inject NavigationManager _navigationManager
 @inject IUserHttpClient _userHttpClient
 
 <div class="col video-card-container p-md-0">
@@ -13,8 +12,8 @@
     <div class="gap-3 card-body d-flex justify-content-between video-card-body">
       <figure class="figure m-0">
         @{
-          var videoId = @Guid.Parse(Video.VideoId).ToEncodedId();
-          <NavLink href="@($"/watch/{videoId}")" Match="NavLinkMatch.All" @onclick="OnVideoClicked" @onmouseover="OnMouseOver" @onmouseleave="OnMouseLeave" class="text-decoration-none user-select-none cursor-pointer">
+          var videoLink = $"/watch/{Guid.Parse(Video.VideoId).ToEncodedId()}";
+          <NavLink href="@videoLink" Match="NavLinkMatch.All" @onmouseover="OnMouseOver" @onmouseleave="OnMouseLeave" class="text-decoration-none user-select-none cursor-pointer">
             @if (IsMouseOver && Video.PosterGif is not null)
             {
               <img src="@GetSourceLink(Video.PosterGif!.Id)" class="figure-img img-fluid rounded mb-1 w-100" alt="poster gif">
@@ -29,8 +28,8 @@
         <figcaption class="figure-caption">
           <div class="d-inline-flex w-100">
             @if (ShowCreatorInfo) {
-              var creatorId = @Guid.Parse(Video.CreatorId).ToEncodedId();
-              <NavLink href="@($"/creator/{creatorId}")" Match="NavLinkMatch.All">
+              var creatorLink = $"/creator/{Guid.Parse(Video.CreatorId).ToEncodedId()}";
+              <NavLink href="@creatorLink" Match="NavLinkMatch.All">
                 <img src="https://bootdey.com/img/Content/avatar/avatar7.png" alt="CreatorIconLink" class="rounded-circle profile-icon"/>
               </NavLink>
             }
@@ -64,23 +63,18 @@
     return $"{_configuration.ApiEndpoint}/api/Content/Source?videoId={Video.VideoId}&sourceId={sourceId}";
   }
 
-  private void OnVideoClicked()
-  {
-    _navigationManager.NavigateTo($"/watch/{Guid.Parse(Video.VideoId).ToEncodedId()}", true, true);    
-  }
-
-  public async Task OnMouseOver()
+  private async Task OnMouseOver()
   {
     IsMouseOver = true;
     await InvokeAsync(StateHasChanged);
   }
-  public async Task OnMouseLeave()
+  private async Task OnMouseLeave()
   {
     IsMouseOver = false;
     await InvokeAsync(StateHasChanged);
   }
 
-  public string GetCreatedDate()
+  private string GetCreatedDate()
   {
     var diff = DateTime.UtcNow - Video.Created.ToUniversalTime();
     if (diff.TotalDays is >= 1 and <= 30) return $"{diff.TotalDays:F0} days ago";
