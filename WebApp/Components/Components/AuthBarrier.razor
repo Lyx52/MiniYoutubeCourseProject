@@ -1,0 +1,29 @@
+﻿@using Microsoft.AspNetCore.Authorization
+@using Domain.Interfaces
+@using WebApp.Services
+@inject ILoginManager _loginManager
+@inject NavigationManager _navigationManager
+@inject AuthenticationStateProvider _authStateProvider
+@code {
+    private AuthorizeAttribute? _contextAuthorizeAttribute;
+    protected override Task OnInitializedAsync()
+    {
+        _contextAuthorizeAttribute = Attribute
+            .GetCustomAttribute(GetType(), typeof(AuthorizeAttribute)) as AuthorizeAttribute;
+        return base.OnInitializedAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _contextAuthorizeAttribute is not null)
+        {
+            var state = await _authStateProvider.GetAuthenticationStateAsync();
+            if (state.User.Identity?.IsAuthenticated is false)
+            {
+                await _loginManager.LogoutAsync();
+                _navigationManager.NavigateTo("Login", false, true);    
+            }
+        }
+    }
+
+}
