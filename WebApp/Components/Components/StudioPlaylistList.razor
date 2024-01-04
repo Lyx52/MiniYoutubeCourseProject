@@ -17,12 +17,16 @@
             </GridColumn>
             <GridColumn TItem="PlaylistModel" HeaderText="Actions" HeaderTextAlignment="Alignment.Center" TextAlignment="Alignment.Center">
                 <div class="btn-group" role="group" aria-label="Video action button group">
-                    <button type="button" class="btn btn-outline-dark" @onclick="() => OnEditPlaylist(context)">
+                    <SpinnerButton IsToggle="@false" CssClasses="studio-action-btn" OnClick="async () => await OnEditPlaylist(context)">
+                        <Body>
                         Edit
-                    </button>
-                    <button type="button" class="btn btn-outline-dark" @onclick="() => OnDeletePlaylist(context)">
+                        </Body>    
+                    </SpinnerButton>
+                    <SpinnerButton IsToggle="@false" CssClasses="studio-action-btn" OnClick="async () => await OnDeletePlaylist(context)">
+                        <Body>
                         Delete
-                    </button>
+                        </Body>    
+                    </SpinnerButton>
                 </div>
             </GridColumn>
         </Grid>

@@ -1,0 +1,53 @@
+﻿<button @onclick="OnButtonClick" disabled="@IsSpinning" class="btn @(IsSpinning || Disabled ? "disabled" : string.Empty) @(IsToggle && Value ? "btn-dark" : "btn-outline-dark") @CssClasses">
+    @if (IsSpinning)
+    {
+        <div class="spinner-grow spinner-grow-sm m-auto" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    }
+    else
+    {
+        @Body
+    }
+</button>
+
+@code {
+    [Parameter]
+    public EventCallback OnClick { get; set; }
+
+    [Parameter] public bool IsSpinning { get; set; }
+    
+    [Parameter]
+    public string CssClasses { get; set; }
+    
+    [Parameter]
+    public bool IsToggle { get; set; }
+    
+    [Parameter]
+    public bool Value { get; set; }
+    
+    [Parameter]
+    public bool Disabled { get; set; }
+    
+    [Parameter]
+    public RenderFragment Body { get; set; }
+    
+    public async Task StartSpinning(bool refresh = false)
+    {
+        IsSpinning = true;
+        if (refresh) await InvokeAsync(StateHasChanged);
+    }
+    public async Task StopSpinning(bool refresh = false)
+    {
+        IsSpinning = false;
+        if (refresh) await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnButtonClick()
+    {
+        await StartSpinning(true);
+        if (OnClick.HasDelegate) await OnClick.InvokeAsync();
+        await Task.Delay(150);
+        await StopSpinning(true);
+    } 
+}

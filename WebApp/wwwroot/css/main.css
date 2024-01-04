@@ -170,11 +170,16 @@
     width: 48px;
     height: 48px;
 }
+.profile-icon-sm {
+    width: 32px;
+    height: 32px; 
+}
 .profile-icon:hover {
     border: 1px solid black !important;
 }
 .btn-subscribe {
     height: 32px !important;
+    width: 128px !important;
     padding: 0px 3px;
 }
 .video-like-container {
@@ -193,7 +198,9 @@
     height: 200px !important;
     overflow-y: auto !important;
 }
-
+.studio-action-btn {
+    width: 120px !important;
+}
 /** VIDEO PLAYER **/
 .video-player {
     width: 95% !important;

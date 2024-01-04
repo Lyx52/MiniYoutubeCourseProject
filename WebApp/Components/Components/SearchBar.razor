@@ -5,7 +5,8 @@
 @inject NavigationManager _navigationManager
 <div class="dropdown search-bar">
     <input @bind="_videoTitle" 
-           @oninput="OnTextInput" 
+           @oninput="OnTextInput"
+           @onfocusout="OnMouseLeave"
            class="form-control search-bar-autocomplete" 
            data-bs-toggle="dropdown" />
     <ul class="dropdown-menu w-100">
@@ -54,8 +55,19 @@
             await InvokeAsync(StateHasChanged);
         }
     }
-    
 
+    private async Task OnMouseLeave()
+    {
+        await Task.Delay(150);
+        await ResetFilter();
+    }
+
+    private async Task ResetFilter()
+    {
+        _videoTitle = string.Empty;
+        _videos = new List<Video>();
+        await InvokeAsync(StateHasChanged);
+    }
     private async Task OnVideoSelected(Video? video)
     {
         if (video is null) return;
@@ -64,5 +76,7 @@
         {
             _navigationManager.NavigateTo($"/watch/{videoId.ToEncodedId()}", false, true);    
         }
+
+        await ResetFilter();
     }
 }

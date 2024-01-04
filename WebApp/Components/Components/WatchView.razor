@@ -24,9 +24,11 @@
                 </div>
                 <AuthorizeView>
                     <Authorized>
-                        <button class="btn my-auto btn-subscribe @(IsSubscribed ? "btn-dark" : "btn-outline-dark")" @onclick="OnSubscribeClick">
-                            @(IsSubscribed ? "Subscribed" : "Subscribe")
-                        </button>    
+                        <SpinnerButton OnClick="OnSubscribeClick" IsToggle="@true" Value="@IsSubscribed" CssClasses="my-auto btn-subscribe">
+                            <Body>
+                                @(IsSubscribed ? "Subscribed" : "Subscribe")
+                            </Body>
+                        </SpinnerButton>
                     </Authorized>
                 </AuthorizeView>
                 

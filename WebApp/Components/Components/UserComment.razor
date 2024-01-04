@@ -6,7 +6,7 @@
 
 <div class="col d-inline-flex user-comment">
     <div class="creator-icon">
-        <img src="@UserIconLink" alt="UserIconLink">
+        <img class="rounded-circle profile-icon-sm" src="https://bootdey.com/img/Content/avatar/avatar7.png" alt="UserIconLink">
     </div>
     <div class="ms-3 d-flex flex-column w-100">
         @if (IsNewComment)
@@ -17,7 +17,11 @@
                 {
                     <div class="mt-2 ms-auto d-flex flex-row">
                         <button class="btn border-0" @onclick="OnClickCancel">Cancel</button>
-                        <button @onclick="OnCommentSubmit" class="btn btn-outline-secondary">Comment</button>
+                        <SpinnerButton IsToggle="@false" OnClick="OnCommentSubmit">
+                            <Body>
+                            Comment
+                            </Body>
+                        </SpinnerButton>
                     </div>
                 }
             </div>

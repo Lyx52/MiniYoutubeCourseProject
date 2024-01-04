@@ -17,7 +17,11 @@
     <div class="row mt-5">
         <div class="col-12">
             <div class="d-flex justify-content-center">
-                <button class="btn btn-outline-dark w-50" @onclick="LoadMoreVideos">Load more</button>
+                <SpinnerButton CssClasses="w-50" IsToggle="@false" OnClick="LoadMoreVideos">
+                    <Body>
+                    Load more
+                    </Body>
+                </SpinnerButton>
             </div>
         </div>
     </div>

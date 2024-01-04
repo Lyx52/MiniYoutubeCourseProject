@@ -67,6 +67,7 @@ public class VideoQuery : IEntityQuery<Video>
         return queryable!
             .Where(AsExpression)
             .Skip(From)
-            .Take(Count);
+            .Take(Count)
+            .OrderBy(v => v.Created);
     }
 }

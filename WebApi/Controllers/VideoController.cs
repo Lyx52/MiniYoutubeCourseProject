@@ -46,7 +46,7 @@ public class VideoController : ControllerBase
             Title = payload.Title,
             CreatorId = payload.CreatorId,
             From = 0,
-            Count = 999999,
+            Count = 999,
             Status = payload.Status
         };
         if (payload.QueryUserVideos)
@@ -71,8 +71,8 @@ public class VideoController : ControllerBase
         }
         
         var totalCount =  await _videoRepository.QueryCountAsync(query, cancellationToken);
-        query.Count = Math.Max(0, payload.Count);
-        query.From = Math.Max(0, payload.From);
+        query.From = payload.From;
+        query.Count = payload.Count;
         var videos = await _videoRepository.QueryAsync(query, false, cancellationToken);
         return Ok(new QueryVideosResponse()
         {
@@ -93,14 +93,17 @@ public class VideoController : ControllerBase
         var query = new VideoQuery()
         {
             CreatorId = payload.CreatorId,
-            From = payload.From,
-            Count = payload.Count,
             AddSources = true,
             Status = VideoProcessingStatus.Published,
             OrderByCreated = payload.OrderByNewest,
             OrderByPopularity = payload.OrderByPopularity,
-            PlaylistId = payload.PlaylistId
+            PlaylistId = payload.PlaylistId,
+            From = 0,
+            Count = 999,
         };
+        var totalCount = await _videoRepository.QueryCountAsync(query, cancellationToken);
+        query.From = payload.From;
+        query.Count = payload.Count;
         var videos = await _videoRepository.QueryAsync(query, true, cancellationToken);
         var creators = (await _userRepository.GetUsersByIds(videos.Select(v => v.CreatorId), cancellationToken)).ToLookup(v => v.Id);
         
@@ -108,12 +111,7 @@ public class VideoController : ControllerBase
             .Where(v => creators.Contains(v.CreatorId))
             .Select(v =>new VideoPlaylistModel(v, creators[v.CreatorId].First()));
         
-        var totalCount = await _videoRepository.QueryCountAsync(new VideoQuery()
-        {
-            CreatorId = payload.CreatorId,
-            From = 0,
-            Count = 99999
-        }, cancellationToken);
+        
         return Ok(new VideoPlaylistResponse()
         {
             Videos = playlistVideos,

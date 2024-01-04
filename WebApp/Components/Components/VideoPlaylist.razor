@@ -12,9 +12,11 @@
 @if (HorizontalPlaylist)
 {
     <div class="col-12 col-md-1 d-flex flex-column justify-content-center">
-        <button class="btn btn-outline-dark h-100 p-0 playlist-button @(CurrentOffset > 0 ? string.Empty : "disabled")" @onclick="LoadPreviousVideos">
+        <SpinnerButton CssClasses="h-100 p-0 playlist-button ms-auto" Disabled="CurrentOffset <= 0" IsToggle="@false" OnClick="LoadPreviousVideos">
+            <Body>
             <i class="bi bi-caret-left"></i>
-        </button>
+            </Body>
+        </SpinnerButton>
     </div>
     <div class="col-10 container-fluid video-playlist-container">
         <div class="row row-cols-1 row-cols-md-5">
@@ -32,9 +34,11 @@
         </div>
     </div>
     <div class="col-12 col-md-1 d-flex flex-column justify-content-center">
-        <button class="btn btn-outline-dark h-100 p-0 playlist-button ms-auto" @onclick="LoadNextVideos">
+        <SpinnerButton CssClasses="h-100 p-0 playlist-button ms-auto" IsToggle="@false" OnClick="LoadNextVideos">
+            <Body>
             <i class="bi bi-caret-right"></i>
-        </button>
+            </Body>
+        </SpinnerButton>
     </div>
 }
 else
@@ -49,7 +53,11 @@ else
         <div class="row row-cols-1 my-3">
             <div class="col">
                 <div class="d-flex justify-content-center">
-                    <button class="btn btn-outline-dark w-75" @onclick="LoadNextVideos">Load more</button>
+                    <SpinnerButton CssClasses="w-75" IsToggle="@false" OnClick="LoadNextVideos">
+                        <Body>
+                        Load more
+                        </Body>
+                    </SpinnerButton>
                 </div>
             </div>
         </div>     
@@ -93,16 +101,18 @@ else
         _preloadService.Show();
         var response = await _videoHttpClient.GetVideoPlaylist(new GetVideoPlaylistModel()
         {
-            From = CurrentOffset,
-            Count = 12,
+            From = offset * VideoCount,
+            Count = VideoCount,
             CreatorId = CreatorId,
             PlaylistId = PlaylistId,
             OrderByNewest = OrderByNewest,
             OrderByPopularity = OrderByPopularity,
         });
+        CurrentOffset = Math.Min((response.TotalCount - (response.TotalCount % VideoCount)) / VideoCount, offset);
+        Console.WriteLine($"CurrentOffset: {CurrentOffset}, TotalCount: {response.TotalCount}, ResponseCount: {response.Videos.Count()}");
         if (response.Videos.Any())
         {
-            CurrentOffset = offset;
+            
             _videos = response.Videos.ToList();
         }
         await InvokeAsync(StateHasChanged);

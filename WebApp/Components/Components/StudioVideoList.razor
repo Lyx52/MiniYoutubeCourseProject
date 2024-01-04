@@ -90,18 +90,30 @@
                     {
                         @if (context.Status is VideoProcessingStatus.ProcessingFinished)
                         {
-                            <button type="button" class="btn btn-outline-dark" @onclick="() => OnPublishVideo(context)">
-                                Publish
-                            </button>
+                            <SpinnerButton IsToggle="@false" CssClasses="studio-action-btn" OnClick="async () => await OnPublishVideo(context)">
+                                <Body>
+                                    Publish
+                                </Body>    
+                            </SpinnerButton>
                         }
 
                         @if (context.Status is VideoProcessingStatus.ProcessingFinished or VideoProcessingStatus.Published)
                         {
-                            <button type="button" class="btn btn-outline-dark" @onclick="() => OnChangeVisibility(context)">
+                            <SpinnerButton IsToggle="@false" CssClasses="studio-action-btn" OnClick="async () => await OnChangeVisibility(context)">
+                                <Body>
                                 Make @(context.IsUnlisted ? "public" : "private")
-                            </button>
-                            <button type="button" class="btn btn-outline-dark" @onclick="() => OnEditVideo(context)">Edit</button>
-                            <button type="button" class="btn btn-outline-dark" @onclick="() => OnDeleteVideo(context)">Delete</button>
+                                </Body>    
+                            </SpinnerButton>
+                            <SpinnerButton IsToggle="@false" CssClasses="studio-action-btn" OnClick="async () => await OnEditVideo(context)">
+                                <Body>
+                                Edit
+                                </Body>    
+                            </SpinnerButton>
+                            <SpinnerButton IsToggle="@false" CssClasses="studio-action-btn" OnClick="async () => await OnDeleteVideo(context)">
+                                <Body>
+                                Delete
+                                </Body>    
+                            </SpinnerButton>
                         }
                     }
                 </div>
@@ -126,6 +138,10 @@
         response.Videos.ToList().ForEach(v =>
         {
             ProcessingActions.TryAdd(v.Id, false);
+            ProcessingActions[v.Id] = ProcessingActions[v.Id] && 
+                                      v.Status != VideoProcessingStatus.ProcessingFinished &&
+                                      v.Status != VideoProcessingStatus.Published &&
+                                      v.Status != VideoProcessingStatus.ProcessingFailed;
         });
         if (!IsTimerLoaded)
         {
@@ -162,6 +178,8 @@
     private async Task OnPublishVideo(Video video)
     {
         _videoUploadModal.VideoId = Guid.Parse(video.Id);
+        ProcessingActions[video.Id] = true;
+        await InvokeAsync(StateHasChanged);
         await _videoUploadModal.ChangeStage(VideoUploadStage.SubmitStage);
     }
     private async Task OnChangeVisibility(Video video)
@@ -195,6 +213,7 @@
     }
     private async Task OnVideoPublished(Guid videoId)
     {
+        await _videoGrid.RefreshDataAsync();
         await InvokeAsync(StateHasChanged);
     }
 
@@ -204,6 +223,7 @@
         if (_publishTimer != null) 
             await _publishTimer.DisposeAsync();
         _timerResetEvent.Dispose();
+        ProcessingActions.Clear();
     }
 
 }
