@@ -7,14 +7,13 @@
     </button>
     <ul class="dropdown-menu text-small shadow main-navbar-dropdown profile-dropdown" data-popper-placement="bottom-end">
         <li><NavLink class="dropdown-item" href="profile" Match="NavLinkMatch.All">Profile</NavLink></li>
-        <li><a class="dropdown-item" @onclick="OnLogOut">Log out</a></li>
+        <li><a class="dropdown-item cursor-pointer" @onclick="OnLogOut">Log out</a></li>
     </ul>
 </div>
 @code {
 
-    public async Task OnLogOut()
+    private async Task OnLogOut()
     {
         await _loginManager.LogoutAsync();
-        StateHasChanged();
     }
 }

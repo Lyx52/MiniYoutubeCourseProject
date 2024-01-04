@@ -4,9 +4,7 @@
         <Found Context="routeData">
             <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
                 <Authorizing>
-                    @* <div class="spinner-grow position-fixed" style="left: 50%; top: 50%" role="status"> *@
-                    @*     <span class="visually-hidden">Loading...</span> *@
-                    @* </div> *@
+                    
                 </Authorizing>
             </AuthorizeRouteView>
             <FocusOnNavigate RouteData="@routeData" Selector="h1"/>
@@ -18,5 +16,4 @@
             </LayoutView>
         </NotFound>
     </Router>
-    <AuthBarrier />
 </CascadingAuthenticationState>

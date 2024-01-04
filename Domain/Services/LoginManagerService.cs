@@ -36,10 +36,10 @@ public class LoginManagerService : ILoginManager
         _configuration = configuration;
         _authHttpClient = authHttpClient;
     }
-    public async Task LogoutAsync(CancellationToken cancellationToken = default(CancellationToken))
+    public async Task LogoutAsync(string redirectUri = "/", CancellationToken cancellationToken = default(CancellationToken))
     {
         await _localStorage.DeleteAsync(AccessToken);
-        _navigation.NavigateTo("/", true, true);
+        _navigation.NavigateTo(redirectUri, true, true);
     }
 
     public async Task<LoginResponseModel> LoginAsync(LoginModel model, CancellationToken cancellationToken = default(CancellationToken))

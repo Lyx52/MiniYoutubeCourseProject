@@ -3,48 +3,66 @@
 @using Domain.Constants
 @inject IVideoHttpClient _videoHttpClient
 @inject NavigationManager _navigationManager
-<div class="input-group search-bar">
-    <AutoComplete @ref="_autocomplete"
-        @bind-Value="_videoTitle"
-        TItem="Video"
-        DataProvider="VideoDataProvider"
-        PropertyName="Title"
-        Placeholder="Search for a video..."
-        OnChanged="OnVideoSelected"
-        Class="search-bar-autocomplete">
-    </AutoComplete>
+<div class="dropdown search-bar">
+    <input @bind="_videoTitle" 
+           @oninput="OnTextInput" 
+           class="form-control search-bar-autocomplete" 
+           data-bs-toggle="dropdown" />
+    <ul class="dropdown-menu w-100">
+        @if (_videos.Any())
+        {
+            @foreach (var video in _videos)
+            {
+                <li class="w-100" @onclick=@(async (e) => await OnVideoSelected(video))>
+                    <a class="dropdown-item" href="#">@video.Title</a>
+                </li>
+            }
+        }
+        else if (IsLoading) 
+        {
+            <li class="ms-3 w-100">
+                <div class="spinner-grow spinner-grow-sm" role="status">
+                    <span class="visually-hidden user-select-none">Loading...</span>
+                </div>
+                <small class="ms-2 text-secondary user-select-none">Searching...</small>
+            </li>
+        }
+        else
+        {
+            <li class="w-100">
+                <a class="dropdown-item" href="#">No results</a>
+            </li>
+        }
+    </ul>
 </div>
 @code {
     private string _videoTitle;
-    private AutoComplete<Video> _autocomplete;
+    private IEnumerable<Video> _videos = new List<Video>();
     private static IEnumerable<Video> Empty = new List<Video>();
-    private async Task<AutoCompleteDataProviderResult<Video>> VideoDataProvider(AutoCompleteDataProviderRequest<Video> request)
+    private bool IsLoading { get; set; } = false;
+    private async Task OnTextInput(ChangeEventArgs e)
     {
-        var response = await _videoHttpClient.GetVideosByTitle(request.Filter.Value, 0, 20, request.CancellationToken);
-        if (!response.Success)
+        var filter = e.Value?.ToString();
+        if (filter?.Length > 2)
         {
-            return await Task.FromResult(new AutoCompleteDataProviderResult<Video>
-            {
-                Data = Empty, 
-                TotalCount = 0
-            });    
+            IsLoading = true;
+            await InvokeAsync(StateHasChanged);
+            var response = await _videoHttpClient.GetVideosByTitle(filter, 0, 20);
+            _videos = response.Success ? response.Videos : Empty;
+            await Task.Delay(150);
+            IsLoading = false;
+            await InvokeAsync(StateHasChanged);
         }
-        
-        return await Task.FromResult(new AutoCompleteDataProviderResult<Video>
-        {
-            Data = response.Videos, 
-            TotalCount = response.Videos.Count()
-        });
     }
+    
 
     private async Task OnVideoSelected(Video? video)
     {
         if (video is null) return;
+        IsLoading = false;
         if (Guid.TryParse(video.Id, out var videoId))
         {
             _navigationManager.NavigateTo($"/watch/{videoId.ToEncodedId()}", false, true);    
         }
-        await _autocomplete.ResetAsync();
     }
-
 }

@@ -7,107 +7,112 @@
 @inject ILoginManager _loginManager
 @inject NavigationManager _navigationManager
 @inject IVideoHttpClient _videoHttpClient
-<div class="container">
-  <div class="main-body">
+<AuthorizeView>
+    <NotAuthorized>
+        <AuthBarrier />
+    </NotAuthorized>
+    <Authorized Context="AuthView">
+            <div class="container">
+                <div class="main-body">
 
-        <!-- Breadcrumb -->
-        <nav aria-label="breadcrumb" class="main-breadcrumb">
-          <ol class="breadcrumb">
-            <li class="breadcrumb-item"><NavLink class="text-dark text-decoration-none" href="/" Match=NavLinkMatch.All>Home</NavLink></li>
-            <li class="breadcrumb-item active" aria-current="page">Profile</li>
-          </ol>
-        </nav>
-        <!-- /Breadcrumb -->
-        
-        @if (Model is not null)
-        {
-            <EditForm EditContext="_profileContext" OnValidSubmit="OnEditSubmit">
-                <div class="row gutters-sm">
-                    <div class="col-md-4 mb-3">
-                        <div class="card">
-                            <div class="card-body">
-                                <div class="d-flex flex-column align-items-center text-center">
-                                    <img src="https://bootdey.com/img/Content/avatar/avatar7.png" alt="Admin" class="rounded-circle" width="150">
-                                    <div class="mt-3">
-                                        <h4>@Model.CreatorName</h4>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-8">
-                        <div class="card mb-3">
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-sm-3">
-                                        <h6 class="mb-0">Creator Name</h6>
-                                    </div>
-                                    <div class="col-sm-9 text-secondary">
-                                        @if (IsEditMode)
-                                        {
-                                            <div class="mb-1">
-                                                <InputText id="titleInput" class="form-control" @bind-Value="Model.CreatorName"/>
-                                                <ValidationMessage class="text-danger" For="@(() => Model.CreatorName)"/>
+                    <!-- Breadcrumb -->
+                    <nav aria-label="breadcrumb" class="main-breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><NavLink class="text-dark text-decoration-none" href="/" Match=NavLinkMatch.All>Home</NavLink></li>
+                            <li class="breadcrumb-item active" aria-current="page">Profile</li>
+                        </ol>
+                    </nav>
+                    <!-- /Breadcrumb -->
+                    @if (Model is not null)
+                    {
+                        <EditForm EditContext="_profileContext" OnValidSubmit="OnEditSubmit">
+                            <div class="row gutters-sm">
+                                <div class="col-md-4 mb-3">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <div class="d-flex flex-column align-items-center text-center">
+                                                <img src="https://bootdey.com/img/Content/avatar/avatar7.png" alt="Admin" class="rounded-circle" width="150">
+                                                <div class="mt-3">
+                                                    <h4>@Model.CreatorName</h4>
+                                                </div>
                                             </div>
-                                        }
-                                        else
-                                        {
-                                            @Model.CreatorName    
-                                        }
-                                    </div>
-                                </div>
-                                <hr>
-                                <div class="row">
-                                    <div class="col-sm-3">
-                                        <h6 class="mb-0">Username</h6>
-                                    </div>
-                                    <div class="col-sm-9 text-secondary">
-                                        @Model.Username
-                                    </div>
-                                </div>
-                                <hr>
-                                <div class="row">
-                                    <div class="col-sm-3">
-                                        <h6 class="mb-0">Email</h6>
-                                    </div>
-                                    <div class="col-sm-9 text-secondary">
-                                        @Model.Email
-                                    </div>
-                                </div>
-                                <hr>
-                                <hr>
-                                @if (_latestVideo is not null)
-                                {
-                                    <div class="row">
-                                        <div class="col-sm-3">
-                                            <h6 class="mb-0">Last upload</h6>
                                         </div>
-                                        <div class="col-sm-9 text-secondary">
-                                            @{
-                                                var videoLink = $"/watch/{Guid.Parse(_latestVideo.VideoId).ToEncodedId()}";
+                                    </div>
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="card mb-3">
+                                        <div class="card-body">
+                                            <div class="row">
+                                                <div class="col-sm-3">
+                                                    <h6 class="mb-0">Creator Name</h6>
+                                                </div>
+                                                <div class="col-sm-9 text-secondary">
+                                                    @if (IsEditMode)
+                                                    {
+                                                        <div class="mb-1">
+                                                            <InputText id="titleInput" class="form-control" @bind-Value="Model.CreatorName"/>
+                                                            <ValidationMessage class="text-danger" For="@(() => Model.CreatorName)"/>
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        @Model.CreatorName
+                                                    }
+                                                </div>
+                                            </div>
+                                            <hr>
+                                            <div class="row">
+                                                <div class="col-sm-3">
+                                                    <h6 class="mb-0">Username</h6>
+                                                </div>
+                                                <div class="col-sm-9 text-secondary">
+                                                    @Model.Username
+                                                </div>
+                                            </div>
+                                            <hr>
+                                            <div class="row">
+                                                <div class="col-sm-3">
+                                                    <h6 class="mb-0">Email</h6>
+                                                </div>
+                                                <div class="col-sm-9 text-secondary">
+                                                    @Model.Email
+                                                </div>
+                                            </div>
+                                            @if (_latestVideo is not null)
+                                            {
+                                                <hr>
+                                                <div class="row">
+                                                    <div class="col-sm-3">
+                                                        <h6 class="mb-0">Last upload</h6>
+                                                    </div>
+                                                    <div class="col-sm-9 text-secondary">
+                                                        @{
+                                                            var videoLink = $"/watch/{Guid.Parse(_latestVideo.VideoId).ToEncodedId()}";
+                                                        }
+                                                        <NavLink class="link-underline-opacity-0 link-underline-opacity-75-hover text-dark-emphasis" href="@videoLink">@_latestVideo.Title</NavLink>
+                                                    </div>
+                                                </div>
                                             }
-                                            <NavLink class="link-underline-opacity-0 link-underline-opacity-75-hover text-dark-emphasis" href="@videoLink">@_latestVideo.Title</NavLink>
+                                            <hr>
+                                            <div class="row">
+                                                <div class="col-sm-12">
+                                                    <a class="btn btn-outline-dark" @onclick="OnProfileEdit">Edit</a>
+                                                    @if (IsSaveRequired)
+                                                    {
+                                                        <button class="ms-3 btn btn-outline-dark" type="submit">Save</button>
+                                                    }
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                }
-                                <hr>
-                                <div class="row">
-                                    <div class="col-sm-12">
-                                        <a class="btn btn-outline-dark" @onclick="OnProfileEdit">Edit</a>
-                                        @if (IsSaveRequired)
-                                        {
-                                            <button class="ms-3 btn btn-outline-dark" type="submit">Save</button>
-                                        }
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
+                        </EditForm>
+                    }
                 </div>
-            </EditForm>
-        }
-      </div>
-  </div>
+            </div>
+    </Authorized>
+</AuthorizeView>
 @code {
     private UserModel? Model { get; set; }
     private bool IsLoaded { get; set; }
@@ -132,7 +137,6 @@
         if (!response.Success)
         {
             await _loginManager.LogoutAsync();
-            _navigationManager.NavigateTo("/", false, true);
             return;
         }
         Model = response.User;

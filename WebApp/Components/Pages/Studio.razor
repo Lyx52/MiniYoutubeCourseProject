@@ -1,101 +1,81 @@
 ﻿@page "/studio"
-@using Microsoft.AspNetCore.Components.Authorization
-@using WebApp.Services
-@using Domain.Model.Response
-@using Domain.Interfaces
-@using Domain.Entity
-@using System.Security.Claims
-@using Microsoft.IdentityModel.JsonWebTokens
 @using WebApp.Models
-@inject AuthenticationStateProvider _authenticationStateProvider
-@inject ILoginManager _loginManager
-@inject IVideoHttpClient _videoHttpClient
-@inject NavigationManager _navigationManager
-<div class="container-fluid">
-    <div class="row flex-nowrap">
-        <div class="col-auto px-0">
-            <div id="sidebar" class="collapse collapse-horizontal show border-end">
-                <div id="sidebar-nav" class="list-group border-0 rounded-0 text-sm-start min-vh-100">
-                    <a @onclick="OnOpenVideosPage" class="list-group-item border-end-0 d-inline-block text-truncate cursor-pointer" data-bs-parent="#sidebar">
-                        <i class="bi bi-film"></i> <span>Videos</span>
-                    </a>
-                    <a @onclick="OnOpenPlaylistPage" class="list-group-item border-end-0 d-inline-block text-truncate cursor-pointer" data-bs-parent="#sidebar">
-                        <i class="bi bi-view-list"></i> <span>Playlists</span>
-                    </a>
+<AuthorizeView>
+    <NotAuthorized>
+        <AuthBarrier />
+    </NotAuthorized>
+    <Authorized>
+        <div class="container-fluid">
+            <div class="row flex-nowrap">
+                <div class="col-auto px-0">
+                    <div id="sidebar" class="collapse collapse-horizontal show border-end">
+                        <div id="sidebar-nav" class="list-group border-0 rounded-0 text-sm-start min-vh-100">
+                            <a @onclick="OnOpenVideosPage" class="list-group-item border-end-0 d-inline-block text-truncate cursor-pointer" data-bs-parent="#sidebar">
+                                <i class="bi bi-film"></i> <span>Videos</span>
+                            </a>
+                            <a @onclick="OnOpenPlaylistPage" class="list-group-item border-end-0 d-inline-block text-truncate cursor-pointer" data-bs-parent="#sidebar">
+                                <i class="bi bi-view-list"></i> <span>Playlists</span>
+                            </a>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
-        <div class="col ps-md-2 pt-2">
-            <div class="d-flex flex-column w-100">
-                <div class="d-flex flex-row w-100">
-                    <a href="#" data-bs-target="#sidebar" data-bs-toggle="collapse" class="btn btn-outline-dark">
-                        <i class="bi bi-list bi-lg py-2 p-1"></i> Menu
-                    </a>
-                    
-                </div>
-                <div class="d-flex flex-row w-100">
+                <div class="col ps-md-2 pt-2">
+                    <div class="d-flex flex-column w-100">
+                        <div class="d-flex flex-row w-100">
+                            <a href="#" data-bs-target="#sidebar" data-bs-toggle="collapse" class="btn btn-outline-dark">
+                                <i class="bi bi-list bi-lg py-2 p-1"></i> Menu
+                            </a>
+                            
+                        </div>
+                        <div class="d-flex flex-row w-100">
+                            @switch (CurrentState)
+                            {
+                                case StudioState.VideoListView:
+                                {
+                                    <a @onclick="OnOpenUploadModal" class="btn btn-outline-dark ms-auto">
+                                        <i class="bi bi-file-earmark-play"></i> Upload video
+                                    </a>   
+                                } break;
+                                case StudioState.PlayListView:
+                                {
+                                    <a @onclick="OnOpenCreatePlaylistModal" class="btn btn-outline-dark ms-auto">
+                                        <i class="bi bi-view-list"></i> Create playlist
+                                    </a>
+                                } break;
+                            }
+                        </div>
+                    </div>
+                    <hr>
                     @switch (CurrentState)
                     {
                         case StudioState.VideoListView:
                         {
-                            <a @onclick="OnOpenUploadModal" class="btn btn-outline-dark ms-auto">
-                                <i class="bi bi-file-earmark-play"></i> Upload video
-                            </a>   
-                        } break;
+                            <StudioVideoList @ref="_videoListView"/>
+                        }
+                            break;
                         case StudioState.PlayListView:
                         {
-                            <a @onclick="OnOpenCreatePlaylistModal" class="btn btn-outline-dark ms-auto">
-                                <i class="bi bi-view-list"></i> Create playlist
-                            </a>
+                            <StudioPlaylistList @ref="_playListView"/>
                         } break;
                     }
                 </div>
             </div>
-            <hr>
-            @switch (CurrentState)
-            {
-                case StudioState.VideoListView:
-                {
-                    <StudioVideoList @ref="_videoListView"/>
-                }
-                    break;
-                case StudioState.PlayListView:
-                {
-                    <StudioPlaylistList @ref="_playListView"/>
-                } break;
-            }
-        </div>
-    </div>
-</div>
+        </div>    
+    </Authorized>
+</AuthorizeView>
 @code {
     
     private StudioState CurrentState { get; set; }
     private StudioVideoList _videoListView;
     private StudioPlaylistList _playListView;
-    protected override async Task OnInitializedAsync()
-    {
-        var userId = string.Empty;
-        try
-        {
-            var authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
-            var userIdClaim = authState.User.FindFirst(JwtRegisteredClaimNames.Sub);
-            if (userIdClaim is null)
-            {
-                _navigationManager.NavigateTo("/login", false, true);
-                return;
-            }
-            userId = userIdClaim!.Value;
-        }
-        catch (NavigationException _) { } // Another js related exception we can ignore
-    }
-    
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await base.OnAfterRenderAsync(firstRender);
-        if (firstRender)
+        if (!firstRender)
         {
             await _videoListView.OpenUploadModal(true);
         }
+        await base.OnAfterRenderAsync(firstRender);
     }
 
     private async Task OnOpenVideosPage()

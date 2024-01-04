@@ -4,6 +4,7 @@
 @inject ILoginManager _loginManager
 @inject PreloadService _preloadService
 @inject NavigationManager _navigationManager
+@inject AuthenticationStateProvider _authenticationStateProvider
 <div class="m-0 row justify-content-center">
     <EditForm EditContext="@_loginContext" class="card col-12 col-md-8 col-lg-4 px-4 py-4 mt-5 border-0" OnValidSubmit="OnLogin">
         <Preload/>
@@ -42,13 +43,13 @@
     private async Task OnLogin()
     {
         _preloadService.Show(SpinnerColor.Dark);
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
         _responseModel = await _loginManager.LoginAsync(_model);
         if (_responseModel.Success)
         {
-            _navigationManager.NavigateTo("/", false, true);
+            _navigationManager.NavigateTo("/", true, true);
         }
         _preloadService.Hide();
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
 }

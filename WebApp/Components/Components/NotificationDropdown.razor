@@ -13,6 +13,10 @@
         }
     </button>
     <ul class="dropdown-menu text-small shadow main-navbar-dropdown notification-dropdown" data-popper-placement="bottom-end">
+        @if (!Notifications.Any())
+        {
+            <li class="user-select-none">No new notifications</li>
+        }
         @foreach (var notification in Notifications)
         {
             @if (Guid.TryParse(notification.Id, out var notificationId))
