@@ -1,10 +1,8 @@
 ﻿using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Domain.Interfaces;
 using Domain.Model.Response;
 using Domain.Model.View;
-using Microsoft.AspNetCore.Http.Internal;
 using Microsoft.Extensions.Logging;
 
 namespace Domain.Services;
