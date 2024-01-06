@@ -131,10 +131,15 @@
     private AutoResetEvent _timerResetEvent { get; set; }
     private bool IsTimerLoaded { get; set; } = false;
     private ConcurrentDictionary<string, bool> ProcessingActions { get; set; } = new ConcurrentDictionary<string, bool>();
+    private static GridDataProviderResult<Video> EmptyResult = new GridDataProviderResult<Video>()
+    {
+        Data = new List<Video>(),
+        TotalCount = 0
+    };
     private async Task<GridDataProviderResult<Video>> UserVideoDataProvider(GridDataProviderRequest<Video> request)
     {
         var response = await _videoHttpClient.GetUserVideos((request.PageNumber - 1) * request.PageSize, request.PageSize);
-        if (!response.Success) return new GridDataProviderResult<Video>();
+        if (!response.Success) return EmptyResult;
         response.Videos.ToList().ForEach(v =>
         {
             ProcessingActions.TryAdd(v.Id, false);

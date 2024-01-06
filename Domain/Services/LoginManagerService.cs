@@ -79,6 +79,8 @@ public class LoginManagerService : ILoginManager
             await _localStorage.SetAsync(RefreshToken, refreshResponse.RefreshToken);
             return claims.ToList();
         }
+
+        await LogoutAsync("/login", cancellationToken);
         return new List<Claim>();
     }
     

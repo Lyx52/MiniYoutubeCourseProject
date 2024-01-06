@@ -38,6 +38,11 @@
     private List<PlaylistModel> _playlists = new List<PlaylistModel>();
     private EditPlaylistForm _editPlaylistForm;
     private bool IsLoaded { get; set; }
+    private static GridDataProviderResult<PlaylistModel> EmptyResult = new GridDataProviderResult<PlaylistModel>()
+    {
+        Data = new List<PlaylistModel>(),
+        TotalCount = 0
+    };
     private async Task<GridDataProviderResult<PlaylistModel>> UserPlaylistDataProvider(GridDataProviderRequest<PlaylistModel> request)
     {
         if (IsLoaded)
@@ -47,7 +52,7 @@
                 TotalCount = _playlists.Count
             };
         var response = await _videoHttpClient.GetUserPlaylists();
-        if (!response.Success) return new GridDataProviderResult<PlaylistModel>();
+        if (!response.Success) return EmptyResult;
         _playlists = response.Playlists.ToList();
         IsLoaded = true;
         return new GridDataProviderResult<PlaylistModel>()

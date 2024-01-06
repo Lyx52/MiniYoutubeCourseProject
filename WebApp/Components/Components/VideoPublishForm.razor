@@ -46,10 +46,9 @@
 
 @code {
     private Modal _modal;
-    private bool _isPublishing { get; set; } = true;
     private Timer? _publishTimer { get; set; }
     private AutoResetEvent _timerResetEvent { get; set; }
-    public bool IsLoading => _isPublishing || CurrentStatus == VideoProcessingStatus.Processing;
+    public bool IsLoading => CurrentStatus == VideoProcessingStatus.Processing;
     
     public Guid VideoId { get; set; }
     public VideoProcessingStatus CurrentStatus { get; set; } = VideoProcessingStatus.Processing;
@@ -59,10 +58,11 @@
     
     public async Task OpenModalAsync(Guid videoId)
     {
+        CurrentStatus = VideoProcessingStatus.Processing;
+        await InvokeAsync(StateHasChanged);
         var response = await _videoHttpClient.GetProcessingStatus(VideoId);
         if (response.Success)
         {
-            _isPublishing = response.Status == VideoProcessingStatus.Processing;
             CurrentStatus = response.Status;
         }
         VideoId = videoId;
@@ -77,8 +77,8 @@
             _publishTimer.Change(Timeout.Infinite, Timeout.Infinite);
             await _publishTimer.DisposeAsync();    
         }
-        
-        _isPublishing = false;
+
+        CurrentStatus = VideoProcessingStatus.ProcessingFinished;
         await InvokeAsync(StateHasChanged);
     }
     private async Task InitVideoStateTimer()
@@ -111,11 +111,8 @@
 
     public async Task PublishVideoAsync()
     {
-        _isPublishing = true;
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
         await _videoHttpClient.PublishVideo(VideoId);
-        _isPublishing = false;
-        StateHasChanged();
         await OnFormSubmit.InvokeAsync();
     }
     
