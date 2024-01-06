@@ -25,6 +25,32 @@ public class AuthHttpClient(
             Username = model.Username
         }, JwtRequirement.None, cancellationToken);
     }
+
+    public async Task<Response> RevokeRefreshTokenAsync(ILoginManager loginManager,
+        CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var refreshToken = await loginManager.GetRefreshToken(cancellationToken);
+        var expiredToken = await loginManager.GetJwtToken(cancellationToken);
+        if (string.IsNullOrEmpty(refreshToken) || string.IsNullOrEmpty(expiredToken))
+        {
+            return new Response()
+            {
+                Success = false,
+                Message = "Unauthorized, please try authenticating again"
+            };
+        }
+
+        
+        return await SendPayloadRequest<RevokeRefreshTokenRequest, Response>("api/Auth/RevokeRefreshToken", new RevokeRefreshTokenRequest()
+        {
+            Token = expiredToken,
+            RefreshToken = refreshToken
+        }, expiredToken, cancellationToken);
+    }
+    public Task<RefreshTokenResponse> RefreshTokenAsync(ILoginManager loginManager, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        return RefreshTokenInternalAsync(loginManager, cancellationToken);
+    }
     
     public Task<Response> RegisterAsync(RegisterModel model, CancellationToken cancellationToken = default(CancellationToken))
     {

@@ -15,12 +15,56 @@ public class UserRepository : IUserRepository
 {
     private readonly ILogger<UserRepository> _logger;
     private readonly UserManager<User> _userManager;
-    public UserRepository(ILogger<UserRepository> logger, UserManager<User> userManager)
+    private readonly UserDbContext _userDbContext;
+    public const int MaxRefreshTokenRegenerations = 3;
+    public UserRepository(ILogger<UserRepository> logger, UserManager<User> userManager, UserDbContext userDbContext)
     {
         _userManager = userManager;
         _logger = logger;
+        _userDbContext = userDbContext;
     }
 
+    public async Task<bool> TryToRevokeRefreshToken(string userId, string refreshToken,
+        CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var token = await _userDbContext.RefreshTokens.FirstOrDefaultAsync(
+            rt => rt.UserId == userId && rt.Token == refreshToken, cancellationToken);
+        if (token is null) return false;
+        token.ExpiryDate = DateTime.UtcNow;
+        token.IsRevoked = true;
+        await _userDbContext.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    public async Task<string?> RegenerateRefreshToken(string userId, string refreshToken,
+        CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var token = await _userDbContext.RefreshTokens.FirstOrDefaultAsync(
+            rt => rt.UserId == userId && rt.Token == refreshToken, cancellationToken);
+        if (token is null) return null;
+        if (token.RefreshCount >= MaxRefreshTokenRegenerations || DateTime.UtcNow > token.ExpiryDate) return null;
+        token.Token = Guid.NewGuid().ToString();
+        token.RefreshCount++;
+        await _userDbContext.SaveChangesAsync(cancellationToken);
+        return token.Token;
+    }
+    public async Task<string> GenerateRefreshToken(string userId,
+        CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var token = Guid.NewGuid().ToString();
+        await _userDbContext.RefreshTokens.AddAsync(new RefreshToken()
+        {
+            Id = Guid.NewGuid().ToString(),
+            UserId = userId,
+            Token = token,
+            ExpiryDate = DateTime.UtcNow.AddDays(7),
+            IsRevoked = false,
+            RefreshCount = 0
+        }, cancellationToken);
+        await _userDbContext.SaveChangesAsync(cancellationToken);
+        return token;
+    }
+    
     public async Task<IEnumerable<UserModel>> GetUsersByIds(IEnumerable<string> userIds,
         CancellationToken cancellationToken = default(CancellationToken))
     {

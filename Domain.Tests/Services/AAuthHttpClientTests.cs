@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using Domain.Entity;
 using Domain.Interfaces;
 using Domain.Model;
 using Domain.Model.View;
@@ -42,6 +43,20 @@ public class AAuthHttpClientTests
         _mockLoginManager = new Mock<ILoginManager>();
         _mockLoginManager.Setup((x) => x.GetJwtToken(CancellationToken.None)).Returns(() => 
             Task.FromResult(_sharedState.Token)!);
+        
+        _mockLoginManager.Setup(x => x.SetJwtToken(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback<string, CancellationToken>((t, ct) => _sharedState.Token = t)
+            .Returns(Task.CompletedTask);
+        _mockLoginManager.Setup(x => x.SetJwtToken(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback<string, CancellationToken>((t, ct) => _sharedState.Token = t)
+            .Returns(Task.CompletedTask);
+        
+        _mockLoginManager.Setup(x => x.SetRefreshToken(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback<string, CancellationToken>((t, ct) => _sharedState.RefreshToken = t)
+            .Returns(Task.CompletedTask);
+        
+        _mockLoginManager.Setup((x) => x.GetRefreshToken(CancellationToken.None)).Returns(() => 
+            Task.FromResult(_sharedState.RefreshToken)!);
         _userHttpClient = new UserHttpClient(LoggerFactory.Create(b => {}).CreateLogger<UserHttpClient>(), 
             _mockHttpClientFactory.Object, _mockLoginManager.Object);
     }
@@ -72,18 +87,54 @@ public class AAuthHttpClientTests
         Assert.True(response.Success, $"Test failed {response.Message}");
         Assert.False(string.IsNullOrEmpty(response.Token), $"Test failed {response.Message}");
         Assert.False(string.IsNullOrEmpty(response.BearerToken), $"Test failed {response.Message}");
+        Assert.False(string.IsNullOrEmpty(response.RefreshToken), $"Test failed {response.Message}");
         _sharedState.BearerToken = response.BearerToken;
         _sharedState.Token = response.Token;
+        _sharedState.RefreshToken = response.RefreshToken;
         var handler = new JwtSecurityTokenHandler();
         var securityToken = handler.ReadJwtToken(_sharedState.Token);
         Assert.NotNull(securityToken);
         var userId = securityToken.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Sub)?.Value;
         Assert.False(string.IsNullOrEmpty(userId), "userId is empty");
         _sharedState.UserId = userId;
+    }
+    
+    [Fact, Priority(20)]
+    public async Task RefreshTokenTest()
+    {
+        var response = await _authHttpClient.RefreshTokenAsync(_mockLoginManager.Object);
+        Assert.True(response.Success, $"Test failed {response.Message}");
+        Assert.False(string.IsNullOrEmpty(response.Token), $"Test failed {response.Message}");
+        Assert.False(string.IsNullOrEmpty(response.BearerToken), $"Test failed {response.Message}");
+        Assert.False(string.IsNullOrEmpty(response.RefreshToken), $"Test failed {response.Message}");
+        Assert.False(_sharedState.RefreshToken == response.RefreshToken);
+        Assert.False(_sharedState.Token == response.Token);
+        _sharedState.BearerToken = response.BearerToken;
+        _sharedState.Token = response.Token;
+        _sharedState.RefreshToken = response.RefreshToken;
+        var handler = new JwtSecurityTokenHandler();
+        var securityToken = handler.ReadJwtToken(_sharedState.Token);
+        Assert.NotNull(securityToken);
+        var userId = securityToken.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Sub)?.Value;
+        Assert.False(string.IsNullOrEmpty(userId), "userId is empty");
+        Assert.Equivalent(_sharedState.UserId, userId);
+        _sharedState.UserId = userId;
         
-        // Subscribe for notification test later on...
+        // Try subscribing using new tokens (Also needed later for notification test later on)...
         var subscribeResponse = await _userHttpClient.Subscribe(Guid.Parse(_sharedState.UserId));
         Assert.True(subscribeResponse.Success, $"Test failed {subscribeResponse.Message}");
     }
-    
+    [Fact, Priority(30)]
+    public async Task RevokeTokenTest()
+    {
+        var response = await _authHttpClient.RevokeRefreshTokenAsync(_mockLoginManager.Object);
+        Assert.True(response.Success, $"Test failed {response.Message}");
+        
+        // Try refreshing token (Needs to fail)
+        var refreshTokenResponse = await _authHttpClient.RefreshTokenAsync(_mockLoginManager.Object);
+        Assert.False(refreshTokenResponse.Success, $"Test failed {refreshTokenResponse.Message}");
+        
+        // Login again
+        await LoginTest();
+    }
 }

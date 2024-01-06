@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Domain.Constants;
 using Domain.Interfaces;
+using Domain.Model.Request;
 using Domain.Model.Response;
 using Domain.Model.View;
 using Microsoft.AspNetCore.Http;
@@ -10,46 +11,57 @@ using Microsoft.Extensions.Logging;
 
 namespace Domain.Services;
 
-public class BaseHttpClient(
-    string clientName,
-    ILogger<dynamic> logger,
-    IHttpClientFactory _httpClientFactory,
-    ILoginManager? loginManager)
+public abstract class BaseHttpClient
 {
-    private string ClientName { get; init; } = clientName;
+    private readonly ILogger<dynamic> _logger;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ILoginManager? _loginManager;
+
+    public BaseHttpClient(string clientName,
+        ILogger<dynamic> logger,
+        IHttpClientFactory httpClientFactory,
+        ILoginManager? loginManager)
+    {
+        _logger = logger;
+        _httpClientFactory = httpClientFactory;
+        _loginManager = loginManager;
+        ClientName = clientName;
+    }
+
+    private string ClientName { get; init; }
     
     public async Task<TResponse> SendPayloadRequest<TPayload, TResponse>(
         string url,
         TPayload payload,
-        JwtRequirement jwtRequirement = JwtRequirement.Optional,
+        string? jwtToken = null,
         CancellationToken cancellationToken = default(CancellationToken)
     ) where TResponse : Response, new() {
         using var client = _httpClientFactory.CreateClient(ClientName);
-        if (jwtRequirement is not JwtRequirement.None && loginManager is not null)
+        if (!string.IsNullOrEmpty(jwtToken))
         {
-            var jwt = await loginManager.GetJwtToken(cancellationToken);
-            
-            if (!string.IsNullOrEmpty(jwt))
-            {
-                client.DefaultRequestHeaders.Add("Authorization", $"Bearer {jwt}");    
-            }
-            else if (jwtRequirement is JwtRequirement.Mandatory)
-            {
-                return new TResponse() { 
-                    Success = false, 
-                    Message = "Unauthorized request" 
-                };
-            }
+            client.DefaultRequestHeaders.Add("Authorization", $"Bearer {jwtToken}");
         }
 
         try
         {
             var response = await client.PostAsJsonAsync<TPayload>(url, payload, cancellationToken);
+            if (response.StatusCode == HttpStatusCode.Unauthorized && _loginManager is not null && url != "api/Auth/RefreshToken")
+            {
+                var refreshResponse = await RefreshTokenInternalAsync(cancellationToken);
+                if (refreshResponse.Success)
+                {
+                    // Try to resend using new token
+                    await _loginManager.SetRefreshToken(refreshResponse.RefreshToken, cancellationToken);
+                    await _loginManager.SetJwtToken(refreshResponse.Token, cancellationToken);
+                    var newRequestResponse = await SendPayloadRequest<TPayload, TResponse>(url, payload, refreshResponse.Token, cancellationToken);
+                    if (newRequestResponse.Success) return newRequestResponse;
+                }
+            }
             return await HandleResponse<TResponse>(response, cancellationToken);
         }
         catch (HttpRequestException e)
         {
-            logger.LogError("Request failed with exception {ExceptionMessage}!", e.Message);
+            _logger.LogError("Request failed with exception {ExceptionMessage}!", e.Message);
             return new TResponse()
             {
                 Success = false,
@@ -57,40 +69,41 @@ public class BaseHttpClient(
             };
         }
     }
-
-    public Task<TResponse> SendQueryRequest<TResponse>(
-        HttpMethod method,
+    
+    public async Task<TResponse> SendPayloadRequest<TPayload, TResponse>(
         string url,
+        TPayload payload,
         JwtRequirement jwtRequirement = JwtRequirement.Optional,
         CancellationToken cancellationToken = default(CancellationToken)
     ) where TResponse : Response, new()
     {
-        return SendQueryRequest<TResponse>(method, url, QueryString.Empty, jwtRequirement, cancellationToken);
-    }
-
-    public async Task<TResponse> SendQueryRequest<TResponse>(
-        HttpMethod method,
-        string url,
-        QueryString query,
-        JwtRequirement jwtRequirement = JwtRequirement.Optional,
-        CancellationToken cancellationToken = default(CancellationToken)
-    ) where TResponse : Response, new() {
-        using var client = _httpClientFactory.CreateClient(ClientName);
-        if (jwtRequirement is not JwtRequirement.None && loginManager is not null)
+        string? jwtToken = null;
+        if (jwtRequirement is not JwtRequirement.None && _loginManager is not null)
         {
-            var jwt = await loginManager.GetJwtToken(cancellationToken);
+            jwtToken = await _loginManager.GetJwtToken(cancellationToken);
             
-            if (!string.IsNullOrEmpty(jwt))
-            {
-                client.DefaultRequestHeaders.Add("Authorization", $"Bearer {jwt}");    
-            }
-            else if (jwtRequirement is JwtRequirement.Mandatory)
+            if (string.IsNullOrEmpty(jwtToken) && jwtRequirement is JwtRequirement.Mandatory)
             {
                 return new TResponse() { 
                     Success = false, 
                     Message = "Unauthorized request" 
                 };
             }
+        }
+
+        return await SendPayloadRequest<TPayload, TResponse>(url, payload, jwtToken, cancellationToken);
+    }
+    public async Task<TResponse> SendQueryRequest<TResponse>(
+        HttpMethod method,
+        string url,
+        QueryString query,
+        string? jwtToken = null,
+        CancellationToken cancellationToken = default(CancellationToken)
+    ) where TResponse : Response, new() {
+        using var client = _httpClientFactory.CreateClient(ClientName);
+        if (!string.IsNullOrEmpty(jwtToken))
+        {
+            client.DefaultRequestHeaders.Add("Authorization", $"Bearer {jwtToken}");
         }
 
         try
@@ -101,17 +114,53 @@ public class BaseHttpClient(
                 "DELETE" => await client.DeleteAsync(url + query, cancellationToken),
                 _ => throw new NotSupportedException($"HttpMethod {method} not supported!")
             };
+            if (response.StatusCode == HttpStatusCode.Unauthorized && _loginManager is not null && url != "api/Auth/RefreshToken")
+            {
+                var refreshResponse = await RefreshTokenInternalAsync(cancellationToken);
+                if (refreshResponse.Success)
+                {
+                    // Try to resend using new token
+                    await _loginManager.SetRefreshToken(refreshResponse.RefreshToken, cancellationToken);
+                    await _loginManager.SetJwtToken(refreshResponse.Token, cancellationToken);
+                    var newRequestResponse = await SendQueryRequest<TResponse>(method, url, query, refreshResponse.Token, cancellationToken);
+                    if (newRequestResponse.Success) return newRequestResponse;
+                }
+            }
             return await HandleResponse<TResponse>(response, cancellationToken);
         }
         catch (HttpRequestException e)
         {
-            logger.LogError("Request failed with exception {ExceptionMessage}!", e.Message);
+            _logger.LogError("Request failed with exception {ExceptionMessage}!", e.Message);
             return new TResponse()
             {
                 Success = false,
                 Message = "Request failed, please try again later"    
             };
         }
+    }
+
+    public async Task<TResponse> SendQueryRequest<TResponse>(
+        HttpMethod method,
+        string url,
+        QueryString query,
+        JwtRequirement jwtRequirement = JwtRequirement.Optional,
+        CancellationToken cancellationToken = default(CancellationToken)
+    ) where TResponse : Response, new() {
+        string? jwtToken = null;
+        if (jwtRequirement is not JwtRequirement.None && _loginManager is not null)
+        {
+            jwtToken = await _loginManager.GetJwtToken(cancellationToken);
+            
+            if (string.IsNullOrEmpty(jwtToken) && jwtRequirement is JwtRequirement.Mandatory)
+            {
+                return new TResponse() { 
+                    Success = false, 
+                    Message = "Unauthorized request" 
+                };
+            }
+        }
+
+        return await SendQueryRequest<TResponse>(method, url, query, jwtToken, cancellationToken);
     }
     private async Task<TResponse> HandleResponse<TResponse>(HttpResponseMessage response, CancellationToken cancellationToken = default(CancellationToken)) 
         where TResponse : Response, new()
@@ -132,12 +181,34 @@ public class BaseHttpClient(
         }
         catch (Exception e)
         {
-            logger.LogError("Response parsing failed with exception {ExceptionMessage}", e.Message);
+            _logger.LogError("Response parsing failed with exception {ExceptionMessage}", e.Message);
             return new TResponse()
             {
                 Success = false,
                 Message = "Request failed, please try again later"    
             };
         }
+    }
+    protected Task<RefreshTokenResponse> RefreshTokenInternalAsync(CancellationToken cancellationToken = default(CancellationToken))
+        => RefreshTokenInternalAsync(_loginManager!, cancellationToken);
+    protected async Task<RefreshTokenResponse> RefreshTokenInternalAsync(ILoginManager loginManager, 
+        CancellationToken cancellationToken = default(CancellationToken))
+    {
+        var refreshToken = await loginManager.GetRefreshToken(cancellationToken);
+        var expiredToken = await loginManager.GetJwtToken(cancellationToken);
+        if (string.IsNullOrEmpty(refreshToken) || string.IsNullOrEmpty(expiredToken))
+        {
+            return new RefreshTokenResponse()
+            {
+                Success = false,
+                Message = "Unauthorized, please try authenticating again"
+            };
+        }
+        
+        return await SendPayloadRequest<RefreshTokenRequest, RefreshTokenResponse>("api/Auth/RefreshToken", new RefreshTokenRequest()
+        {
+            ExpiredToken = expiredToken,
+            RefreshToken = refreshToken
+        }, JwtRequirement.None, cancellationToken);
     }
 }

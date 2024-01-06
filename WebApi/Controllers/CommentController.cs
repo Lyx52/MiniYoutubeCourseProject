@@ -41,8 +41,7 @@ public class CommentController : ControllerBase
     public async Task<IActionResult> CommentImpression([FromBody] CommentImpressionRequest payload,
         CancellationToken cancellationToken = default(CancellationToken))
     {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
-        var user = await _userRepository.GetUserById(userId, cancellationToken);
+        var user = await _userRepository.GetUserByClaimsPrincipal(User, cancellationToken);
         if (user is null)
         {
             return Unauthorized(new Response()

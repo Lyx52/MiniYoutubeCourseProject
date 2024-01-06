@@ -87,8 +87,12 @@ public class Startup
                 options.RequireHttpsMetadata = false;
                 options.TokenValidationParameters = new TokenValidationParameters()
                 {
+                    ValidateIssuerSigningKey = true,
                     ValidateIssuer = true,
-                    ValidateAudience = true,
+                    ValidateAudience = false,
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.Zero,
+                    RequireExpirationTime = true,
                     ValidAudience = settings.JWT.ValidAudience,
                     ValidIssuer = settings.JWT.ValidIssuer,
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(settings.JWT.Secret))
@@ -114,7 +118,7 @@ public class Startup
                         { 
                             Type = ReferenceType.SecurityScheme,
                             Id = "Bearer" 
-                        } 
+                        }
                     },
                     new string[] { } 
                 } 
