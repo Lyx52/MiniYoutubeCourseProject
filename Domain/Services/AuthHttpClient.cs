@@ -1,12 +1,9 @@
-﻿using System.Net;
-using System.Net.Http.Json;
-using Domain.Constants;
+﻿using Domain.Constants;
 using Domain.Interfaces;
 using Domain.Model;
 using Domain.Model.Request;
 using Domain.Model.Response;
 using Domain.Model.View;
-using Microsoft.Extensions.Logging;
 
 namespace Domain.Services;
 

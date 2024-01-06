@@ -7,6 +7,7 @@ using Domain.Model.Request;
 using Domain.Model.Response;
 using Domain.Model.View;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
 namespace Domain.Services;
@@ -16,7 +17,6 @@ public abstract class BaseHttpClient
     private readonly ILogger<dynamic> _logger;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILoginManager? _loginManager;
-
     public BaseHttpClient(string clientName,
         ILogger<dynamic> logger,
         IHttpClientFactory httpClientFactory,
@@ -189,8 +189,10 @@ public abstract class BaseHttpClient
             };
         }
     }
+
     protected Task<RefreshTokenResponse> RefreshTokenInternalAsync(CancellationToken cancellationToken = default(CancellationToken))
         => RefreshTokenInternalAsync(_loginManager!, cancellationToken);
+
     protected async Task<RefreshTokenResponse> RefreshTokenInternalAsync(ILoginManager loginManager, 
         CancellationToken cancellationToken = default(CancellationToken))
     {

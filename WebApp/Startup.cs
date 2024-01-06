@@ -1,4 +1,5 @@
 ﻿using Domain;
+using Domain.Constants;
 using Domain.Model.Configuration;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -36,6 +37,12 @@ public class Startup
         services.AddCascadingAuthenticationState();
         services.AddAuthenticationCore();
         services.AddAuthorizationCore();
+        services.AddResponseCachingService(options =>
+        {
+            options
+                .AddEntryCache(ResponseCacheKeys.WatchViewCreator, options.DefaultOptions)
+                .AddEntryCache(ResponseCacheKeys.WatchViewMetadata, options.DefaultOptions);
+        });
     }
 
     public void Configure(IApplicationBuilder app, IHostEnvironment env)

@@ -5,12 +5,14 @@
 @using Domain.Interfaces
 @using Domain.Model
 @using Domain.Model.Configuration
+@using Domain.Model.Response
 @using Domain.Model.View
+@using Microsoft.Extensions.Caching.Memory
 @inject NavigationManager _navigationManager
 @inject IVideoHttpClient _videoHttpClient
 @inject IUserHttpClient _userHttpClient
 @inject AppConfiguration _configuration
-
+@inject IResponseCachingService _responseCachingService
 <PageTitle>Video player</PageTitle>
 <div class="p-3 container-fluid">
     <div class="row">
@@ -57,7 +59,9 @@
             await base.OnInitializedAsync();
             return;
         }
-        var response = await _videoHttpClient.GetVideoMetadata(id);
+        var response = await _responseCachingService
+            .AsCachedResponse(ResponseCacheKeys.WatchViewMetadata, id.ToString(), () => _videoHttpClient.GetVideoMetadata(id));
+
         if (!response.Success)
         {
             _navigationManager.NavigateTo("/", false, true);
@@ -66,7 +70,8 @@
         }
         Metadata = response.Metadata;
         Sources = response.Metadata.ContentSources.ToList();
-        var creatorResponse = await _userHttpClient.GetCreatorProfile(Metadata.CreatorId);
+        var creatorResponse = await _responseCachingService
+            .AsCachedResponse(ResponseCacheKeys.WatchViewCreator, id.ToString(), () => _userHttpClient.GetCreatorProfile(Metadata.CreatorId));
         if (!creatorResponse.Success)
         {
             _navigationManager.NavigateTo("/", false, true);

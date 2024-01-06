@@ -2,6 +2,7 @@
 using System.Resources;
 using System.Threading.Channels;
 using Domain.Interfaces;
+using Domain.Model;
 using Domain.Model.Configuration;
 using Domain.Services;
 using Microsoft.Extensions.Configuration;
@@ -13,6 +14,12 @@ namespace Domain;
 
 public static class ServiceCollectionExtension
 {
+    public static void AddResponseCachingService(this IServiceCollection services, Action<ResponseCacheOptions>? options = null)
+    {
+        services.AddMemoryCache();
+        services.AddScoped<IResponseCachingService, ResponseCachingService>();
+        if (options is not null) services.Configure<ResponseCacheOptions>(options);
+    }
     public static void AddJwtAuthentication(this IServiceCollection services, AppConfiguration configuration)
     {
         services.AddHttpClient<IAuthHttpClient, AuthHttpClient>(nameof(AuthHttpClient), client =>
