@@ -134,7 +134,7 @@ public class PlaylistRepository : IPlaylistRepository
         return _dbContext.PlaylistVideos
             .Include(pv => pv.Playlist)
             .Include(pv => pv.Video)
-            .Where(pv => userId.HasValue || pv.Playlist.CreatorId == userId.ToString())
+            .Where(pv => userId.HasValue && pv.Playlist.CreatorId == userId.ToString())
             .GroupBy(pv => pv.Playlist)
             .Select(pg => new PlaylistModel()
             {
