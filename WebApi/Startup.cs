@@ -154,6 +154,11 @@ public class Startup
 
     public void Configure(IApplicationBuilder app, IHostEnvironment env, ApplicationDbContext appDbContext, UserDbContext userDbContext)
     {
+        // Task.WhenAll(
+        //         appDbContext.Database.EnsureCreatedAsync(), 
+        //         userDbContext.Database.EnsureCreatedAsync())
+        //     .GetAwaiter()
+        //     .GetResult();
         app.UseSwagger(options =>
         {
         });
